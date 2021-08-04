@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">TrovaLaSonda</string>
+    <string name="dummy_button">Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="action_search">search</string>
+    <string name="action_settings">settings</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="first_fragment_label">First Fragment</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="hello_first_fragment">Hello first fragment</string>
+
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string-array name="display_types">
+        <item>SSD1306</item>
+        <item>SH1106</item>
+    </string-array>
+    <string-array name="battery_types">
+        <item>Type 1</item>
+        <item>Type 2</item>
+        <item>Type 3</item>
+    </string-array>
+    <string-array name="sonde_types">
+        <item>RS41</item>
+        <item>M20</item>
+        <item>M10</item>
+        <item>PIL</item>
+        <item>DFM</item>
+    </string-array>
+    <string-array name="bandwidth">
+        <item>2600</item>
+        <item>3100</item>
+        <item>3900</item>
+        <item>5200</item>
+        <item>6300</item>
+        <item>7800</item>
+        <item>1040</item>
+        <item>1250</item>
+        <item>1560</item>
+        <item>2080</item>
+        <item>2500</item>
+        <item>3130</item>
+        <item>4170</item>
+        <item>5000</item>
+        <item>6250</item>
+        <item>8330</item>
+        <item>1000</item>
+        <item>1250</item>
+        <item>1667</item>
+        <item>2000</item>
+    </string-array>
+    <string-array name="nam">
+        <item>SERIAL</item>
+        <item>APRS</item>
+    </string-array>
+</resources>
