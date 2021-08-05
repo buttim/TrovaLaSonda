@@ -77,24 +77,24 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val extras= intent.extras
-        sda=extras?.getInt("sda")?:0
-        scl=extras?.getInt("scl")?:0
-        rst=extras?.getInt("rst")?:0
+        sda=extras?.getInt("oled_sda")?:0
+        scl=extras?.getInt("oled_scl")?:0
+        rst=extras?.getInt("oled_rst")?:0
         lcd=extras?.getInt("lcd")?:0
-        buz=extras?.getInt("buz")?:0
-        led=extras?.getInt("led")?:0
-        bat=extras?.getInt("bat")?:0
-        batMin=extras?.getInt("batMin")?:0
-        batMax=extras?.getInt("batMax")?:0
-        batType=extras?.getInt("batType")?:0
-        RS41bw=extras?.getInt("RS41bw")?:0
-        M20bw=extras?.getInt("M20bw")?:0
-        M10bw=extras?.getInt("M10bw")?:0
-        PILOTbw=extras?.getInt("PILOTbw")?:0
-        DFMbw=extras?.getInt("DFMbw")?:0
-        offset=extras?.getInt("offset")?:0
-        call=extras?.getString("call")?:""
-        nam=extras?.getInt("nam")?:0
+        buz=extras?.getInt("buz_pin")?:0
+        led=extras?.getInt("led_pout")?:0
+        bat=extras?.getInt("battery")?:0
+        batMin=extras?.getInt("vBatMin")?:0
+        batMax=extras?.getInt("vBatMax")?:0
+        batType=extras?.getInt("vBatType")?:0
+        RS41bw=extras?.getInt("rs41.rxbw")?:0
+        M20bw=extras?.getInt("m20.rxbw")?:0
+        M10bw=extras?.getInt("m10.rxbw")?:0
+        PILOTbw=extras?.getInt("pilot.rxbw")?:0
+        DFMbw=extras?.getInt("dfm.rxbw")?:0
+        offset=extras?.getInt("freqofs")?:0
+        call=extras?.getString("myCall")?:""
+        nam=extras?.getInt("aprsName")?:0
 
         spLcd=findViewById(R.id.lcd)
         etCall=findViewById(R.id.call)
@@ -145,41 +145,41 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
             val data=Intent().apply {
                 var t=spLcd?.selectedItemPosition?:0
-                if (t!=lcd) putExtra("lcd",t)
-                val s=etCall?.text.toString()?:""
-                if (s!=call) putExtra("call",s)
+                if (t!=lcd) putExtra(LCD,t)
+                val s=etCall?.text.toString()
+                if (s!=call) putExtra(MYCALL,s)
                 t=etSDA?.text.toString().toInt()
-                if (t!=sda) putExtra("sda",t)
+                if (t!=sda) putExtra(OLED_SDA,t)
                 t=etSCL?.text.toString().toInt()
-                if (t!=scl) putExtra("scl",t)
+                if (t!=scl) putExtra(OLED_SCL,t)
                 t=etRST?.text.toString().toInt()
-                if (t!=rst) putExtra("rst",t)
+                if (t!=rst) putExtra(OLED_RST,t)
                 t=etBUZ?.text.toString().toInt()
-                if (t!=buz) putExtra("buz",t)
+                if (t!=buz) putExtra(BUZ_PIN,t)
                 t=etLED?.text.toString().toInt()
-                if (t!=led) putExtra("led",t)
+                if (t!=led) putExtra(LED_POUT,t)
                 t=etBAT?.text.toString().toInt()
-                if (t!=bat) putExtra("bat",t)
+                if (t!=bat) putExtra(BATTERY,t)
                 t=etBatMin?.text.toString().toInt()
-                if (t!=batMin) putExtra("batMin",t)
+                if (t!=batMin) putExtra(VBATMIN,t)
                 t=etBatMax?.text.toString().toInt()
-                if (t!=batMax) putExtra("batMax",t)
+                if (t!=batMax) putExtra(VBATMAX,t)
                 t=spBatType?.selectedItemPosition?:0
-                if (t!=batType) putExtra("batType",t)
+                if (t!=batType) putExtra(VBATTYPE,t)
                 t=spRS41bw?.selectedItemPosition?:0
-                if (t!=RS41bw) putExtra("RS41bw",t)
+                if (t!=RS41bw) putExtra(RS41_RXBW,t)
                 t=spM20bw?.selectedItemPosition?:0
-                if (t!=M20bw) putExtra("M20bw",t)
+                if (t!=M20bw) putExtra(M20_RXBW,t)
                 t=spM10bw?.selectedItemPosition?:0
-                if (t!=M10bw) putExtra("M10bw",t)
+                if (t!=M10bw) putExtra(M10_RXBW,t)
                 t=spPILOTbw?.selectedItemPosition?:0
-                if (t!=PILOTbw) putExtra("PILOTbw",t)
+                if (t!=PILOTbw) putExtra(PILOT_RXBW,t)
                 t=spDFMbw?.selectedItemPosition?:0
-                if (t!=DFMbw) putExtra("DFMbw",t)
+                if (t!=DFMbw) putExtra(DFM_RXBW,t)
                 t=spNAM?.selectedItemPosition?:0
-                if (t!=nam) putExtra("nam",t)
+                if (t!=nam) putExtra(APRSNAME,t)
                 t=etOffset?.text.toString().toInt()
-                if (t!=offset) putExtra("offset",t)
+                if (t!=offset) putExtra(FREQOFS,t)
             }
             setResult(Activity.RESULT_OK,data)
             this.finish()
@@ -193,5 +193,25 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         return super.onOptionsItemSelected(item);
+    }
+    companion object {
+        const val LCD="lcd"
+        const val OLED_SDA="oled_sda"
+        const val OLED_SCL="oled_scl"
+        const val OLED_RST="oled_rst"
+        const val BUZ_PIN="buz_pin"
+        const val LED_POUT="led_pout"
+        const val BATTERY="battery"
+        const val VBATMIN="vBatMin"
+        const val VBATMAX="vBatMax"
+        const val VBATTYPE="vBatType"
+        const val RS41_RXBW="rs41.rxbw"
+        const val M20_RXBW="m20.rxbw"
+        const val M10_RXBW="m10.rxbw"
+        const val PILOT_RXBW="pilot.rxbw"
+        const val DFM_RXBW="dmf.rxbw"
+        const val MYCALL="myCall"
+        const val APRSNAME="aprsName"
+        const val FREQOFS="freqofs"
     }
 }

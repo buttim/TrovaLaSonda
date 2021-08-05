@@ -53,6 +53,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.time.Instant
 import java.util.*
 
+
 class FullscreenActivity : AppCompatActivity(), LocationListener {
     private val path : Polyline=Polyline()
     private val sondePath : Polyline=Polyline()
@@ -78,6 +79,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     private var tvCoords:TextView?=null
     private var tvId:TextView?=null
     private var tvBk:TextView?=null
+    private var tvBattPercent:TextView?=null
     private var pbRssi:ProgressBar?=null
     private var tvDbm:TextView?=null
     private var mute:Boolean=false
@@ -97,46 +99,34 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         val data: Intent? = result.data
         var reset=false
         val cmds= mutableListOf<Pair<String, Any>>()
-        if (data!=null) {
+        val resetCmds=listOf(SettingsActivity.LCD, SettingsActivity.OLED_SDA,
+                SettingsActivity.OLED_SCL, SettingsActivity.OLED_RST, SettingsActivity.LED_POUT,
+                SettingsActivity.BUZ_PIN, SettingsActivity.BATTERY)
+        if (data!=null && data?.extras!=null) {
             for (k in data.extras?.keySet()!!) {
+                if (resetCmds.indexOf(k)>=0) reset=true;
                 val t=data.extras?.get(k)
-                when (k) {
-                    "lcd" -> {
-                        cmds.add(Pair<String, Any>("lcd", t as Int)); reset = true
-                    }
-                    "sda" -> {
-                        cmds.add(Pair<String, Any>("oled_sda", t as Int)); reset = true
-                    }
-                    "scl" -> {
-                        cmds.add(Pair<String, Any>("oled_scl", t as Int)); reset = true
-                    }
-                    "rst" -> {
-                        cmds.add(Pair<String, Any>("oled_rst", t as Int)); reset = true
-                    }
-                    "led" -> {
-                        cmds.add(Pair<String, Any>("led_pout", t as Int)); reset = true
-                    }
-                    "buz" -> {
-                        cmds.add(Pair<String, Any>("buz_pin", t as Int)); reset = true
-                    }
-                    "RS41bw" -> cmds.add(Pair<String, Any>("rs41.rxbw", t as Int))
-                    "M20bw" -> cmds.add(Pair<String, Any>("m20.rxbw", t as Int))
-                    "M10bw" -> cmds.add(Pair<String, Any>("m10.rxbw", t as Int))
-                    "PILOTbw" -> cmds.add(Pair<String, Any>("pilot.rxbw", t as Int))
-                    "DFMbw" -> cmds.add(Pair<String, Any>("dfm.rxbw", t as Int))
-                    "nam" -> cmds.add(Pair<String, Any>("aprsName", t as Int))
-                    "offset" -> cmds.add(Pair<String, Any>("freqofs", t as Int))
-                    "bat" -> {
-                        cmds.add(Pair<String, Any>("battery", t as Int)); reset = true
-                    }
-                    "batMin" -> cmds.add(Pair<String, Any>("vBatMin", t as Int))
-                    "batMax" -> cmds.add(Pair<String, Any>("vBatMax", t as Int))
-                    "batType" -> cmds.add(Pair<String, Any>("vBatType", t as Int))
-                    "call" -> cmds.add(Pair<String, Any>("myCall", t as String))
-                }
+                if (k==SettingsActivity.MYCALL)
+                    cmds.add(Pair<String, Any>("myCall", t as String))
+                else
+                    cmds.add(Pair<String, Any>(k, t as Int))
             }
-            sendCommands(cmds)
-            if (reset) showProgress(true)
+            if (reset) {
+                val alertDialog = AlertDialog.Builder(this).create()
+                alertDialog.setTitle("Alert")
+                alertDialog.setMessage("New settings require a restart, do you want to apply them anyway?")
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel") {dialog, which ->
+                    dialog.dismiss()
+                }
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK") { dialog, which ->
+                    dialog.dismiss()
+                    sendCommands(cmds)
+                    showProgress(true)
+                }
+                alertDialog.show()
+            }
+            else
+                sendCommands(cmds)
         }
     }
 
@@ -146,12 +136,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     override fun onLocationChanged(location: Location?) {
         val point = GeoPoint(location)
-        if (currentLocation==null)
+        if (currentLocation==null) {
             map?.controller?.setCenter(point)
+
+        }
         currentLocation=location
         path.addPoint(point)
-        if (path.actualPoints.size>50)
-            path.actualPoints.removeAt(0)
+        path.actualPoints.apply { if (size>100) removeAt(0) }
         updateSondeDirection()
     }
 
@@ -170,8 +161,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         deviceInterface?.setListeners(this::onMessageReceived, this::onMessageSent, this::onError)
 
         val bmp=BitmapFactory.decodeResource(resources, R.drawable.ic_person_yellow)
-        muteChanged=false
         locationOverlay?.setDirectionArrow(bmp, bmp)
+        muteChanged=false
 
         val name=bluetoothManager.pairedDevicesList.first() { it-> it.address==btMacAddress }.name
         Toast.makeText(applicationContext, "Connected to ${name}", Toast.LENGTH_LONG).apply {
@@ -187,6 +178,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         muteChanged=true
         bluetoothManager.closeDevice(btMacAddress)
         btMacAddress=null
+        deviceInterface=null
         showProgress(false)
         Handler(Looper.getMainLooper()).postDelayed({
             connect()
@@ -234,14 +226,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             sondePath.actualPoints.clear()
 
             if (currentLocation!=null) {
-                map?.zoomToBoundingBox(BoundingBox(lat.toDouble(),lon.toDouble(), currentLocation?.latitude!!, currentLocation?.longitude!!), false, 50)
+                map?.zoomToBoundingBox(BoundingBox(lat.toDouble(), lon.toDouble(), currentLocation?.latitude!!, currentLocation?.longitude!!), false, 50)
                 map?.invalidate()
             }
             else
                 map?.controller?.setCenter(mkSonde?.position)
 
             /*player=MediaPlayer()
-            player?.setDataSource(applicationContext,Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://com.example.trovalasonda/raw/_573381__ammaro__ding.wav"))
+            player?.setDataSource(applicationContext,Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://com.example.trovalasonda/raw/_573381__ammaro__ding.mp3"))
             player?.prepare()*/
             player=MediaPlayer.create(applicationContext, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             player?.start()
@@ -298,6 +290,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         pbRssi?.progress=rssi.toInt()
     }
 
+    private fun updateBattery(v:Int) {
+        tvBattPercent?.apply {
+            text = "$v%"
+            if (v < 20)
+                setBackgroundColor(Color.rgb(255, 0, 0))
+        }
+    }
+
     private fun mySondyGOSondePos(type: String, freq: Float, name: String, lat: Float, lon: Float,
                                   alt: Float, vel: Float, sign: Float, bat: Int, afc: Int, bk: Boolean,
                                   bktime: Int, batv: Int, mute: Boolean, ver: String) {
@@ -310,7 +310,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         tvHorizontalSpeed?.text="V: ${vel}m/s"
         if (bk) updateBk(bktime)
         updateRSSI(sign)
-        //TODO: batV
+        updateBattery(bat)
     }
 
     private fun mySondyGOStatus(type: String, freq: Float, sign: Float, bat: Int, batV: Int,
@@ -320,7 +320,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         muteChanged=false
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
-        //TODO: batV
+        updateBattery(bat)
     }
 
     private fun mySondyGOSonde(type: String, freq: Float, name: String, sign: Float, bat: Int, afc: Int,
@@ -330,7 +330,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         tvId?.text=name;
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
-        //TODO: batV
+        updateBattery(bat)
     }
 
     private fun mySondyGOSettings(type: String, freq: Float, sda: Int, scl: Int, rst: Int, led: Int,
@@ -341,25 +341,24 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         updateMute(mute)
         val intent=Intent(this, SettingsActivity::class.java)
         val extras=Bundle().apply {
-            //TODO: usare come chivi il nome usato dall'API (buz -> buz_pin)
-            putInt("sda", sda)
-            putInt("scl", scl)
-            putInt("rst", rst)
-            putInt("led", led)
-            putInt("RS41bw", RS41bw)
-            putInt("M20bw", M20bw)
-            putInt("M10bw", M10bw)
-            putInt("PILOTbw", PILOTbw)
-            putInt("DFMbw", DFMbw)
-            putString("call", call)
-            putInt("offset", offset)
-            putInt("bat", bat)
-            putInt("batMin", batMin)
-            putInt("batMax", batMax)
-            putInt("batType", batType)
+            putInt("oled_sda", sda)
+            putInt("oled_scl", scl)
+            putInt("oled_rst", rst)
+            putInt("led_pout", led)
+            putInt("rs41.rxbw", RS41bw)
+            putInt("m20.rxbw", M20bw)
+            putInt("m10.rxbw", M10bw)
+            putInt("pilot.rxbw", PILOTbw)
+            putInt("dfm.rxbw", DFMbw)
+            putString("myCall", call)
+            putInt("freqofs", offset)
+            putInt("battery", bat)
+            putInt("vBatMin", batMin)
+            putInt("vBatMax", batMax)
+            putInt("vBatType", batType)
             putInt("lcd", lcd)
-            putInt("nam", nam)
-            putInt("buz", buz)
+            putInt("aprsName", nam)
+            putInt("buz_pin", buz)
         }
         intent.putExtras(extras)
         resultLauncher.launch(intent);
@@ -500,13 +499,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             }, 1000)
     }
 
+    private fun ttgoNotConnectedWarning() {
+        Toast.makeText(applicationContext, "TTGO not connected", Toast.LENGTH_LONG).apply {
+            setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+            show()
+        }
+    }
+
     private fun toggleBuzzer() {
-        Log.i(TAG, "toggleBuzzer")
-        if (muteChanged) return
-        mute=!mute
-        sendCommand("mute", if (mute) 1 else 0)
-        ivBuzzer?.imageAlpha=64
-        muteChanged=true
+        if (deviceInterface==null)
+            ttgoNotConnectedWarning()
+        else {
+            if (muteChanged) return
+            mute = !mute
+            sendCommand("mute", if (mute) 1 else 0)
+            ivBuzzer?.imageAlpha = 64
+            muteChanged = true
+        }
     }
     var n:Int=0
     //@SuppressLint("ClickableViewAccessibility")
@@ -556,6 +565,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         tvBk=findViewById(R.id.bk)
         pbRssi=findViewById(R.id.rssi)
         tvDbm=findViewById(R.id.dbm)
+        tvBattPercent=findViewById(R.id.batt_percent)
         tvCoords?.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde coordinates", tvCoords?.text)
@@ -601,9 +611,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             closeMenu();
         }
         (findViewById<View>(R.id.menu_settings)).setOnClickListener {
-            sendCommand("?")
-            showProgress(true)
-            closeMenu();
+            if (deviceInterface==null)
+                ttgoNotConnectedWarning()
+            else {
+                sendCommand("?")
+                showProgress(true)
+            }
+            closeMenu()
         }
         (findViewById<View>(R.id.menu_layer)).setOnClickListener {
             satelliteView=!satelliteView
@@ -663,24 +677,27 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             val scaleBar = ScaleBarOverlay(map);
             scaleBar.setScaleBarOffset(dm.widthPixels / 2, 10);
 
-            locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), map)
-            val bmp=BitmapFactory.decodeResource(resources, R.drawable.ic_person_red)
-            locationOverlay?.setDirectionArrow(bmp, bmp)
-            locationOverlay?.enableMyLocation()
-            locationOverlay?.runOnFirstFix {
-                runOnUiThread {
-                    map?.controller?.animateTo(GeoPoint(locationOverlay?.lastFix))
+            val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_red)
+            locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), map).apply {
+                setDirectionArrow(bmp, bmp)
+                enableMyLocation()
+                runOnFirstFix {
+                    runOnUiThread {
+                        map?.controller?.animateTo(GeoPoint(lastFix))
+                    }
                 }
             }
-
-            sondeLevelListDrawable.addLevel(0, 0, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_red))
-            sondeLevelListDrawable.addLevel(1, 1, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_green))
-            sondeLevelListDrawable.level=0
-            mkSonde = Marker(map);
-            mkSonde?.icon = sondeLevelListDrawable
-            mkSonde?.position=GeoPoint(45.088144, 7.633692)
-            mkSonde?.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
-            mkSonde?.setVisible(false)
+            sondeLevelListDrawable.apply {
+                addLevel(0, 0, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_red))
+                addLevel(1, 1, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_green))
+                level = 0
+            }
+            mkSonde = Marker(map).apply {
+                icon = sondeLevelListDrawable
+                position=GeoPoint(45.088144, 7.633692)
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
+                setVisible(false)
+            }
 
             path.outlinePaint.color = Color.rgb(0, 0, 255)
             sondePath.outlinePaint.color = Color.rgb(255, 128, 0)
@@ -696,7 +713,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         handler.post(object : Runnable {
             override fun run() {
                 if (timeLastSeen != null && timeLastSeen?.until(Instant.now(), java.time.temporal.ChronoUnit.SECONDS)!! > 3L) {
-                    updateBk(Instant.now().until(bk, java.time.temporal.ChronoUnit.SECONDS).toInt())
+                    if (bk!=null)
+                        updateBk(Instant.now().until(bk, java.time.temporal.ChronoUnit.SECONDS).toInt())
                 }
                 handler.postDelayed(this, 1000)
             }

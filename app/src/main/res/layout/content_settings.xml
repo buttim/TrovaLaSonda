@@ -42,6 +42,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
+                android:minEms="8"
                 android:maxLength="8"
                 android:selectAllOnFocus="true"
                 android:text="MYCALL" />
@@ -73,6 +74,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
+                android:layout_marginLeft="30dp"
                 android:text="SCL pin" />
 
             <EditText
@@ -113,6 +115,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="30dp"
                 android:layout_weight="0"
                 android:text="Buzzer pin" />
 
@@ -154,6 +157,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="30dp"
                 android:layout_weight="0"
                 android:text="Battery pin" />
 
@@ -196,7 +200,7 @@
                 android:layout_weight="0"
                 android:inputType="number"
                 android:maxLength="4"
-                android:minEms="4"
+                android:minEms="3"
                 android:gravity="right"
                 android:selectAllOnFocus="true"
                 android:text="0" />
@@ -204,6 +208,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
                 android:layout_weight="0"
                 android:text="Max (mV)" />
 
@@ -214,7 +219,7 @@
                 android:layout_weight="0"
                 android:inputType="number"
                 android:maxLength="4"
-                android:minEms="4"
+                android:minEms="3"
                 android:gravity="right"
                 android:selectAllOnFocus="true"
                 android:text="0" />
@@ -245,89 +250,82 @@
             android:layout_marginTop="20dp"
             android:text="Radio"
             />
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="RS41" />
+
+                <Spinner
+                    android:id="@+id/rs41bw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:entries="@array/bandwidth" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="M10" />
+
+                <Spinner
+                    android:id="@+id/m20bw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:entries="@array/bandwidth" />
+            </TableRow>
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="M10" />
+
+                <Spinner
+                    android:id="@+id/m10bw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:entries="@array/bandwidth" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="PIL" />
+
+                <Spinner
+                    android:id="@+id/pilbw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:entries="@array/bandwidth" />
+            </TableRow>
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="DFM" />
+
+                <Spinner
+                    android:id="@+id/dfmbw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:entries="@array/bandwidth" />
+            </TableRow>
+        </TableLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:text="RS41 bw" />
-
-            <Spinner
-                android:id="@+id/rs41bw"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:entries="@array/bandwidth" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:text="M20 bw" />
-
-            <Spinner
-                android:id="@+id/m20bw"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:entries="@array/bandwidth" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:text="M10 bw" />
-
-            <Spinner
-                android:id="@+id/m10bw"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:entries="@array/bandwidth" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:text="PIL bw" />
-
-            <Spinner
-                android:id="@+id/pilbw"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:entries="@array/bandwidth" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:text="DFM bw" />
-
-            <Spinner
-                android:id="@+id/dfmbw"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:entries="@array/bandwidth" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:orientation="horizontal">
 
             <TextView
@@ -369,6 +367,7 @@
                 android:id="@+id/tune"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
                 android:text="Tune"/>
         </LinearLayout>
         <Button
