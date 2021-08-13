@@ -2,8 +2,10 @@
   <dictionary name="butti">
     <words>
       <w>mapbox</w>
+      <w>rssi</w>
       <w>sonde</w>
       <w>sondy</w>
+      <w>ttgo</w>
     </words>
   </dictionary>
 </component>

@@ -3,10 +3,10 @@ package com.example.trovalasonda
 import android.app.Dialog
 import android.os.Bundle
 import android.view.View
-import android.widget.EditText
+import android.widget.ArrayAdapter
+import android.widget.NumberPicker
 import android.widget.Spinner
 import androidx.appcompat.app.AlertDialog
-import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.DialogFragment
 
 interface DialogCloseListener {
@@ -15,44 +15,53 @@ interface DialogCloseListener {
 
 class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
     var type:Int=0
-    var freq:Float=403.0F
+    var freq:Double=403.0
     var dialogCloseListener:DialogCloseListener?=null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let {
             val builder = AlertDialog.Builder(it)
             val inflater = requireActivity().layoutInflater
-
             val view=inflater.inflate(R.layout.sondetype, null)
-            val etFreq=view.findViewById<EditText>(R.id.freq)
             val spType=view.findViewById<Spinner>(R.id.type)
+
+            val arrayAdapter: ArrayAdapter<Any?> = ArrayAdapter<Any?>(requireContext(), R.layout.spinner_style,requireContext().resources.getStringArray(R.array.sonde_types))
+            arrayAdapter.setDropDownViewResource(R.layout.spinner_style)
+            spType.adapter = arrayAdapter
+
             builder.setView(view)
-                .setPositiveButton("OK") { dialog, id ->
-                    freq=etFreq.text.toString().toFloat()
+                .setPositiveButton("OK") { _, _ ->
+                    with (view) {
+                        freq = findViewById<NumberPicker>(R.id.f100).value * 100 +
+                                findViewById<NumberPicker>(R.id.f10).value * 10 +
+                                findViewById<NumberPicker>(R.id.f1).value +
+                                findViewById<NumberPicker>(R.id.f_1).value / 10.0 +
+                                findViewById<NumberPicker>(R.id.f_01).value / 100.0 +
+                                findViewById<NumberPicker>(R.id.f_001).value / 1000.0
+                    }
                     type=spType.selectedItemPosition+1
                     dialogCloseListener?.handleDialogClose()
                 }
-                .setNegativeButton("Cancel") { dialog, id ->
-                    getDialog()?.cancel()
+                .setNegativeButton("Cancel") { _, _ ->
+                    dialog?.cancel()
                 }
 
-            etFreq.setText(freq.toString())
-            spType.setSelection(type-1)
-            etFreq.doOnTextChanged { text:CharSequence?, start, count, after ->
-                try {
-                    val freq=text.toString().toFloat()
-                    if (freq<400 || freq>406)
-                        etFreq.setError("Must be less than 406 and more than 400")
-                }
-                catch (e:Exception) {
-                    etFreq.setError("Invalid format")
+            with (view) {
+                findViewById<NumberPicker>(R.id.f100).apply { textSize=120F; minValue = 4;maxValue = 4;value = (freq / 100F).toInt() }
+                findViewById<NumberPicker>(R.id.f10).apply { textSize=120F; minValue = 0;maxValue = 0;value = (freq / 10F).toInt() % 10 }
+                findViewById<NumberPicker>(R.id.f1).apply { textSize=120F; minValue = 0;maxValue = 6;value = freq.toInt() % 10 }
+                var f = (1000 * (freq - freq.toInt())).toInt()
+                listOf(R.id.f_001, R.id.f_01, R.id.f_1).forEach { it ->
+                    findViewById<NumberPicker>(it).apply { textSize=120F; minValue = 0;maxValue = 9;value = f % 10 }
+                    f /= 10
                 }
             }
+
+            spType.setSelection(type-1)
             builder.create()
 
         } ?: throw IllegalStateException("Activity cannot be null")
     }
     override fun onClick(v: View?) {
-        TODO("Not yet implemented")
     }
 }

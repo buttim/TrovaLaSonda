@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/frame"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:theme="@style/ThemeOverlay.TrovaLaSonda.ActionBar.Fullscreen"
@@ -16,8 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        android:visibility="gone"
-        />
+        android:visibility="gone"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -27,11 +27,11 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#40000000"
+            android:background="#80000000"
             android:orientation="horizontal">
 
             <LinearLayout
-                android:layout_width="50dp"
+                android:layout_width="60dp"
                 android:layout_height="match_parent"
                 android:orientation="vertical">
 
@@ -46,25 +46,20 @@
                     android:background="?android:attr/selectableItemBackground"
                     android:src="@drawable/ic_buzzer_on"/>
 
-                    <RelativeLayout
-                        android:layout_width="50dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp">
-                        <ImageView
-                            android:id="@+id/battery"
-                            android:clickable="true"
-                            android:src="@drawable/ic_battery"
-                            android:layout_height="match_parent"
-                            android:layout_width="match_parent" />
-                        <TextView
-                            android:id="@+id/batt_percent"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textColor="#0000FF"
-                            android:textStyle="bold"
-                            android:text="\?"
-                            android:gravity="center"/>
-                    </RelativeLayout>
+                <eo.view.batterymeter.BatteryMeterView
+                    android:id="@+id/battery_meter"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    xmlns:app="http://schemas.android.com/apk/res-auto"
+                    app:batteryMeterColor="#FFFF00"
+                    app:batteryMeterCriticalChargeLevel="15"
+                    app:batteryMeterCriticalColor="#FF2020"
+                    app:batteryMeterIndicatorColor="#000000"
+                    app:batteryMeterIsCharging="false"
+                    app:batteryMeterTheme="rounded"
+                    app:batteryMeterUnknownColor="#FFFF00" />
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -74,6 +69,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:gravity="center"
                     android:orientation="horizontal">
                     <TextView
                         android:id="@+id/distance"
@@ -99,10 +95,12 @@
                     android:id="@+id/bk"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:layout_gravity="bottom"
                     android:textSize="20dp"
                     android:textStyle="bold"
                     android:textColor="#FF0000"
-                    android:background="#000000"
+                    android:background="#80000000"
+                    android:gravity="center"
                     android:visibility="gone"/>
             </LinearLayout>
 
@@ -124,84 +122,85 @@
                     android:layout_height="wrap_content"
                     android:textSize="18dp"
                     android:textStyle="bold"
-                    android:textColor="#FFC000"
+                    android:textColor="#7FFF7F"
                     android:gravity="center"
                     android:text="[no sonde]"/>
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/type"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:textSize="15dp"
-                        android:textStyle="bold"
-                        android:layout_weight="1"
-                        android:textColor="@color/yellow"
-                        android:text="-"/>
-
-                    <TextView
-                        android:id="@+id/freq"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:textSize="15dp"
-                        android:textStyle="bold"
-                        android:layout_weight="1"
-                        android:textColor="@color/yellow"
-                        android:text="- MHz"/>
-                </LinearLayout>
                 <TextView
-                    android:id="@+id/height"
+                    android:id="@+id/type"
                     android:layout_width="wrap_content"
-                    android:layout_height="0dp"
+                    android:layout_height="match_parent"
                     android:textSize="15dp"
                     android:textStyle="bold"
                     android:layout_weight="1"
                     android:textColor="@color/yellow"
-                    android:text="H: -m"/>
-                <TextView
-                    android:id="@+id/horizontal_speed"
-                    android:layout_width="wrap_content"
-                    android:layout_height="0dp"
-                    android:textSize="15dp"
-                    android:textStyle="bold"
-                    android:layout_weight="1"
-                    android:textColor="@color/yellow"
-                    android:text="V: -m/s"/>
+                    android:text="RS41 403.000MHz"/>
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/height"
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:textSize="15dp"
+                            android:textStyle="bold"
+                            android:layout_weight="1"
+                            android:textColor="@color/yellow"
+                            android:text="H: -m ="/>
+                        <TextView
+                            android:id="@+id/horizontal_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:textSize="15dp"
+                            android:textStyle="bold"
+                            android:layout_weight="1"
+                            android:textColor="@color/yellow"
+                            android:text="V: -m/s"/>
+                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/direction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:textSize="40sp"
+                        android:textColor="#FFFF00"/>
+                </RelativeLayout>
             </LinearLayout>
 
         </LinearLayout>
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="30dp"
-            android:background="#80000000"
-            android:orientation="horizontal">
+            android:background="#80000000">
 
             <ProgressBar
                 android:id="@+id/rssi"
                 style="?android:attr/progressBarStyleHorizontal"
-                android:minHeight="30dp"
-                android:max="400"
-                android:scaleY="4"
+                android:layout_width="match_parent"
+                android:layout_height="30dp"
+                android:layout_alignParentStart="true"
+                android:layout_marginRight="10dp"
+                android:layout_toStartOf="@+id/dbm"
                 android:indeterminate="false"
+                android:max="400"
+                android:minHeight="30dp"
                 android:progress="20"
-                android:layout_width="0dp"
-                android:layout_weight="4"
-                android:layout_height="30dp"/>
+                android:scaleY="4" />
 
             <TextView
                 android:id="@+id/dbm"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginLeft="20dp"
-                android:layout_weight="1"
                 android:textStyle="bold"
+                android:layout_alignParentEnd="true"
                 android:textSize="18dp"
                 android:text="-dBm"/>
-        </LinearLayout>
+        </RelativeLayout>
     </LinearLayout>
 
     <LinearLayout

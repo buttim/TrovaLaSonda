@@ -1,5 +1,6 @@
 package com.example.trovalasonda
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -30,24 +31,24 @@ class SettingsActivity : AppCompatActivity() {
     private var spDFMbw: Spinner?=null
     private var spNAM: Spinner?=null
     private var etOffset: EditText?=null
-    var sda=0
-    var scl=0
-    var rst=0
-    var lcd=0
-    var buz=0
-    var led=0
-    var bat=0
-    var batMin=0
-    var batMax=0
-    var batType=0
-    var RS41bw=0
-    var M20bw=0
-    var M10bw=0
-    var PILOTbw=0
-    var DFMbw=0
-    var offset=0
-    var call=""
-    var nam=0
+    private var sda=0
+    private var scl=0
+    private var rst=0
+    private var lcd=0
+    private var buz=0
+    private var led=0
+    private var bat=0
+    private var batMin=0
+    private var batMax=0
+    private var batType=0
+    private var RS41bw=0
+    private var M20bw=0
+    private var M10bw=0
+    private var PILOTbw=0
+    private var DFMbw=0
+    private var offset=0
+    private var call=""
+    private var nam=0
 
     private fun setFields() {
         spLcd?.setSelection(lcd)
@@ -70,6 +71,7 @@ class SettingsActivity : AppCompatActivity() {
         etOffset?.setText(offset.toString())
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -142,7 +144,7 @@ class SettingsActivity : AppCompatActivity() {
             etOffset?.setText("0")
         }
 
-        findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
+        findViewById<FloatingActionButton>(R.id.fab).setOnClickListener {
             val data=Intent().apply {
                 var t=spLcd?.selectedItemPosition?:0
                 if (t!=lcd) putExtra(LCD,t)
@@ -192,7 +194,7 @@ class SettingsActivity : AppCompatActivity() {
                 return true
             }
         }
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelected(item)
     }
     companion object {
         const val LCD="lcd"
