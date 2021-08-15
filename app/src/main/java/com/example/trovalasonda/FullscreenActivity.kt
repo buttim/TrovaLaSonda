@@ -371,6 +371,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         this.mute = mute
         ivBuzzer?.setImageResource(if (mute) R.drawable.ic_buzzer_off else R.drawable.ic_buzzer_on)
         ivBuzzer?.imageAlpha = 255
+        muteChanged = false
     }
 
     private fun updateSondeLocation(id: String, lat: Double, lon: Double) {
@@ -479,7 +480,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     ) {
         updateTypeAndFreq(type, freq)
         updateMute(mute)
-        muteChanged = false
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat)
@@ -853,13 +853,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     override fun onBackPressed() {
-        AlertDialog.Builder(this)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle("TrovaLaSonda")
-                .setMessage("Are you sure you want to exit?")
-                .setPositiveButton("Yes") { _, _ -> bluetoothManager.closeDevice(btMacAddress); finish() }
-                .setNegativeButton("No", null)
-                .show()
+        if (expandedMenu)
+            closeMenu()
+        else
+            AlertDialog.Builder(this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle("TrovaLaSonda")
+                    .setMessage("Are you sure you want to exit?")
+                    .setPositiveButton("Yes") { _, _ -> bluetoothManager.closeDevice(btMacAddress); finish() }
+                    .setNegativeButton("No", null)
+                    .show()
     }
     companion object {
         private const val TAG = "MAURI"
