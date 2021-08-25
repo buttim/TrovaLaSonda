@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.MenuItem
 import android.widget.Button
 import android.widget.EditText
@@ -12,7 +14,7 @@ import android.widget.Toast
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.appcompat.app.AppCompatActivity
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : AppCompatActivity(), TextWatcher {
     private var spLcd:Spinner?=null
     private var etCall: EditText?=null
     private var etSDA: EditText?=null
@@ -120,6 +122,8 @@ class SettingsActivity : AppCompatActivity() {
 
         setFields()
 
+        etCall?.addTextChangedListener(this)
+
         findViewById<Button>(R.id.tune).setOnClickListener { view ->
             Toast.makeText(this, "Not implemented (yet)",Toast.LENGTH_LONG).show()
         }
@@ -196,6 +200,15 @@ class SettingsActivity : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
+
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+    override fun afterTextChanged(s: Editable?) {
+        val txt=etCall?.text.toString()
+        if (txt.contains('/'))
+            etCall?.setError("Invalid '/' character")
+    }
+
     companion object {
         const val LCD="lcd"
         const val OLED_SDA="oled_sda"

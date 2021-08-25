@@ -17,6 +17,7 @@ import android.location.LocationListener
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.os.Debug
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -27,6 +28,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
+import androidx.core.os.bundleOf
 import androidx.core.view.children
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
@@ -56,19 +58,32 @@ import java.util.*
 
 @SuppressLint("SetTextI18n")
 class FullscreenActivity : AppCompatActivity(), LocationListener {
+    private var bluetoothManager = BluetoothManager.getInstance()
+    private var sondeTypes: Array<String>? = null
     private val path: Polyline = Polyline()
     private val sondePath: Polyline = Polyline()
+    private var mkSonde: Marker? = null
     private val sondeDirection: Polyline = Polyline()
     private var locationOverlay: MyLocationNewOverlay? = null
+
+    private var expandedMenu = false
     private var currentLocation: Location? = null
     private var satelliteView = false
     private var btMacAddress: String? = null
-    private var bluetoothManager = BluetoothManager.getInstance()
     private var deviceInterface: SimpleBluetoothDeviceInterface? = null
-    private var expandedMenu = false
+    private var mute: Boolean = false
+    private var muteChanged: Boolean = true
+    private var sondeId: String? = null
+    private var sondeType = -1
+    private var heightDelta:Double=0.0
+    private var freq: Double = 0.0
+    private var height:Double=0.0
+    private var bk: Instant? = null
+    private var timeLastSeen: Instant? = null
+    private var timeLastMessage: Instant? = null
+
     private var map: MapView? = null
     private var menu: LinearLayout? = null
-    private var nConnections = 0
     private var tvDirection: TextView? = null
     private var tvType: TextView? = null
     private var tvDistance: TextView? = null
@@ -77,23 +92,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     private var tvUnits: TextView? = null
     private var ivBuzzer: ImageView? = null
     private var llSonde: LinearLayout? = null
-    private var tvCoords: TextView? = null
+    private var llCoords: LinearLayout? = null
+    private var tvLat: TextView? = null
+    private var tvLon: TextView? = null
     private var tvId: TextView? = null
     private var tvBk: TextView? = null
     private var batteryMeter:BatteryMeterView?=null
     private var pbRssi: ProgressBar? = null
     private var tvDbm: TextView? = null
-    private var mute: Boolean = false
-    private var muteChanged: Boolean = true
-    private var sondeId: String? = null
-    private var sondeType = -1
-    private var freq: Double = 0.0
-    private var alt:Double=0.0
-    private var bk: Instant? = null
-    private var timeLastSeen: Instant? = null
-    private var timeLastMessage: Instant? = null
-    private var sondeTypes: Array<String>? = null
-    private var mkSonde: Marker? = null
     private val sondeLevelListDrawable = LevelListDrawable()
     private val handler = Handler(Looper.getMainLooper())
     private var receiver = object : BroadcastReceiver() {
@@ -186,21 +192,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             if (!isDiscovering && !startDiscovery())
                 Log.e(TAG, "Failed to start BT discovery")
         }
-        /*nConnections=0
-        bluetoothManager.close()
-        val pairedDevices: Collection<BluetoothDevice> = bluetoothManager.pairedDevicesList
-        for (device in pairedDevices) {
-            Log.d(TAG, "Device name: ${device.name}")
-            if (device.name.startsWith(MYSONDYGOPREFIX)) {
-                connectDevice(device.address)
-                nConnections++
-            }
-        }
-        if (nConnections == 0 && deviceInterface==null)
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (deviceInterface == null) connect()
-            }, 2000)*/
-        Log.i(TAG, "LUP")
+
         Handler(Looper.getMainLooper()).postDelayed({
             if (deviceInterface == null) connect()
         }, 2000)
@@ -211,12 +203,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(this::onConnected) { error ->
-                Log.e(TAG, error.toString() + " (" + nConnections + ")")
+                Log.e(TAG, error.toString())
                 bluetoothManager.closeDevice(mac)
-                if (--nConnections == 0)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        connect()
-                    }, 1000)
+                /*Handler(Looper.getMainLooper()).postDelayed({
+                    connect()
+                }, 1000)*/
             }
     }
 
@@ -245,6 +236,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         Log.i(TAG, "onDisconnected")
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_red)
         locationOverlay?.setDirectionArrow(bmp, bmp)
+        sondeLevelListDrawable.level = 0
         muteChanged = true
         bluetoothManager.closeDevice(btMacAddress)
         btMacAddress = null
@@ -375,7 +367,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun updateSondeLocation(id: String, lat: Double, lon: Double) {
-        tvCoords?.text = String.format(Locale.US, " %.4f %.4f ", lat, lon)
+        tvLat?.text = String.format(Locale.US, " %.5f", lat)
+        tvLon?.text = String.format(Locale.US, " %.5f", lon)
         if (sondeId != id) {
             sondeId = id
             tvId?.text = id
@@ -432,11 +425,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun updateTypeAndFreq(type: String, freq: Double) {
-        this.freq = freq
-        if (sondeType < 1 || type != sondeTypes!![sondeType - 1]) {
+        if (this.freq!=freq || sondeType < 1 || type != sondeTypes!![sondeType - 1]) {
             tvType?.text = "$type ${freq}MHz"
             sondeType = sondeTypes?.indexOf(type)!! + 1
         }
+        this.freq = freq
     }
 
     private fun updateBk(bk: Int) {
@@ -446,8 +439,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun updateRSSI(rssi: Double) {
-        tvDbm?.text = "${rssi}dBm"
-        pbRssi?.progress = rssi.toInt()
+        tvDbm?.text = "-${rssi}dBm"
+        pbRssi?.progress = ((pbRssi?.max?:157)-rssi).toInt()
     }
 
     private fun updateBattery(v: Int) {
@@ -456,7 +449,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     private fun mySondyGOSondePos(
             type: String, freq: Double, name: String, lat: Double, lon: Double,
-            alt: Double, vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
+            height: Double, vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
             bktime: Int, batv: Int, mute: Boolean, ver: String
     ) {
         updateMute(mute)
@@ -464,11 +457,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         if (lat != 0.0 || lon != 0.0)
             updateSondeLocation(name, lat, lon)
 
-
-        tvHeight?.text = "H: ${alt}m"
-        tvDirection?.text=if (Math.abs(this.alt - alt)<2) "=" else if (this.alt<alt) "▲" else "▼"
-        this.alt=alt
-        tvHorizontalSpeed?.text = "V: ${vel}m/s"
+        tvHeight?.text = "H: ${height}m"
+        tvDirection?.text=if (Math.abs(this.height - height)<2) "=" else if (this.height<height) "▲" else "▼"
+        val newHeightDelta=height-this.height
+        if (heightDelta>0 && newHeightDelta<0)
+            playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
+        heightDelta=newHeightDelta
+        this.height=height
+        tvHorizontalSpeed?.text = "V: ${vel}km/h"
         if (bk && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
         updateBattery(bat)
@@ -538,14 +534,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun closeMenu() {
-        tvCoords?.visibility = View.GONE
+        llCoords?.visibility = View.GONE
         menu?.layoutParams?.height = menu!!.getChildAt(0).layoutParams.height
         menu?.requestLayout()
         expandedMenu = false
     }
 
     private fun openMenu() {
-        tvCoords?.visibility = View.VISIBLE
+        llCoords?.visibility = View.VISIBLE
         expandedMenu = true
         menu?.apply {
             layoutParams?.height = children.fold(0) { sum, el -> sum + el.layoutParams.height }
@@ -572,12 +568,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         }
     }
 
-    private fun playSound() {
+    private fun playSound(id:Int=R.raw._573381__ammaro__ding) {
         MediaPlayer().apply {
             setOnPreparedListener { it.start() }
             setOnErrorListener { _, a, b -> Log.e(TAG, "$a $b"); true }
             try {
-                setDataSource(applicationContext,Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/${R.raw._573381__ammaro__ding}"))
+                setDataSource(applicationContext,Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/${id}"))
                 prepareAsync()
             } catch (e: Exception) {
                 Log.e(TAG, e.toString())
@@ -623,17 +619,28 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         ivBuzzer = findViewById(R.id.buzzer)
         ivBuzzer?.setOnClickListener { toggleBuzzer() }
         tvId = findViewById(R.id.id)
-        tvCoords = findViewById(R.id.coords)
+        llCoords = findViewById(R.id.coords)
+        tvLat = findViewById(R.id.lat)
+        tvLon = findViewById(R.id.lon)
         llSonde = findViewById(R.id.sonde)
         tvBk = findViewById(R.id.bk)
         pbRssi = findViewById(R.id.rssi)
         tvDbm = findViewById(R.id.dbm)
         batteryMeter=findViewById(R.id.battery_meter)
-        tvCoords?.setOnClickListener {
+        tvLat?.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("sonde coordinates", tvCoords?.text)
+            val clip = ClipData.newPlainText("sonde latitude", tvLat?.text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(ctx, "Coordinates copied to clipboard", Toast.LENGTH_SHORT).apply {
+            Toast.makeText(ctx, "Latitude copied to clipboard", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+        }
+        tvLon?.setOnClickListener {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("sonde longitude", tvLat?.text)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(ctx, "Longitude copied to clipboard", Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
@@ -675,16 +682,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         (findViewById<View>(R.id.menu_center)).setOnClickListener {
             if (currentLocation != null)
                 map?.controller?.setCenter(GeoPoint(currentLocation))
+            else
+                Toast.makeText(ctx, "No current location (yet)", Toast.LENGTH_SHORT).apply {
+                    setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                    show()
+                }
             //////////////////////////////////////////////////////////////////////////////////
-            val msgs = arrayOf(
-                    "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
-                    "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
-                    "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
-                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o"
-            )
-            n++
-            n %= msgs.size
-            process(msgs[n])
+            if(Debug.isDebuggerConnected()) {
+                val msgs = arrayOf(
+                        "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
+                        "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
+                        "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
+                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o"
+                )
+                n++
+                n %= msgs.size
+                process(msgs[n])
+            }
             //////////////////////////////////////////////////////////////////////////////////
             closeMenu()
         }
@@ -709,13 +723,24 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 map?.setTileSource(TileSourceFactory.MAPNIK)
             closeMenu()
         }
+        (findViewById<View>(R.id.menu_center_sonde)).setOnClickListener {
+            if (mkSonde?.isDisplayed?:false)
+                map?.controller?.setCenter(mkSonde?.position)
+            else
+                Toast.makeText(ctx, "No sonde to show", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            closeMenu()
+        }
         (findViewById<View>(R.id.menu_maps)).setOnClickListener {
             if (sondeId != null) {
                 val uri = Uri.parse("google.navigation:q=${mkSonde?.position?.latitude},${mkSonde?.position?.longitude}")
                 val intent = Intent(Intent.ACTION_VIEW, uri)
                 intent.setPackage("com.google.android.apps.maps")
                 startActivity(intent)
-            } else
+            }
+            else
                 Toast.makeText(ctx, "No sonde to navigate to", Toast.LENGTH_SHORT).apply {
                     setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                     show()
@@ -864,6 +889,47 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                     .setNegativeButton("No", null)
                     .show()
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        Log.i(TAG,"onSaveInstanceState")
+        outState.putAll(bundleOf("expandedMenu" to expandedMenu,
+            "satelliteView" to satelliteView,
+            "currentLocation" to currentLocation,
+            //"deviceInterface" to deviceInterface,
+            "sondeId" to sondeId,
+            "mute" to mute,
+            "muteChanged" to muteChanged,
+            "btMacAddress" to btMacAddress,
+            "sondeType" to sondeType,
+            "heightDelta" to heightDelta,
+            "height" to height,
+            "freq" to freq,
+            "bk" to bk,
+            "timeLastSeen" to timeLastSeen,
+            "timeLastMessage" to timeLastMessage))
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState:Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        Log.i(TAG,"onRestoreInstanceState")
+        expandedMenu=savedInstanceState.get("expandedMenu") as Boolean
+        satelliteView=savedInstanceState.get("satelliteView") as Boolean
+        mute=savedInstanceState.get("mute") as Boolean
+        muteChanged=savedInstanceState.get("muteChange") as Boolean
+        btMacAddress=savedInstanceState.get("btMacAddress") as String
+        sondeType=savedInstanceState.get("sondeType") as Int
+        heightDelta=savedInstanceState.get("heightDelta") as Double
+        height=savedInstanceState.get("height") as Double
+        freq=savedInstanceState.get("freq") as Double
+        bk=savedInstanceState.get("bk") as Instant
+        timeLastSeen=savedInstanceState.get("timeLastSeen") as Instant
+        timeLastMessage=savedInstanceState.get("timeLastMessage") as Instant
+        currentLocation=savedInstanceState.get("currentLocation") as Location
+        //deviceInterface=savedInstanceState.get("deviceInterface") as SimpleBluetoothDeviceInterface
+        sondeId=savedInstanceState.get("deviceInterface") as String
+    }
+
     companion object {
         private const val TAG = "MAURI"
         private const val MYSONDYGOPREFIX = "MySondyGO-"

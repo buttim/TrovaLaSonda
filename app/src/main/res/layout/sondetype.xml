@@ -7,8 +7,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="25dp"
-        android:textSize="35dp"
+        android:layout_marginBottom="20sp"
+        android:textSize="35sp"
         android:layout_gravity="center_horizontal"
         android:text="Sonde settings"/>
 
@@ -17,17 +17,18 @@
         android:layout_gravity="center_horizontal"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+        android:orientation="horizontal">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="30dp"
+            android:textSize="25sp"
             android:text="Type"/>
         <Spinner
             android:id="@+id/type"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="10sp"
             android:entries="@array/sonde_types"/>
     </LinearLayout>
 
@@ -39,30 +40,30 @@
         <NumberPicker
             android:id="@+id/f100"
             android:gravity="center"
-            android:layout_marginLeft="20dp"
-            android:layout_width="30dp"
+            android:layout_marginLeft="20sp"
+            android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f10"
-            android:layout_width="30dp"
+            android:layout_width="25sp"
             android:gravity="center"
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f1"
-            android:layout_width="30dp"
+            android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f_1"
-            android:layout_marginLeft="15dp"
-            android:layout_width="30dp"
+            android:layout_marginLeft="15sp"
+            android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f_01"
-            android:layout_width="30dp"
+            android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f_001"
-            android:layout_width="30dp"
+            android:layout_width="25sp"
             android:layout_height="wrap_content"/>
 
         <TextView
@@ -70,8 +71,8 @@
             android:layout_height="match_parent"
             android:layout_gravity="center_vertical"
             android:gravity="center_vertical"
-            android:textSize="30dp"
-            android:layout_marginLeft="20dp"
+            android:textSize="20sp"
+            android:layout_marginLeft="20sp"
             android:hint="frequency"
             android:text="MHz"/>
     </LinearLayout>

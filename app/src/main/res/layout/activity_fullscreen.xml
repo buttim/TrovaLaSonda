@@ -28,7 +28,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#80000000"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:baselineAligned="false">
 
             <LinearLayout
                 android:layout_width="60dp"
@@ -40,11 +41,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:layout_marginRight="10dp"
+                    android:layout_marginEnd="10dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:background="?android:attr/selectableItemBackground"
-                    android:src="@drawable/ic_buzzer_on"/>
+                    android:src="@drawable/ic_buzzer_on"
+                    android:contentDescription="Toggle buzzer" />
 
                 <eo.view.batterymeter.BatteryMeterView
                     android:id="@+id/battery_meter"
@@ -75,9 +77,9 @@
                         android:id="@+id/distance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:gravity="right"
+                        android:gravity="end"
                         android:textColor="@color/yellow"
-                        android:textSize="30dp"
+                        android:textSize="30sp"
                         android:textStyle="bold"
                         android:text="-"/>
 
@@ -85,9 +87,9 @@
                         android:id="@+id/unit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginRight="10dp"
+                        android:layout_marginEnd="10dp"
                         android:textColor="@color/yellow"
-                        android:textSize="15dp"
+                        android:textSize="15sp"
                         android:textStyle="bold"
                         android:text="km"/>
                 </LinearLayout>
@@ -96,7 +98,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_gravity="bottom"
-                    android:textSize="20dp"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="#FF0000"
                     android:background="#80000000"
@@ -112,15 +114,15 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:gravity="left"
-                android:layout_marginLeft="10dp"
+                android:gravity="start"
+                android:layout_marginStart="10dp"
                 android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/id"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="18dp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#7FFF7F"
                     android:gravity="center"
@@ -130,7 +132,7 @@
                     android:id="@+id/type"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:textSize="15dp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:layout_weight="1"
                     android:textColor="@color/yellow"
@@ -147,31 +149,30 @@
                             android:id="@+id/height"
                             android:layout_width="wrap_content"
                             android:layout_height="0dp"
-                            android:textSize="15dp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
                             android:layout_weight="1"
                             android:textColor="@color/yellow"
-                            android:text="H: -m ="/>
+                            android:text="H: -m"/>
                         <TextView
                             android:id="@+id/horizontal_speed"
                             android:layout_width="wrap_content"
                             android:layout_height="0dp"
-                            android:textSize="15dp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
                             android:layout_weight="1"
                             android:textColor="@color/yellow"
-                            android:text="V: -m/s"/>
+                            android:text="V: -km/h"/>
                     </LinearLayout>
                     <TextView
                         android:id="@+id/direction"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentRight="true"
+                        android:layout_alignParentEnd="true"
                         android:textSize="40sp"
                         android:textColor="#FFFF00"/>
                 </RelativeLayout>
             </LinearLayout>
-
         </LinearLayout>
         <RelativeLayout
             android:layout_width="match_parent"
@@ -183,14 +184,17 @@
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
                 android:layout_height="30dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="3dp"
+                android:paddingStart="3dp"
                 android:layout_alignParentStart="true"
-                android:layout_marginRight="10dp"
+                android:layout_marginEnd="10dp"
                 android:layout_toStartOf="@+id/dbm"
                 android:indeterminate="false"
-                android:max="400"
+                android:max="157"
                 android:minHeight="30dp"
-                android:progress="20"
-                android:scaleY="4" />
+                android:background="@drawable/ic_prog_back"
+                android:progressDrawable="@drawable/background"/>
 
             <TextView
                 android:id="@+id/dbm"
@@ -198,7 +202,7 @@
                 android:layout_height="match_parent"
                 android:textStyle="bold"
                 android:layout_alignParentEnd="true"
-                android:textSize="18dp"
+                android:textSize="18sp"
                 android:text="-dBm"/>
         </RelativeLayout>
     </LinearLayout>
@@ -211,49 +215,89 @@
         android:background="#40000000"
         android:animateLayoutChanges="true"
         android:layout_marginTop="5dp"
-        android:layout_marginLeft="5dp"
+        android:layout_marginStart="5dp"
         android:layout_gravity="top">
 
         <ImageView
             android:id="@+id/menu_open"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
-            android:src="@drawable/ic_menu"/>
+            android:src="@drawable/ic_menu"
+            android:contentDescription="Menu" />
 
         <ImageView
             android:id="@+id/menu_center"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
-            android:src="@android:drawable/ic_menu_compass"/>
+            android:src="@android:drawable/ic_menu_compass"
+            android:contentDescription="Center user in map" />
+
+        <ImageView
+            android:id="@+id/menu_center_sonde"
+            android:layout_width="fill_parent"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_pin"
+            android:contentDescription="Center sonde in map" />
 
         <ImageView
             android:id="@+id/menu_layer"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
-            android:src="@drawable/ic_layer"/>
+            android:src="@drawable/ic_layer"
+            android:contentDescription="Change map layer" />
 
         <ImageView
             android:id="@+id/menu_maps"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
-            android:src="@drawable/ic_maps"/>
+            android:src="@drawable/ic_car"
+            android:contentDescription="Launch navigation" />
 
         <ImageView
             android:id="@+id/menu_settings"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
-            android:src="@android:drawable/ic_menu_preferences"/>
+            android:src="@android:drawable/ic_menu_preferences"
+            android:contentDescription="Settings" />
     </LinearLayout>
-    <TextView
+
+    <LinearLayout
+        android:id="@+id/coords"
+        android:background="#40000000"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="end|top"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/lat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="20dp"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:layout_gravity="end|top"
+            />
+        <TextView
+            android:id="@+id/lon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="20dp"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:layout_gravity="end|top"
+            />
+    </LinearLayout>
+    <!--<TextView
         android:id="@+id/coords"
         android:background="#40000000"
         android:clickable="true"
-        android:textSize="25dp"
+        android:textSize="25sp"
         android:visibility="gone"
         android:textStyle="bold"
-        android:layout_gravity="right|top"
+        android:layout_gravity="end|top"
         android:layout_marginTop="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"/>-->
 </FrameLayout>
