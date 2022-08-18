@@ -43,11 +43,11 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
     private var batMin=0
     private var batMax=0
     private var batType=0
-    private var RS41bw=0
-    private var M20bw=0
-    private var M10bw=0
-    private var PILOTbw=0
-    private var DFMbw=0
+    private var rs41BW=0
+    private var m20BW=0
+    private var m10BW=0
+    private var pilotBW=0
+    private var dfmBW=0
     private var offset=0
     private var call=""
     private var nam=0
@@ -64,11 +64,11 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
         etBatMin?.setText(batMin.toString())
         etBatMax?.setText(batMax.toString())
         spBatType?.setSelection(batType)
-        spRS41bw?.setSelection(RS41bw)
-        spM20bw?.setSelection(M20bw)
-        spM10bw?.setSelection(M10bw)
-        spPILOTbw?.setSelection(PILOTbw)
-        spDFMbw?.setSelection(DFMbw)
+        spRS41bw?.setSelection(rs41BW)
+        spM20bw?.setSelection(m20BW)
+        spM10bw?.setSelection(m10BW)
+        spPILOTbw?.setSelection(pilotBW)
+        spDFMbw?.setSelection(dfmBW)
         spNAM?.setSelection(nam)
         etOffset?.setText(offset.toString())
     }
@@ -91,11 +91,11 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
         batMin=extras?.getInt("vBatMin")?:0
         batMax=extras?.getInt("vBatMax")?:0
         batType=extras?.getInt("vBatType")?:0
-        RS41bw=extras?.getInt("rs41.rxbw")?:0
-        M20bw=extras?.getInt("m20.rxbw")?:0
-        M10bw=extras?.getInt("m10.rxbw")?:0
-        PILOTbw=extras?.getInt("pilot.rxbw")?:0
-        DFMbw=extras?.getInt("dfm.rxbw")?:0
+        rs41BW=extras?.getInt("rs41.rxbw")?:0
+        m20BW=extras?.getInt("m20.rxbw")?:0
+        m10BW=extras?.getInt("m10.rxbw")?:0
+        pilotBW=extras?.getInt("pilot.rxbw")?:0
+        dfmBW=extras?.getInt("dfm.rxbw")?:0
         offset=extras?.getInt("freqofs")?:0
         call=extras?.getString("myCall")?:""
         nam=extras?.getInt("aprsName")?:0
@@ -124,11 +124,11 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
 
         etCall?.addTextChangedListener(this)
 
-        findViewById<Button>(R.id.tune).setOnClickListener { view ->
+        findViewById<Button>(R.id.tune).setOnClickListener {
             Toast.makeText(this, "Not implemented (yet)",Toast.LENGTH_LONG).show()
         }
 
-        findViewById<Button>(R.id.reset).setOnClickListener { view ->
+        findViewById<Button>(R.id.reset).setOnClickListener {
             spLcd?.setSelection(0)
             etCall?.setText("MYCALL")
             etSDA?.setText("21")
@@ -173,15 +173,15 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
                 t=spBatType?.selectedItemPosition?:0
                 if (t!=batType) putExtra(VBATTYPE,t)
                 t=spRS41bw?.selectedItemPosition?:0
-                if (t!=RS41bw) putExtra(RS41_RXBW,t)
+                if (t!=rs41BW) putExtra(RS41_RXBW,t)
                 t=spM20bw?.selectedItemPosition?:0
-                if (t!=M20bw) putExtra(M20_RXBW,t)
+                if (t!=m20BW) putExtra(M20_RXBW,t)
                 t=spM10bw?.selectedItemPosition?:0
-                if (t!=M10bw) putExtra(M10_RXBW,t)
+                if (t!=m10BW) putExtra(M10_RXBW,t)
                 t=spPILOTbw?.selectedItemPosition?:0
-                if (t!=PILOTbw) putExtra(PILOT_RXBW,t)
+                if (t!=pilotBW) putExtra(PILOT_RXBW,t)
                 t=spDFMbw?.selectedItemPosition?:0
-                if (t!=DFMbw) putExtra(DFM_RXBW,t)
+                if (t!=dfmBW) putExtra(DFM_RXBW,t)
                 t=spNAM?.selectedItemPosition?:0
                 if (t!=nam) putExtra(APRSNAME,t)
                 t=etOffset?.text.toString().toInt()
@@ -206,7 +206,7 @@ class SettingsActivity : AppCompatActivity(), TextWatcher {
     override fun afterTextChanged(s: Editable?) {
         val txt=etCall?.text.toString()
         if (txt.contains('/'))
-            etCall?.setError("Invalid '/' character")
+            etCall?.error = "Invalid '/' character"
     }
 
     companion object {

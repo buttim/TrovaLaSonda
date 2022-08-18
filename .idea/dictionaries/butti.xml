@@ -1,8 +1,12 @@
 <component name="ProjectDictionaryState">
   <dictionary name="butti">
     <words>
+      <w>aprs</w>
+      <w>coords</w>
       <w>mapbox</w>
+      <w>oled</w>
       <w>rssi</w>
+      <w>rxbw</w>
       <w>sonde</w>
       <w>sondy</w>
       <w>ttgo</w>

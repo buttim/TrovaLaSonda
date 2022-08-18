@@ -19,7 +19,7 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
     var dialogCloseListener:DialogCloseListener?=null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return activity?.let {
+        return activity?.let { it ->
             val builder = AlertDialog.Builder(it)
             val inflater = requireActivity().layoutInflater
             val view=inflater.inflate(R.layout.sondetype, null)
@@ -51,7 +51,7 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 findViewById<NumberPicker>(R.id.f10).apply { textSize=120F; minValue = 0;maxValue = 0;value = (freq / 10F).toInt() % 10 }
                 findViewById<NumberPicker>(R.id.f1).apply { textSize=120F; minValue = 0;maxValue = 6;value = freq.toInt() % 10 }
                 var f = (1000 * (freq - freq.toInt())).toInt()
-                listOf(R.id.f_001, R.id.f_01, R.id.f_1).forEach { it ->
+                listOf(R.id.f_001, R.id.f_01, R.id.f_1).forEach {
                     findViewById<NumberPicker>(it).apply { textSize=120F; minValue = 0;maxValue = 9;value = f % 10 }
                     f /= 10
                 }
