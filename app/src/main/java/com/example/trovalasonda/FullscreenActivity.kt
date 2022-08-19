@@ -16,15 +16,13 @@ import android.location.Location
 import android.location.LocationListener
 import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Bundle
-import android.os.Debug
-import android.os.Handler
-import android.os.Looper
+import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
@@ -33,7 +31,6 @@ import androidx.core.view.children
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
-import eo.view.batterymeter.BatteryMeterView
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.osmdroid.config.Configuration
@@ -55,10 +52,11 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.math.abs
-
+import com.example.trovalasonda.databinding.ActivityFullscreenBinding
 
 @SuppressLint("SetTextI18n")
 class FullscreenActivity : AppCompatActivity(), LocationListener {
+    private lateinit var binding:ActivityFullscreenBinding
     private var bluetoothManager = BluetoothManager.getInstance()
     private var sondeTypes: Array<String>? = null
     private val path: Polyline = Polyline()
@@ -85,25 +83,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     private var map: MapView? = null
     private var menu: LinearLayout? = null
-    private var tvDirection: TextView? = null
-    private var tvType: TextView? = null
-    private var tvDistance: TextView? = null
-    private var tvHeight: TextView? = null
-    private var tvHorizontalSpeed: TextView? = null
-    private var tvUnits: TextView? = null
-    private var ivBuzzer: ImageView? = null
-    private var llSonde: LinearLayout? = null
-    private var llCoords: LinearLayout? = null
-    private var tvLat: TextView? = null
-    private var tvLon: TextView? = null
-    private var tvId: TextView? = null
-    private var tvBk: TextView? = null
-    private var batteryMeter:BatteryMeterView?=null
-    private var pbRssi: ProgressBar? = null
-    private var tvDbm: TextView? = null
     private val sondeLevelListDrawable = LevelListDrawable()
     private val handler = Handler(Looper.getMainLooper())
-    private var burst=false;
+    private var burst=false
 
     private var receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -111,14 +93,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 BluetoothDevice.ACTION_FOUND -> {
                     val device: BluetoothDevice? =
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    val deviceName = device?.name
-                    Log.i(TAG, "BT device found: $deviceName")
-                    if (deviceInterface == null && deviceName != null && deviceName.startsWith(
-                                    MYSONDYGOPREFIX
+                    try {
+                        val deviceName = device?.name
+                        Log.i(TAG, "BT device found: $deviceName")
+                        if (deviceInterface == null && deviceName != null && deviceName.startsWith(
+                                MYSONDYGOPREFIX
                             )
-                    ) {
-                        BluetoothAdapter.getDefaultAdapter().cancelDiscovery()
-                        connectDevice(device.address)
+                        ) {
+                            val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+                            btAdapter.cancelDiscovery()
+                            connectDevice(device.address)
+                        }
+                    }
+                    catch(ex:SecurityException) {
+                        Toast.makeText(applicationContext, "Failed Bluetooth discovery", Toast.LENGTH_LONG).apply {
+                            setGravity(Gravity.CENTER_VERTICAL, 0, 70)
+                            show()
+                        }
                     }
                 }
             }
@@ -166,12 +157,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         findViewById<ProgressBar>(R.id.progress).visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    override fun onLocationChanged(location: Location?) {
+    override fun onLocationChanged(location: Location) {
         val point = GeoPoint(location)
-        if (currentLocation == null) {
+        if (currentLocation == null)
             map?.controller?.setCenter(point)
-
-        }
         currentLocation = location
         path.addPoint(point)
         path.actualPoints.apply { if (size > 100) removeAt(0) }
@@ -180,10 +169,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     override fun onProviderDisabled(provider: String) {}
     override fun onProviderEnabled(provider: String) {}
+
+    @Deprecated("deprecated")
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
 
     private fun connect() {
-        with(BluetoothAdapter.getDefaultAdapter()) {
+        val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+        with (btAdapter) {
             if (!isEnabled) {
                 val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
 
@@ -192,8 +184,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 }.launch(intent)
             }
 
-            if (!isDiscovering && !startDiscovery())
-                Log.e(TAG, "Failed to start BT discovery")
+            try {
+                if (!isDiscovering && !startDiscovery())
+                    Log.e(TAG, "Failed to start BT discovery")
+                Unit
+            }
+            catch (ex:SecurityException) {
+                Toast.makeText(applicationContext, "Cannot start Bluetooth discovery", Toast.LENGTH_LONG).apply {
+                    setGravity(Gravity.CENTER_VERTICAL, 0, 70)
+                    show()
+                }
+            }
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
@@ -229,10 +230,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         locationOverlay?.setDirectionArrow(bmp, bmp)
         muteChanged = false
 
-        val name = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(btMacAddress).name
-        Toast.makeText(applicationContext, "Connected to $name", Toast.LENGTH_LONG).apply {
-            setGravity(Gravity.CENTER_VERTICAL, 0, 70)
-            show()
+        try {
+            val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+            val name = btAdapter.getRemoteDevice(btMacAddress).name
+            Toast.makeText(applicationContext, "Connected to $name", Toast.LENGTH_LONG).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 70)
+                show()
+            }
+        }
+        catch (ex:SecurityException) {
+            Toast.makeText(applicationContext, "Cannot connect !", Toast.LENGTH_LONG).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 70)
+                show()
+            }
         }
     }
 
@@ -253,7 +263,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         Handler(Looper.getMainLooper()).postDelayed({
             connect()
         }, 1000)
-        batteryMeter?.chargeLevel=null
+        binding.batteryMeter.chargeLevel=null
     }
 
     private fun onError(error: Throwable) {
@@ -308,13 +318,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 )
                 return
             }
-            "1" -> if (campi.size == 20)
+            "1" -> if (campi.size == 20) {
                 mySondyGOSondePos(
-                        campi[1], campi[2].toDouble(), campi[3], campi[4].toDouble(),
-                        campi[5].toDouble(), campi[6].toDouble(), campi[7].toDouble(),
-                        campi[8].toDouble(), campi[9].toInt(), campi[10].toInt(), campi[11] == "1",
-                        campi[12].toInt(), campi[13].toInt(), campi[14] == "1", campi[18]
+                    campi[1], campi[2].toDouble(), campi[3], campi[4].toDouble(),
+                    campi[5].toDouble(), campi[6].toDouble(), campi[7].toDouble(),
+                    campi[8].toDouble(), campi[9].toInt(), campi[10].toInt(), campi[11] == "1",
+                    campi[12].toInt(), campi[13].toInt(), campi[14] == "1", campi[18]
                 )
+                freqOffsetReceiver?.freqOffset(campi[10].toInt())
+            }
             else {
                 Log.e(
                         TAG,
@@ -322,12 +334,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 )
                 return
             }
-            "2" -> if (campi.size == 11)
+            "2" -> if (campi.size == 11) {
                 mySondyGOSonde(
                         campi[1], campi[2].toDouble(), campi[3], campi[4].toDouble(),
                         campi[5].toInt(), campi[6].toInt(), campi[7].toInt(), campi[8] == "1",
                         campi[9]
                 )
+                freqOffsetReceiver?.freqOffset(campi[6].toInt())
+            }
             else {
                 Log.e(
                         TAG,
@@ -366,17 +380,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     private fun updateMute(mute: Boolean) {
         this.mute = mute
-        ivBuzzer?.setImageResource(if (mute) R.drawable.ic_buzzer_off else R.drawable.ic_buzzer_on)
-        ivBuzzer?.imageAlpha = 255
+        binding.buzzer.setImageResource(if (mute) R.drawable.ic_buzzer_off else R.drawable.ic_buzzer_on)
+        binding.buzzer.imageAlpha = 255
         muteChanged = false
     }
 
     private fun updateSondeLocation(id: String, lat: Double, lon: Double) {
-        tvLat?.text = String.format(Locale.US, " %.5f", lat)
-        tvLon?.text = String.format(Locale.US, " %.5f", lon)
+        binding.lat.text = String.format(Locale.US, " %.5f", lat)
+        binding.lon.text = String.format(Locale.US, " %.5f", lon)
         if (sondeId != id) {
             sondeId = id
-            tvId?.text = id
+            binding.id.text = id
             bk = null
 
             mkSonde?.setVisible(true)
@@ -407,11 +421,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         if (currentLocation != null) {
             val d = GeoPoint(currentLocation).distanceToAsDouble(mkSonde?.position)
             if (d > 10000F) {
-                tvUnits?.text = "km"
-                tvDistance?.text = String.format("%.1f", d / 1000)
+                binding.unit.text = "km"
+                binding.distance.text = String.format("%.1f", d / 1000)
             } else {
-                tvUnits?.text = "m"
-                tvDistance?.text = String.format("%.1f", d)
+                binding.unit.text = "m"
+                binding.distance.text = String.format("%.1f", d)
             }
 
             updateSondeDirection()
@@ -431,25 +445,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     private fun updateTypeAndFreq(type: String, freq: Double) {
         if (this.freq!=freq || sondeType < 1 || type != sondeTypes!![sondeType - 1]) {
-            tvType?.text = "$type ${freq}MHz"
+            binding.type.text = "$type ${freq}MHz"
             sondeType = sondeTypes?.indexOf(type)!! + 1
         }
         this.freq = freq
     }
 
     private fun updateBk(bk: Int) {
-        tvBk?.visibility = View.VISIBLE
-        tvBk?.text = String.format("BK %d:%02d:%02d", bk / 3600, (bk / 60) % 60, bk % 60)
+        binding.bk.visibility = View.VISIBLE
+        binding.bk.text = String.format("BK %d:%02d:%02d", bk / 3600, (bk / 60) % 60, bk % 60)
         this.bk = Instant.now().plusSeconds(bk.toLong())
     }
 
     private fun updateRSSI(rssi: Double) {
-        tvDbm?.text = "-${rssi}dBm"
-        pbRssi?.progress = ((pbRssi?.max?:157)-rssi).toInt()
+        binding.dbm.text = "-${rssi}dBm"
+        binding.rssi.progress = (binding.rssi.max-rssi).toInt()
     }
 
     private fun updateBattery(v: Int) {
-        batteryMeter?.chargeLevel=v
+        binding.batteryMeter.chargeLevel=v
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -464,16 +478,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             updateSondeLocation(name, lat, lon)
 
         if (height!=0.0 || vel!=0.0) {
-            tvHeight?.text = "H: ${height}m"
-            tvDirection?.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
+            binding.height.text = "H: ${height}m"
+            binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
             val newHeightDelta = height - this.height
             if (!burst && heightDelta > 0 && newHeightDelta < 0) {
-                burst=true;
+                burst=true
                 playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
             }
             heightDelta = newHeightDelta
             this.height = height
-            tvHorizontalSpeed?.text = "V: ${vel}km/h"
+            binding.horizontalSpeed.text = "V: ${vel}km/h"
         }
         if (bk && bktime!=0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
@@ -499,7 +513,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
-        tvId?.text = name
+        binding.id.text = name
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat)
@@ -547,15 +561,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun closeMenu() {
-        llCoords?.visibility = View.GONE
+        binding.coords.visibility = View.GONE
         menu?.layoutParams?.height = menu!!.getChildAt(0).layoutParams.height
         menu?.requestLayout()
         expandedMenu = false
     }
 
     private fun openMenu() {
-        if (tvLat?.text!="")
-            llCoords?.visibility = View.VISIBLE
+        if (binding.lat.text!="")
+            binding.coords.visibility = View.VISIBLE
         expandedMenu = true
         menu?.apply {
             layoutParams?.height = children.fold(0) { sum, el -> sum + el.layoutParams.height }
@@ -577,7 +591,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             if (muteChanged) return
             mute = !mute
             sendCommand("mute", if (mute) 1 else 0)
-            ivBuzzer?.imageAlpha = 64
+            binding.buzzer.imageAlpha = 64
             muteChanged = true
         }
     }
@@ -597,9 +611,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     private var n: Int = 0
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         sondeTypes = resources.getStringArray(R.array.sonde_types)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         window.setFlags(
@@ -607,59 +621,42 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED&&
+            ActivityCompat.checkSelfPermission(this,Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED&&
+            ActivityCompat.checkSelfPermission(this,Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
                     this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT),
                     0
             )
             Log.e(TAG, "non abbiamo il permesso")
             return
         }
 
-        val ctx: Context = applicationContext
+        binding=ActivityFullscreenBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.buzzer.setOnClickListener { toggleBuzzer() }
 
-        setContentView(R.layout.activity_fullscreen)
-
-        tvDirection = findViewById(R.id.direction)
-        tvType = findViewById(R.id.type)
-        tvHeight = findViewById(R.id.height)
-        tvHorizontalSpeed = findViewById(R.id.horizontal_speed)
-        tvDistance = findViewById(R.id.distance)
-        tvUnits = findViewById(R.id.unit)
-        ivBuzzer = findViewById(R.id.buzzer)
-        ivBuzzer?.setOnClickListener { toggleBuzzer() }
-        tvId = findViewById(R.id.id)
-        llCoords = findViewById(R.id.coords)
-        tvLat = findViewById(R.id.lat)
-        tvLon = findViewById(R.id.lon)
-        llSonde = findViewById(R.id.sonde)
-        tvBk = findViewById(R.id.bk)
-        pbRssi = findViewById(R.id.rssi)
-        tvDbm = findViewById(R.id.dbm)
-        batteryMeter=findViewById(R.id.battery_meter)
-        tvLat?.setOnClickListener {
+        binding.lat.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("sonde latitude", tvLat?.text)
+            val clip = ClipData.newPlainText("sonde latitude", binding.lat.text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(ctx, "Latitude copied to clipboard", Toast.LENGTH_SHORT).apply {
+            Toast.makeText(applicationContext, "Latitude copied to clipboard", Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
         }
-        tvLon?.setOnClickListener {
+        binding.lon.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("sonde longitude", tvLon?.text)
+            val clip = ClipData.newPlainText("sonde longitude", binding.lon.text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(ctx, "Longitude copied to clipboard", Toast.LENGTH_SHORT).apply {
+            Toast.makeText(applicationContext, "Longitude copied to clipboard", Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
         }
-        llSonde?.setOnClickListener {
+        binding.sonde.setOnClickListener {
             if (deviceInterface == null) {
                 ttgoNotConnectedWarning()
                 return@setOnClickListener
@@ -697,7 +694,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             if (currentLocation != null)
                 map?.controller?.setCenter(GeoPoint(currentLocation))
             else
-                Toast.makeText(ctx, "No current location (yet)", Toast.LENGTH_SHORT).apply {
+                Toast.makeText(applicationContext, "No current location (yet)", Toast.LENGTH_SHORT).apply {
                     setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                     show()
                 }
@@ -741,7 +738,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             if (mkSonde?.isDisplayed == true)
                 map?.controller?.setCenter(mkSonde?.position)
             else
-                Toast.makeText(ctx, "No sonde to show", Toast.LENGTH_SHORT).apply {
+                Toast.makeText(applicationContext, "No sonde to show", Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
@@ -755,7 +752,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 startActivity(intent)
             }
             else
-                Toast.makeText(ctx, "No sonde to navigate to", Toast.LENGTH_SHORT).apply {
+                Toast.makeText(applicationContext, "No sonde to navigate to", Toast.LENGTH_SHORT).apply {
                     setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                     show()
                 }
@@ -803,14 +800,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
 
-                val dm: DisplayMetrics = ctx.resources.displayMetrics
+                val dm: DisplayMetrics = applicationContext.resources.displayMetrics
                 val scaleBar = ScaleBarOverlay(map)
                 scaleBar.setScaleBarOffset(dm.widthPixels / 2, 10)
 
                 val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_red)
-                locationOverlay = object : MyLocationNewOverlay(GpsMyLocationProvider(ctx), map) {
+                locationOverlay = object : MyLocationNewOverlay(GpsMyLocationProvider(applicationContext), map) {
                     override fun onLocationChanged(
-                            location: Location?,
+                            location: Location,
                             source: IMyLocationProvider?
                     ) {
                         super.onLocationChanged(location, source)
@@ -826,8 +823,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                     }
                 }
                 sondeLevelListDrawable.apply {
-                    addLevel(0, 0, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_red))
-                    addLevel(1, 1, AppCompatResources.getDrawable(ctx, R.drawable.ic_sonde_green))
+                    addLevel(0, 0, AppCompatResources.getDrawable(applicationContext, R.drawable.ic_sonde_red))
+                    addLevel(1, 1, AppCompatResources.getDrawable(applicationContext, R.drawable.ic_sonde_green))
                     level = 0
                 }
                 mkSonde = Marker(map).apply {
@@ -922,12 +919,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             "timeLastSeen" to timeLastSeen,
             "timeLastMessage" to timeLastMessage,
             "height" to height,
-            "lat" to tvLat?.text,
-            "lon" to tvLon?.text,
-            "distance" to tvDistance?.text,
-            "units" to tvUnits?.text,
-            "horizontalSpeed" to tvHorizontalSpeed?.text,
-            "direction" to tvDirection?.text
+            "lat" to binding.lat.text,
+            "lon" to binding.lon.text,
+            "distance" to binding.distance.text,
+            "units" to binding.unit.text,
+            "horizontalSpeed" to binding.horizontalSpeed.text,
+            "direction" to binding.direction.text
         ))
     }
 
@@ -950,19 +947,27 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             currentLocation = get("currentLocation") as Location
             sondeId = get("deviceInterface") as String
             height = get("height") as Double
-            tvLat?.text=get("lat") as String
-            tvLon?.text=get("lon") as String
-            tvDistance?.text=get("distance") as String
-            tvUnits?.text=get("units") as String
-            tvHorizontalSpeed?.text=get("horizontalSpeed") as String
-            tvDirection?.text=get("direction") as String
+            binding.lat.text=get("lat") as String
+            binding.lon.text=get("lon") as String
+            binding.distance.text=get("distance") as String
+            binding.unit.text=get("units") as String
+            binding.horizontalSpeed.text=get("horizontalSpeed") as String
+            binding.direction.text=get("direction") as String
         }
-        tvId?.text=sondeId
-        tvHeight?.text=height.toString()
+        binding.id.text=sondeId
+        binding.height.text=height.toString()
     }
 
     companion object {
         private const val TAG = "MAURI"
         private const val MYSONDYGOPREFIX = "MySondyGO-"
+        private var freqOffsetReceiver:FreqOffsetReceiver?=null
+        fun registerFreqOffsetReceiver(r:FreqOffsetReceiver) {
+            freqOffsetReceiver=r
+        }
+
+        fun unregisterFreqOffsetReceiver() {
+            freqOffsetReceiver=null
+        }
     }
 }

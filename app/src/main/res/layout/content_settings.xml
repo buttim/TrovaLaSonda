@@ -369,6 +369,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="20dp"
                 android:text="Tune"/>
+
+            <TextView
+                android:id="@+id/currentOffset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:text="" />
         </LinearLayout>
         <Button
             android:id="@+id/reset"

@@ -17,7 +17,6 @@
         android:layout_gravity="center_horizontal"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        android:orientation="horizontal">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -53,16 +52,16 @@
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
-            android:id="@+id/f_1"
+            android:id="@+id/f01"
             android:layout_marginLeft="15sp"
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
-            android:id="@+id/f_01"
+            android:id="@+id/f001"
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
-            android:id="@+id/f_001"
+            android:id="@+id/f0001"
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
 
