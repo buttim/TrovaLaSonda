@@ -271,7 +271,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
-                    android:text="M10" />
+                    android:text="M20" />
 
                 <Spinner
                     android:id="@+id/m20bw"

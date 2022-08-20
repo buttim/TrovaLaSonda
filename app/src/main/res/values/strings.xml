@@ -36,20 +36,20 @@
         <item>5200</item>
         <item>6300</item>
         <item>7800</item>
-        <item>1040</item>
-        <item>1250</item>
-        <item>1560</item>
-        <item>2080</item>
-        <item>2500</item>
-        <item>3130</item>
-        <item>4170</item>
-        <item>5000</item>
-        <item>6250</item>
-        <item>8330</item>
-        <item>1000</item>
-        <item>1250</item>
-        <item>1667</item>
-        <item>2000</item>
+        <item>10400</item>
+        <item>12500</item>
+        <item>15600</item>
+        <item>20800</item>
+        <item>25000</item>
+        <item>31300</item>
+        <item>41700</item>
+        <item>50000</item>
+        <item>62500</item>
+        <item>83300</item>
+        <item>100000</item>
+        <item>125000</item>
+        <item>166700</item>
+        <item>200000</item>
     </string-array>
     <string-array name="nam">
         <item>SERIAL</item>
