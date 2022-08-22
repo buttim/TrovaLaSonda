@@ -37,8 +37,8 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 f10.apply { textSize=120F; minValue = 0;maxValue = 0;value = (freq / 10F).toInt() % 10 }
                 f1.apply { textSize=120F; minValue = 0;maxValue = 6;value = freq.toInt() % 10 }
                 var f = (1000 * (freq - freq.toInt())).toInt()
-                listOf(R.id.f0001, R.id.f001, R.id.f01).forEach {
-                    root.findViewById<NumberPicker>(it).apply { textSize=120F; minValue = 0;maxValue = 9;value = f % 10 }
+                listOf(f0001, f001, f01).forEach {
+                    it.apply { textSize=120F; minValue = 0;maxValue = 9;value = f % 10 }
                     f /= 10
                 }
             }

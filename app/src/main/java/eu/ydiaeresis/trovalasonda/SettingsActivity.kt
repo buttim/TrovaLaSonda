@@ -4,19 +4,22 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.text.InputFilter
+import android.text.Spanned
 import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import eu.ydiaeresis.trovalasonda.databinding.ActivitySettingsBinding
 
+
 interface FreqOffsetReceiver {
     fun freqOffset(offset:Int)
 }
 
-class SettingsActivity : AppCompatActivity(), TextWatcher, FreqOffsetReceiver {
+class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
     private lateinit var binding: ActivitySettingsBinding
     private var sda=0
     private var scl=0
@@ -75,7 +78,7 @@ class SettingsActivity : AppCompatActivity(), TextWatcher, FreqOffsetReceiver {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this,R.layout.activity_settings)
-        setSupportActionBar(findViewById(R.id.toolbar))
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         with (intent.extras!!) {
@@ -101,18 +104,50 @@ class SettingsActivity : AppCompatActivity(), TextWatcher, FreqOffsetReceiver {
             supportActionBar?.setTitle("Settings ($ver)")
         }
 
-        setFields()
-
         FullscreenActivity.registerFreqOffsetReceiver(this)
 
-        binding.content.call.addTextChangedListener(this)
+        with (binding.content) {
+            for (spinner in arrayOf(rs41bw,m10bw,m20bw,dfmbw,pilbw)) {
+                (spinner.adapter as ArrayAdapter<*>).let {
+                    it.setDropDownViewResource(R.layout.spinner_style)
+                    spinner.adapter = object : SpinnerAdapter by it {
+                        override fun getDropDownView(
+                            position: Int,
+                            convertview: View?,
+                            parent: ViewGroup
+                        ): View {
+                            val view=it.getDropDownView(position, convertview, parent)
+                            view.setBackgroundColor((if (position % 2 == 0) 0xFF404040 else 0xFF606060).toInt())
+                            return view
+                        }
+                    }
+                }
+            }
 
-        findViewById<Button>(R.id.tune).setOnClickListener {
-            binding.content.offset.setText(currentOffset.toString())
-        }
+            call.filters+=arrayOf(InputFilter.AllCaps(),object:InputFilter{
+                override fun filter(
+                    source: CharSequence,
+                    start: Int,
+                    end: Int,
+                    dest: Spanned?,
+                    dstart: Int,
+                    dend: Int
+                ): CharSequence? {
+                    if (source.contains('/')) {
+                        Toast.makeText(applicationContext, "Invalid '/' character", Toast.LENGTH_SHORT).show()
+                        return source.replace(Regex("/"),"")
+                    }
+                    return null
+                }
+            })
 
-        binding.content.reset.setOnClickListener {
-            with (binding.content) {
+            tune.setOnClickListener {
+                offset.setText(this@SettingsActivity.currentOffset.toString())
+            }
+
+            setFields()
+
+            reset.setOnClickListener {
                 lcd.setSelection(0)
                 call.setText("MYCALL")
                 sda.setText("21")
@@ -132,7 +167,6 @@ class SettingsActivity : AppCompatActivity(), TextWatcher, FreqOffsetReceiver {
                 offset.setText("0")
             }
         }
-
         binding.fab.setOnClickListener {
             val data=Intent().apply {
                 with (binding) {
@@ -192,14 +226,6 @@ class SettingsActivity : AppCompatActivity(), TextWatcher, FreqOffsetReceiver {
             }
         }
         return super.onOptionsItemSelected(item)
-    }
-
-    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-    override fun afterTextChanged(s: Editable?) {
-        val txt=binding.content.call.text.toString()
-        if (txt.contains('/'))
-            binding.content.call.error = "Invalid '/' character"
     }
 
     companion object {
