@@ -109,7 +109,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         with (binding.content) {
             for (spinner in arrayOf(rs41bw,m10bw,m20bw,dfmbw,pilbw)) {
                 (spinner.adapter as ArrayAdapter<*>).let {
-                    it.setDropDownViewResource(R.layout.spinner_style)
+                    it.setDropDownViewResource(R.layout.spinner_entry)
                     spinner.adapter = object : SpinnerAdapter by it {
                         override fun getDropDownView(
                             position: Int,

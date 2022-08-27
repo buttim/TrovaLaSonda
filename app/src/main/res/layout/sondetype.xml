@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -10,25 +11,28 @@
         android:layout_marginBottom="20sp"
         android:textSize="35sp"
         android:layout_gravity="center_horizontal"
-        android:text="Sonde settings"/>
+        android:text="@string/sonde_settings"/>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="25sp"
-            android:text="Type"/>
+            android:layout_marginEnd="10dp"
+            android:text="@string/type"
+            android:textSize="25sp" />
+
         <Spinner
             android:id="@+id/type"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginBottom="10sp"
-            android:entries="@array/sonde_types"/>
+            android:entries="@array/sonde_types"
+            tools:ignore="TouchTargetSizeCheck" />
     </LinearLayout>
 
     <LinearLayout
@@ -39,7 +43,7 @@
         <NumberPicker
             android:id="@+id/f100"
             android:gravity="center"
-            android:layout_marginLeft="20sp"
+            android:layout_marginStart="20sp"
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
@@ -53,7 +57,7 @@
             android:layout_height="wrap_content"/>
         <NumberPicker
             android:id="@+id/f01"
-            android:layout_marginLeft="15sp"
+            android:layout_marginStart="15sp"
             android:layout_width="25sp"
             android:layout_height="wrap_content"/>
         <NumberPicker
@@ -71,8 +75,8 @@
             android:layout_gravity="center_vertical"
             android:gravity="center_vertical"
             android:textSize="20sp"
-            android:layout_marginLeft="20sp"
-            android:hint="frequency"
-            android:text="MHz"/>
+            android:layout_marginStart="20sp"
+            android:hint="@string/frequency"
+            android:text="@string/mhz"/>
     </LinearLayout>
 </LinearLayout>

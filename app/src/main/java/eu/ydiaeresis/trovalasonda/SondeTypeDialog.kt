@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.NumberPicker
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import eu.ydiaeresis.trovalasonda.databinding.SondetypeBinding
@@ -25,14 +24,13 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
             val inflater = requireActivity().layoutInflater
 
             binding=SondetypeBinding.inflate(inflater).apply {
-
-                val arrayAdapter: ArrayAdapter<Any?> = ArrayAdapter<Any?>(
-                    requireContext(),
-                    R.layout.spinner_style,
-                    requireContext().resources.getStringArray(R.array.sonde_types)
+                (type.adapter as ArrayAdapter<*>).setDropDownViewResource(R.layout.sonde_spinner_entry)
+                type.adapter = ArrayAdapter.createFromResource(
+                    this@SondeTypeDialog.requireContext(),
+                    R.array.sonde_types,
+                    R.layout.sonde_spinner_entry
                 )
-                arrayAdapter.setDropDownViewResource(R.layout.spinner_style)
-                type.adapter = arrayAdapter
+
                 f100.apply { textSize=120F; minValue = 4;maxValue = 4;value = (freq / 100F).toInt() }
                 f10.apply { textSize=120F; minValue = 0;maxValue = 0;value = (freq / 10F).toInt() % 10 }
                 f1.apply { textSize=120F; minValue = 0;maxValue = 6;value = freq.toInt() % 10 }

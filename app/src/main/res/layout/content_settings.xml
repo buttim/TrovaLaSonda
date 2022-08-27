@@ -67,8 +67,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
                     android:labelFor="@id/sda"
-                    tools:ignore="HardcodedText"
-                    android:text="SDA pin" />
+                    android:text="@string/sda_pin" />
 
                 <EditText
                     android:id="@+id/sda"
@@ -90,8 +89,7 @@
                     android:layout_weight="0"
                     android:layout_marginStart="30sp"
                     android:labelFor="@id/scl"
-                    android:text="SCL pin"
-                    tools:ignore="HardcodedText" />
+                    android:text="@string/scl_pin"/>
 
                 <EditText
                     android:id="@+id/scl"
@@ -118,8 +116,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
                     android:labelFor="@id/rst"
-                    android:text="RST pin"
-                    tools:ignore="HardcodedText" />
+                    android:text="@string/rst_pin"/>
 
                 <EditText
                     android:id="@+id/rst"
@@ -191,7 +188,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="30dp"
                     android:layout_weight="0"
-                    android:text="Battery pin"
+                    android:text="@string/battery_pin"
                     android:labelFor="@id/bat" />
 
                 <EditText
@@ -216,7 +213,7 @@
                 android:textSize="20sp"
                 android:gravity="center_horizontal"
                 android:layout_marginTop="20dp"
-                android:text="Battery" />
+                android:text="@string/battery" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -278,7 +275,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
-                    android:text="Type" />
+                    android:text="@string/type" />
 
                 <Spinner
                     android:id="@+id/bat_type"
@@ -294,14 +291,13 @@
                 android:textSize="20sp"
                 android:gravity="center_horizontal"
                 android:layout_marginTop="20dp"
-                android:text="Radio" />
+                android:text="@string/radio" />
 
             <TableLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <TableRow>
-
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -416,7 +412,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
                     android:labelFor="@id/offset"
-                    android:text="Offset" />
+                    android:text="@string/offset" />
 
                 <EditText
                     android:id="@+id/offset"
@@ -436,7 +432,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="20sp"
-                    android:text="Tune" />
+                    android:text="@string/tune" />
 
                 <TextView
                     android:id="@+id/currentOffset"
@@ -452,8 +448,7 @@
                 android:layout_marginTop="20dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Reset"
-                tools:ignore="HardcodedText" />
+                android:text="@string/reset"/>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

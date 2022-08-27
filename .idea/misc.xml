@@ -3,10 +3,19 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/activity_fullscreen.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/activity_settings.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/content_settings.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/sonde_spinner_entry.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/sonde_spinner_style.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/sondetype.xml" value="0.6" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/spinner_entry.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/spinner_style.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/maurizio/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/spinner_style.xml" value="0.3546875" />
       </map>
     </option>
   </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>

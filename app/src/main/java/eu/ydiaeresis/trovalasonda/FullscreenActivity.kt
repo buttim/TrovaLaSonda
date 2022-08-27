@@ -67,7 +67,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     private var mkSonde: Marker? = null
     private val sondeDirection = Polyline()
     private var locationOverlay: MyLocationNewOverlay? = null
-
     private var expandedMenu = false
     private var currentLocation: Location? = null
     private var satelliteView = false
@@ -454,8 +453,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun updateBk(bk: Int) {
-        binding.bk.visibility = View.VISIBLE
-        binding.bk.text = String.format("BK %d:%02d:%02d", bk / 3600, (bk / 60) % 60, bk % 60)
+        binding.bk.apply {
+            visibility = View.VISIBLE
+            text = String.format("BK %d:%02d:%02d", bk / 3600, (bk / 60) % 60, bk % 60)
+        }
         this.bk = Instant.now().plusSeconds(bk.toLong())
     }
 
@@ -491,7 +492,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             this.height = height
             binding.horizontalSpeed.text = "V: ${vel}km/h"
         }
-        if (bk && bktime!=0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
+        if (bk && bktime>0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
         updateBattery(bat)
     }

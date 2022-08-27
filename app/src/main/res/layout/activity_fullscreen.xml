@@ -46,7 +46,7 @@
                     android:focusable="true"
                     android:background="?android:attr/selectableItemBackground"
                     android:src="@drawable/ic_buzzer_on"
-                    android:contentDescription="Toggle buzzer" />
+                    android:contentDescription="@string/toggle_buzzer" />
 
                 <eo.view.batterymeter.BatteryMeterView
                     android:id="@+id/battery_meter"
@@ -81,7 +81,8 @@
                         android:textColor="@color/yellow"
                         android:textSize="30sp"
                         android:textStyle="bold"
-                        android:text="-"/>
+                        android:text="-"
+                        tools:ignore="HardcodedText" />
 
                     <TextView
                         android:id="@+id/unit"
@@ -91,7 +92,7 @@
                         android:textColor="@color/yellow"
                         android:textSize="15sp"
                         android:textStyle="bold"
-                        android:text="km"/>
+                        android:text="@string/km"/>
                 </LinearLayout>
                 <TextView
                     android:id="@+id/bk"
@@ -126,17 +127,17 @@
                     android:textStyle="bold"
                     android:textColor="#7FFF7F"
                     android:gravity="center"
-                    android:text="[no sonde]"/>
+                    android:text="@string/no_sonde"/>
 
                 <TextView
                     android:id="@+id/type"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="0dp"
                     android:textSize="15sp"
                     android:textStyle="bold"
-                    android:layout_weight="1"
                     android:textColor="@color/yellow"
-                    android:text="RS41 403.000MHz"/>
+                    android:text="RS41 403.000MHz"
+                    tools:ignore="HardcodedText" />
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -153,7 +154,8 @@
                             android:textStyle="bold"
                             android:layout_weight="1"
                             android:textColor="@color/yellow"
-                            android:text="H: -m"/>
+                            android:text="H: -m"
+                            tools:ignore="HardcodedText" />
                         <TextView
                             android:id="@+id/horizontal_speed"
                             android:layout_width="wrap_content"
@@ -162,7 +164,8 @@
                             android:textStyle="bold"
                             android:layout_weight="1"
                             android:textColor="@color/yellow"
-                            android:text="V: -km/h"/>
+                            android:text="V: -km/h"
+                            tools:ignore="HardcodedText" />
                     </LinearLayout>
                     <TextView
                         android:id="@+id/direction"
@@ -203,7 +206,7 @@
                 android:textStyle="bold"
                 android:layout_alignParentEnd="true"
                 android:textSize="18sp"
-                android:text="-dBm"/>
+                android:text="@string/dbm"/>
         </RelativeLayout>
     </LinearLayout>
 
@@ -223,42 +226,42 @@
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_menu"
-            android:contentDescription="Menu" />
+            android:contentDescription="@string/menu" />
 
         <ImageView
             android:id="@+id/menu_center"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@android:drawable/ic_menu_compass"
-            android:contentDescription="Center user in map" />
+            android:contentDescription="@string/center_user_in_map" />
 
         <ImageView
             android:id="@+id/menu_center_sonde"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_pin"
-            android:contentDescription="Center sonde in map" />
+            android:contentDescription="@string/center_sonde_in_map" />
 
         <ImageView
             android:id="@+id/menu_layer"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_layer"
-            android:contentDescription="Change map layer" />
+            android:contentDescription="@string/change_map_layer" />
 
         <ImageView
             android:id="@+id/menu_maps"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_car"
-            android:contentDescription="Launch navigation" />
+            android:contentDescription="@string/launch_navigation" />
 
         <ImageView
             android:id="@+id/menu_settings"
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@android:drawable/ic_menu_preferences"
-            android:contentDescription="Settings" />
+            android:contentDescription="@string/settings" />
     </LinearLayout>
 
     <LinearLayout

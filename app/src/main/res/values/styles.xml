@@ -1,5 +1,4 @@
 <resources>
-
     <style name="Widget.Theme.TrovaLaSonda.ActionBar.Fullscreen" parent="Widget.AppCompat.ActionBar">
         <item name="android:background">#20FF0000</item>
     </style>
