@@ -27,14 +27,15 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
+//import androidx.core.view.WindowInsetsCompat
+//import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.children
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import eu.ydiaeresis.trovalasonda.databinding.ActivityFullscreenBinding
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,8 +48,8 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.*
+import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
@@ -61,9 +62,10 @@ import org.osmdroid.views.overlay.Polygon as Polygon1
 
 
 @SuppressLint("SetTextI18n")
-class FullscreenActivity : AppCompatActivity(), LocationListener {
+class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
     private var bluetoothManager = BluetoothManager.getInstance()
+    private var btSerialDevice: Disposable?=null
     private var sondeTypes: Array<String>? = null
     private val path = Polyline()
     private val sondePath = Polyline()
@@ -173,13 +175,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         path.actualPoints.apply { if (size > 400) removeAt(0) }
         updateSondeDirection()
 
-        accuracyOverlay.setPoints(Polygon1.pointsAsCircle(
-            GeoPoint(location.latitude,location.longitude),location.accuracy.toDouble()))//..location=GeoPoint(location.latitude,location.longitude)
+        accuracyOverlay.points = Polygon1.pointsAsCircle(
+            GeoPoint(location.latitude,location.longitude),location.accuracy.toDouble())
         binding.map.invalidate()
     }
 
-    override fun onProviderDisabled(provider: String) {}
-    override fun onProviderEnabled(provider: String) {}
+    override fun onProviderDisabled(provider: String) = Unit
+    override fun onProviderEnabled(provider: String) = Unit
 
     @Deprecated("deprecated")
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
@@ -215,7 +217,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
     @SuppressLint("CheckResult")
     private fun connectDevice(mac: String) {
-        bluetoothManager.openSerialDevice(mac)
+        btSerialDevice=bluetoothManager.openSerialDevice(mac)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(this::onConnected) { error ->
@@ -291,6 +293,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             deviceInterface?.sendMessage("o{$cmd}o\r\n")
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
+            btSerialDevice?.dispose()
+            btSerialDevice=null
+            //connect()
         }
     }
 
@@ -386,6 +391,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             process(message)
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
+            btSerialDevice?.dispose()
+            btSerialDevice=null
         }
     }
 
@@ -406,6 +413,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
 
             mkSonde?.setVisible(true)
             sondePath.actualPoints.clear()
+            mkBurst?.setVisible(false)
+            trajectory.actualPoints.clear()
+            trajectory.isVisible=false
+            mkTarget?.setVisible(false)
 
             if (currentLocation != null) {
                 binding.map.zoomToBoundingBox(
@@ -416,7 +427,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                                                 lon
                                         ), GeoPoint(currentLocation)
                                 )
-                        ), false, 50
+                        ).increaseByScale(1.9F),
+                    false, 50
                 )
                 binding.map.invalidate()
             } else
@@ -500,6 +512,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             val newHeightDelta = height - this.height
             if (!burst && heightDelta > 0 && newHeightDelta < 0) {
                 burst=true
+                mkBurst?.apply {
+                    position = GeoPoint(lat, lon)
+                    setVisible(true)
+                    subDescription = Instant.now().toString()
+                }
                 playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
             }
             heightDelta = newHeightDelta
@@ -590,7 +607,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             binding.coords.visibility = View.VISIBLE
         expandedMenu = true
         binding.menu.apply {
-            layoutParams?.height = children.fold(0) { sum, el -> sum + el.layoutParams.height }
+            layoutParams?.height = children.fold(0) { sum, el -> sum + if (el.visibility==View.VISIBLE) el.layoutParams.height else 0 }
             requestLayout()
         }
     }
@@ -653,10 +670,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         sondeTypes = resources.getStringArray(R.array.sonde_types)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
-        WindowInsetsControllerCompat(window, window.decorView).apply {
+        /*WindowInsetsControllerCompat(window, window.decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.systemBars())
-        }
+        }*/
 
         requestPermissionsIfNecessary(arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -700,7 +717,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                     freq = dlg.freq
                     sondeType = dlg.type
 
-                    //Log.i(TAG, "SONDE*******$freq $sondeType")
                     sendCommands(
                             listOf<Pair<String, Any>>(
                                     Pair("f", freq),
@@ -721,6 +737,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 closeMenu()
             }
         }
+        closeMenu()
         binding.menuCenter.setOnClickListener {
             if (currentLocation != null)
                 binding.map.controller?.setCenter(GeoPoint(currentLocation))
@@ -766,7 +783,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             closeMenu()
         }
         binding.menuCenterSonde.setOnClickListener {
-            if (mkSonde?.isDisplayed == true)
+            if (sondeId != null)
                 binding.map.controller?.setCenter(mkSonde?.position)
             else
                 Toast.makeText(applicationContext, "No sonde to show", Toast.LENGTH_SHORT).apply {
@@ -776,12 +793,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
             closeMenu()
         }
         binding.menuMaps.setOnClickListener {
-            if (sondeId != null) {
-                val uri = Uri.parse("google.navigation:q=${mkSonde?.position?.latitude},${mkSonde?.position?.longitude}")
-                val intent = Intent(Intent.ACTION_VIEW, uri)
-                intent.setPackage("com.google.android.apps.maps")
-                startActivity(intent)
-            }
+            if (sondeId != null)
+                navigate(mkSonde?.position!!)
             else
                 Toast.makeText(applicationContext, "No sonde to navigate to", Toast.LENGTH_SHORT).apply {
                     setGravity(Gravity.CENTER_VERTICAL, 0, 0)
@@ -809,17 +822,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                     return false
                 }
             }))
-            addMapListener(object : MapListener {
-                override fun onZoom(event: ZoomEvent?): Boolean {
-                    closeMenu()
-                    return true
-                }
 
-                override fun onScroll(event: ScrollEvent?): Boolean {
-                    closeMenu()
-                    return true
-                }
-            })
             addOnFirstLayoutListener { _: View, _: Int, _: Int, _: Int, _: Int ->
                 isTilesScaledToDpi=true
                 maxZoomLevel=20.0
@@ -862,14 +865,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                     position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
+                    setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
                 }
                 mkTarget=Marker(binding.map).apply {
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.target)
                     position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
+                    setOnMarkerClickListener { marker, _ -> navigate(marker.position); true }
                 }
                 mkBurst=Marker(binding.map).apply {
+                    title="Burst"
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_burst)
                     position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
@@ -883,14 +889,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 trajectory.outlinePaint.color = Color.argb(128,255, 128, 0)
                 trajectory.isVisible = false
                 accuracyOverlay=Polygon1(binding.map).apply {
-                    fillColor=Color.argb(32,0,0,255)
-                    strokeWidth=2F
-                    strokeColor=Color.argb(128,0,0,255)
+                    fillPaint.color = Color.argb(32,0,0,255)
+                    outlinePaint.strokeWidth=2F
+                    outlinePaint.color=Color.argb(128,0,0,255)
                 }
 
                 overlays?.addAll(
-                    listOf(path, sondePath, sondeDirection, scaleBar, mkSonde,
-                        locationOverlay, trajectory, mkTarget, mkBurst, accuracyOverlay)
+                    listOf(accuracyOverlay, path, sondePath, sondeDirection, scaleBar, mkSonde,
+                        locationOverlay, trajectory, mkBurst, mkTarget,
+                        MapEventsOverlay(this@FullscreenActivity))
                 )
 
                 //predict(45.0,7.0,1000.0)///////////////////////////////////////////////////////////////////////////
@@ -933,21 +940,29 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         }
         scope.launch {
             try {
-                //TODO: usare velocità verticale corrente
-                val tawhiri = Tawhiri(Instant.now(),lat,lng,alt,if (burst) alt+1 else 33000.0)
-                mkBurst?.setVisible(false)
+                //TODO: usare velocità verticale corrente in discesa
+                val tawhiri = Tawhiri(Instant.now(), lat, lng, alt, if (burst) alt + 1 else 33000.0)
+                mkTarget?.setVisible(false)
                 trajectory.actualPoints.clear()
-                var pt:GeoPoint?=null
-                tawhiri.getTrajectory().forEach {
-                    if (it.stage == "descent") {
-                        mkBurst?.position=pt
-                        mkBurst?.setVisible(true)
+                trajectory.isVisible=false
+                var lastPoint: GeoPoint? = null
+                var lastTrajectoryPoint:TrajectoryPoint?=null
+                tawhiri.getTrajectory().apply {
+                    if (this[0].stage=="ascent")
+                        mkBurst?.setVisible(false)
+                    forEach {
+                        if (it.stage == "descent" && !burst)
+                            mkBurst?.apply {
+                                position = lastPoint
+                                mkBurst?.subDescription=lastTrajectoryPoint?.datetime
+                                setVisible(true)
+                            }
+                        it.trajectory.forEach { point ->
+                            lastTrajectoryPoint=point
+                            lastPoint = GeoPoint(point.latitude, point.longitude)
+                            trajectory.addPoint(lastPoint)
+                        }
                     }
-                    it.trajectory.forEach {
-                        pt=GeoPoint(it.latitude, it.longitude)
-                        trajectory.addPoint(pt)
-                    }
-                    //Log.d(TAG, "--> $it.latitude,$it.longitude")
                 }
                 trajectory.isVisible = true
                 mkTarget?.position = trajectory.actualPoints[trajectory.actualPoints.size - 1]
@@ -959,6 +974,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
                 mkTarget?.setVisible(false)
             }
         }
+    }
+
+    private fun navigate(position:GeoPoint) {
+        val uri = Uri.parse("google.navigation:q=${position.latitude},${position.longitude}")
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        intent.setPackage("com.google.android.apps.maps")
+        startActivity(intent)
     }
 
     override fun onResume() {
@@ -1046,6 +1068,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         binding.height.text=height.toString()
     }
 
+
+    override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+        InfoWindow.closeAllInfoWindowsOn(binding.map)
+        closeMenu()
+        return false
+    }
+
+    override fun longPressHelper(p: GeoPoint?): Boolean {
+        InfoWindow.closeAllInfoWindowsOn(binding.map)
+        closeMenu()
+        return false
+    }
+
     companion object {
         private const val TAG = "MAURI"
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
@@ -1058,45 +1093,4 @@ class FullscreenActivity : AppCompatActivity(), LocationListener {
         fun unregisterFreqOffsetReceiver() {
             freqOffsetReceiver =null
         }
-    }
-}
-
-//https://stackoverflow.com/questions/11126709/draw-accuracy-circle-using-mylocationoverlay
-/*class AccuracyOverlay : Overlay() {
-    var location: GeoPoint?=null
-    var accuracy=0F
-    private val paint = Paint()
-
-    override fun draw(c: Canvas, map: MapView, shadow: Boolean) {
-        if (shadow || location==null || accuracy<=0) return
-        val pj = map.projection
-        val screenCoords = Point()
-        pj.toPixels(location, screenCoords)
-        val accuracyRadius = pj.metersToEquatorPixels(accuracy)
-
-        paint.apply {
-            isAntiAlias = false
-            alpha = 30
-            style = Paint.Style.STROKE
-            c.drawCircle(
-                screenCoords.x.toFloat(),
-                screenCoords.y.toFloat(),
-                accuracyRadius,
-                paint
-            )
-
-            /* Draw the edge. */
-            /*isAntiAlias = true
-            alpha = 150
-            style = Paint.Style.STROKE
-            c.drawCircle(screenCoords.x.toFloat(), screenCoords.y.toFloat(), accuracyRadius, paint)*/
-        }
-    }
-
-    init {
-        paint.apply {
-            strokeWidth = 2F
-            color = Color.BLUE
-        }
-    }
-}*/
+    }}

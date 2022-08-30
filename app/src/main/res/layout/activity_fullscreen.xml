@@ -214,7 +214,7 @@
         android:id="@+id/menu"
         android:orientation="vertical"
         android:layout_width="70dp"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:background="#40000000"
         android:animateLayoutChanges="true"
         android:layout_marginTop="5dp"
@@ -254,6 +254,7 @@
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_car"
+            android:visibility="gone"
             android:contentDescription="@string/launch_navigation" />
 
         <ImageView

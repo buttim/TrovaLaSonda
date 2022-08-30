@@ -1,7 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.net.Uri
-import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant

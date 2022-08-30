@@ -3,12 +3,15 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/drawable-anydpi/ic_menu.xml" value="0.129" />
         <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/drawable/background.xml" value="0.129" />
         <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/drawable/ic_burst.xml" value="0.129" />
         <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/drawable/target.xml" value="0.129" />
+        <entry key="..\:/Users/butti/AndroidStudioProjects/trovalasonda/app/src/main/res/layout/info_window.xml" value="0.358695652173913" />
       </map>
     </option>
   </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
