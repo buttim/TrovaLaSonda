@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
-	xmlns:tools="http://schemas.android.com/tools">
+	xmlns:tools="http://schemas.android.com/tools"
+	app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
 		<androidx.coordinatorlayout.widget.CoordinatorLayout
 			android:layout_width="match_parent"
@@ -10,6 +11,7 @@
 			tools:context=".SettingsActivity">
 
 			<com.google.android.material.appbar.AppBarLayout
+				android:id="@+id/toolbar_actionbar"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:theme="@style/Theme.TrovaLaSonda.AppBarOverlay">
@@ -23,20 +25,21 @@
 
 			</com.google.android.material.appbar.AppBarLayout>
 
-					<com.google.android.material.floatingactionbutton.FloatingActionButton
-						android:id="@+id/fab"
-						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
-						android:layout_gravity="bottom|end"
-						android:layout_margin="@dimen/fab_margin"
-						app:srcCompat="@android:drawable/ic_menu_send"
-						android:contentDescription="@string/save" />
+			<com.google.android.material.floatingactionbutton.FloatingActionButton
+				android:id="@+id/fab"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="bottom|end"
+				android:layout_margin="@dimen/fab_margin"
+				app:srcCompat="@android:drawable/ic_menu_send"
+				android:contentDescription="@string/save" />
 
 			<androidx.core.widget.NestedScrollView
 				android:layout_width="match_parent"
-				android:layout_height="wrap_content">
+				android:layout_height="wrap_content"
+				app:layout_behavior="@string/appbar_scrolling_view_behavior"
+				android:layout_below="@id/toolbar_actionbar">
 				<LinearLayout
-					app:layout_behavior="@string/appbar_scrolling_view_behavior"
 					android:layout_height="wrap_content"
 					android:layout_width="match_parent">
 						<include

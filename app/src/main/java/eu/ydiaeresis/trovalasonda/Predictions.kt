@@ -52,7 +52,7 @@ class Tawhiri(val time: Instant, val lat:Double, val lng:Double, val alt:Double,
             .build()
     }
 
-    suspend fun getTrajectory():Array<Stage> {
+    suspend fun getPrediction():Array<Stage> {
         HttpClient(CIO).use {
             val response: HttpResponse = it.get(getUri().toString())
             val result:Response = Json.decodeFromString(Response.serializer(),response.bodyAsText())

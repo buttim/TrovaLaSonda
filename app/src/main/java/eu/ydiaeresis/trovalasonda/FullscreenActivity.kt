@@ -54,6 +54,9 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.coroutines.CoroutineContext
@@ -515,7 +518,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 mkBurst?.apply {
                     position = GeoPoint(lat, lon)
                     setVisible(true)
-                    subDescription = Instant.now().toString()
+                    val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                    title = LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
                 }
                 playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
             }
@@ -947,14 +951,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 trajectory.isVisible=false
                 var lastPoint: GeoPoint? = null
                 var lastTrajectoryPoint:TrajectoryPoint?=null
-                tawhiri.getTrajectory().apply {
-                    if (this[0].stage=="ascent")
-                        mkBurst?.setVisible(false)
+                tawhiri.getPrediction().apply {
                     forEach {
                         if (it.stage == "descent" && !burst)
                             mkBurst?.apply {
                                 position = lastPoint
-                                mkBurst?.subDescription=lastTrajectoryPoint?.datetime
+                                val t=Instant.parse(lastTrajectoryPoint?.datetime)
+                                val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                                title=LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
                                 setVisible(true)
                             }
                         it.trajectory.forEach { point ->
