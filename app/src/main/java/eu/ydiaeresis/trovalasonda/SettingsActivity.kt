@@ -49,6 +49,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         nOffsets++
         currentOffset=sumOfOffsets/nOffsets+this.offset
         binding.content.currentOffset.text = "(${currentOffset}Hz)"
+        binding.content.tune.isEnabled=true
     }
 
     private fun setFields() {
