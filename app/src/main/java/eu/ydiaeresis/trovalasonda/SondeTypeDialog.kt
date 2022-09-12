@@ -20,7 +20,6 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let { it ->
-            val builder = AlertDialog.Builder(it)
             val inflater = requireActivity().layoutInflater
 
             binding=SondetypeBinding.inflate(inflater).apply {
@@ -41,7 +40,8 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 }
             }
             binding.type.setSelection(type-1)
-            builder.setView(binding.root)
+            return AlertDialog.Builder(it)
+                .setView(binding.root)
                 .setPositiveButton("OK") { _, _ ->
                     binding.apply {
                         freq = f100.value * 100 +
@@ -54,11 +54,8 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                     type=binding.type.selectedItemPosition+1
                     dialogCloseListener?.handleDialogClose()
                 }
-                .setNegativeButton("Cancel") { _, _ ->
-                    dialog?.cancel()
-                }
-
-            builder.create()
+                .setNegativeButton("Cancel") { _, _ -> dialog?.cancel() }
+                .create()
         } ?: throw IllegalStateException("Activity cannot be null")
     }
     override fun onClick(v: View?) {}

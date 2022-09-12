@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import eu.ydiaeresis.trovalasonda.databinding.ActivitySettingsBinding
 
-
 interface FreqOffsetReceiver {
     fun freqOffset(offset:Int)
 }

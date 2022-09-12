@@ -38,8 +38,9 @@ data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>)
 @Serializable
 data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request)
 
-class Tawhiri(val time: Instant, val lat:Double, val lng:Double, val alt:Double,
-              val burstAlt:Double=33000.0, val ascRate:Double=5.0, val descRate:Double=5.0) {
+class Tawhiri(private val time: Instant, private val lat:Double, private val lng:Double,
+              private val alt:Double, private val burstAlt:Double=33000.0,
+              private val ascRate:Double=5.0, private val descRate:Double=5.0) {
     private fun getUri() : Uri {
         return Uri.parse(URI).buildUpon()
             .appendQueryParameter("launch_latitude",lat.toString())
@@ -61,6 +62,6 @@ class Tawhiri(val time: Instant, val lat:Double, val lng:Double, val alt:Double,
         }
     }
     companion object {
-        private val URI="http://predict.cusf.co.uk/api/v1"
+        private const val URI="http://predict.cusf.co.uk/api/v1"
     }
 }

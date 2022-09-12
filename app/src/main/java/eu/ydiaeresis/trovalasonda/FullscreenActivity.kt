@@ -63,8 +63,6 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
-
-@SuppressLint("SetTextI18n")
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
     private var bluetoothManager = BluetoothManager.getInstance()
@@ -104,7 +102,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             when (intent.action!!) {
                 BluetoothDevice.ACTION_FOUND -> {
                     val device: BluetoothDevice? =
+                        if (Build.VERSION.SDK_INT >= 33)
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE,BluetoothDevice::class.java)
+                        else {
+                            @Suppress("DEPRECATION")
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
                     try {
                         val deviceName = device?.name
                         Log.i(TAG, "BT device found: $deviceName")
@@ -140,27 +143,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             )
             if (data != null && data.extras != null) {
                 for (k in data.extras?.keySet()!!) {
-                    if (resetCmds.indexOf(k) >= 0) reset = true
-                    val t = data.extras?.get(k)
+                    reset = resetCmds.indexOf(k) >= 0
                     if (k == SettingsActivity.MYCALL)
-                        cmds.add(Pair<String, Any>("myCall", t as String))
+                        cmds.add(Pair<String, Any>("myCall", data.extras?.getString(k)!!))
                     else
-                        cmds.add(Pair<String, Any>(k, t as Int))
+                        cmds.add(Pair<String, Any>(k, data.extras?.getInt(k)!!))
                 }
-                if (reset) {
-                    val alertDialog = AlertDialog.Builder(this).create()
-                    alertDialog.setTitle("Alert")
-                    alertDialog.setMessage("New settings require a restart, do you want to apply them anyway?")
-                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel") { dialog, _ ->
-                        dialog.dismiss()
-                    }
-                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK") { dialog, _ ->
-                        dialog.dismiss()
-                        sendCommands(cmds)
-                        showProgress(true)
-                    }
-                    alertDialog.show()
-                } else
+                if (reset)
+                    AlertDialog.Builder(this)
+                        .setTitle("Alert")
+                        .setMessage("New settings require a restart, do you want to apply them anyway?")
+                        .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+                        .setPositiveButton("OK") { dialog, _ ->
+                            dialog.dismiss()
+                            sendCommands(cmds)
+                            showProgress(true)
+                        }
+                        .show()
+
+                else
                     sendCommands(cmds)
             }
         }
@@ -189,15 +190,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Deprecated("deprecated")
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
 
+    private val activityResultContract=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK)
+            finish()
+        else
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (deviceInterface == null) connect()
+            }, 2000)
+    }
     private fun connect() {
         val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
         with (btAdapter) {
-            if (!isEnabled) {
+            if (isEnabled)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (deviceInterface == null) connect()
+                }, 2000)
+            else {
                 val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
 
-                registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                    if (result.resultCode != Activity.RESULT_OK) finish()
-                }.launch(intent)
+                activityResultContract.launch(intent)
             }
 
             try {
@@ -212,10 +223,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
             }
         }
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (deviceInterface == null) connect()
-        }, 2000)
     }
 
     @SuppressLint("CheckResult")
@@ -406,6 +413,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         muteChanged = false
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateSondeLocation(id: String, lat: Double, lon: Double, alt: Double) {
         binding.lat.text = String.format(Locale.US, " %.5f", lat)
         binding.lon.text = String.format(Locale.US, " %.5f", lon)
@@ -475,6 +483,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun updateTypeAndFreq(type: String, freq: Double) {
         if (this.freq!=freq || sondeType < 1 || type != sondeTypes!![sondeType - 1]) {
+            @Suppress("SetTextI18n")
             binding.type.text = "$type ${freq}MHz"
             sondeType = sondeTypes?.indexOf(type)!! + 1
         }
@@ -490,6 +499,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun updateRSSI(rssi: Double) {
+        @Suppress("SetTextI18n")
         binding.dbm.text = "-${rssi}dBm"
         binding.rssi.progress = (binding.rssi.max-rssi).toInt()
     }
@@ -510,6 +520,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             updateSondeLocation(name, lat, lon, height)
 
         if (height!=0.0 || vel!=0.0) {
+            @Suppress("SetTextI18n")
             binding.height.text = "H: ${height}m"
             binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
             val newHeightDelta = height - this.height
@@ -525,6 +536,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
             heightDelta = newHeightDelta
             this.height = height
+            @Suppress("SetTextI18n")
             binding.horizontalSpeed.text = "V: ${vel}km/h"
         }
         if (bk && bktime>0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
@@ -1002,6 +1014,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         unregisterReceiver(receiver)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (expandedMenu)
             closeMenu()
@@ -1018,60 +1031,63 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         Log.i(TAG,"onSaveInstanceState")
-        outState.putAll(bundleOf("expandedMenu" to expandedMenu,
-            "satelliteView" to satelliteView,
-            "currentLocation" to currentLocation,
-            "sondeId" to sondeId,
-            "mute" to mute,
-            "muteChanged" to muteChanged,
-            "btMacAddress" to btMacAddress,
-            "sondeType" to sondeType,
-            "heightDelta" to heightDelta,
-            "height" to height,
-            "freq" to freq,
-            "bk" to bk,
-            "timeLastSeen" to timeLastSeen,
-            "timeLastMessage" to timeLastMessage,
-            "height" to height,
-            "lat" to binding.lat.text,
-            "lon" to binding.lon.text,
-            "distance" to binding.distance.text,
-            "units" to binding.unit.text,
-            "horizontalSpeed" to binding.horizontalSpeed.text,
-            "direction" to binding.direction.text
+        outState.putAll(bundleOf(
+            EXPANDED_MENU to expandedMenu,
+            SATELLITE_VIEW to satelliteView,
+            CURRENT_LOCATION to currentLocation,
+            SONDE_ID to sondeId,
+            MUTE to mute,
+            MUTE_CHANGE to muteChanged,
+            BT_MAC_ADDRESS to btMacAddress,
+            SONDE_TYPE to sondeType,
+            HEIGHT_DELTA to heightDelta,
+            HEIGHT to height,
+            FREQ to freq,
+            BK to bk,
+            TIME_LAST_SEEN to timeLastSeen,
+            TIME_LAST_MESSAGE to timeLastMessage,
+            LAT to binding.lat.text,
+            LON to binding.lon.text,
+            DISTANCE to binding.distance.text,
+            UNITS to binding.unit.text,
+            HORIZONTAL_SPEED to binding.horizontalSpeed.text,
+            DIRECTION to binding.direction.text
         ))
     }
+
+    @Suppress("DEPRECATION")
+    private fun Bundle.getInstant(key:String) = get(key) as Instant
+    @Suppress("DEPRECATION")
+    private fun Bundle.getLocation(key:String) = get(key) as Location
 
     override fun onRestoreInstanceState(savedInstanceState:Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         Log.i(TAG,"onRestoreInstanceState")
         with(savedInstanceState) {
-            expandedMenu = get("expandedMenu") as Boolean
-            satelliteView = get("satelliteView") as Boolean
-            mute = get("mute") as Boolean
-            muteChanged = get("muteChange") as Boolean
-            btMacAddress = get("btMacAddress") as String
-            sondeType = get("sondeType") as Int
-            heightDelta = get("heightDelta") as Double
-            height = get("height") as Double
-            freq = get("freq") as Double
-            bk = get("bk") as Instant
-            timeLastSeen = get("timeLastSeen") as Instant
-            timeLastMessage = get("timeLastMessage") as Instant
-            currentLocation = get("currentLocation") as Location
-            sondeId = get("deviceInterface") as String
-            height = get("height") as Double
-            binding.lat.text=get("lat") as String
-            binding.lon.text=get("lon") as String
-            binding.distance.text=get("distance") as String
-            binding.unit.text=get("units") as String
-            binding.horizontalSpeed.text=get("horizontalSpeed") as String
-            binding.direction.text=get("direction") as String
+            expandedMenu = getBoolean(EXPANDED_MENU)
+            satelliteView = getBoolean(SATELLITE_VIEW)
+            mute = getBoolean(MUTE)
+            muteChanged = getBoolean(MUTE_CHANGE)
+            sondeType = getInt(SONDE_TYPE)
+            heightDelta = getDouble(HEIGHT_DELTA)
+            height = getDouble(HEIGHT)
+            freq = getDouble(FREQ)
+            bk = getInstant(BK)
+            timeLastSeen = getInstant(TIME_LAST_SEEN)
+            timeLastMessage = getInstant(TIME_LAST_MESSAGE)
+            currentLocation = getLocation(CURRENT_LOCATION)
+            btMacAddress = getString(BT_MAC_ADDRESS)
+            sondeId = getString(SONDE_ID)
+            binding.lat.text=getString(LAT)
+            binding.lon.text=getString(LON)
+            binding.distance.text=getString(DISTANCE)
+            binding.unit.text=getString(UNITS)
+            binding.horizontalSpeed.text=getString(HORIZONTAL_SPEED)
+            binding.direction.text=getString(DIRECTION)
         }
         binding.id.text=sondeId
         binding.height.text=height.toString()
     }
-
 
     override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
         InfoWindow.closeAllInfoWindowsOn(binding.map)
@@ -1087,14 +1103,36 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     companion object {
         private const val TAG = "MAURI"
+        private const val EXPANDED_MENU = "expandedMenu"
+        private const val SATELLITE_VIEW = "satelliteView"
+        private const val MUTE = "mute"
+        private const val MUTE_CHANGE = "muteChange"
+        private const val SONDE_TYPE = "sondeType"
+        private const val HEIGHT_DELTA = "heightDelta"
+        private const val HEIGHT = "height"
+        private const val FREQ = "freq"
+        private const val BK = "bk"
+        private const val TIME_LAST_SEEN = "timeLastSeen"
+        private const val TIME_LAST_MESSAGE = "timeLastMessage"
+        private const val CURRENT_LOCATION = "currentLocation"
+        private const val BT_MAC_ADDRESS = "btMacAddress"
+        private const val SONDE_ID = "sondeId"
+        private const val LAT = "lat"
+        private const val LON = "lon"
+        private const val DISTANCE = "distance"
+        private const val UNITS = "units"
+        private const val HORIZONTAL_SPEED = "horizontalSpeed"
+        private const val DIRECTION = "direction"
+
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
         private var freqOffsetReceiver: FreqOffsetReceiver?=null
         fun registerFreqOffsetReceiver(r: FreqOffsetReceiver) {
-            freqOffsetReceiver =r
+            freqOffsetReceiver=r
         }
 
         fun unregisterFreqOffsetReceiver() {
             freqOffsetReceiver =null
         }
-    }}
+    }
+}
