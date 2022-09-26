@@ -53,6 +53,7 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import org.osmdroid.views.overlay.Polygon as Polygon1
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -61,7 +62,6 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
-import org.osmdroid.views.overlay.Polygon as Polygon1
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -75,9 +75,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var mkTarget: Marker?=null
     private var mkBurst:Marker?=null
     private var lastPrediction:Instant?=null
+    private var nPositionsReceived=0
     private val sondeDirection = Polyline()
     private var locationOverlay: MyLocationNewOverlay? = null
-    private var accuracyOverlay= Polygon1()//AccuracyOverlay()
+    private var accuracyOverlay= Polygon1()
     private var expandedMenu = false
     private var currentLocation: Location? = null
     private var satelliteView = false
@@ -198,8 +199,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 if (deviceInterface == null) connect()
             }, 2000)
     }
+
     private fun connect() {
-        val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+        val btAdapter= (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+            ?: return
         with (btAdapter) {
             if (isEnabled)
                 Handler(Looper.getMainLooper()).postDelayed({
@@ -208,6 +211,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             else {
                 val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
 
+                //TODO: al termine può causare IllegalStateException
                 activityResultContract.launch(intent)
             }
 
@@ -415,12 +419,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     @SuppressLint("SetTextI18n")
     private fun updateSondeLocation(id: String, lat: Double, lon: Double, alt: Double) {
+        val d=if (currentLocation != null) GeoPoint(currentLocation).distanceToAsDouble(GeoPoint(lat,lon)) else 0.0
+        if (d>1000000.0) return
+
         binding.lat.text = String.format(Locale.US, " %.5f", lat)
         binding.lon.text = String.format(Locale.US, " %.5f", lon)
         if (sondeId != id) {
             sondeId = id
             binding.id.text = id
             bk = null
+            nPositionsReceived=0
 
             mkSonde?.setVisible(true)
             sondePath.actualPoints.clear()
@@ -453,7 +461,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 1
 
         if (currentLocation != null) {
-            val d = GeoPoint(currentLocation).distanceToAsDouble(mkSonde?.position)
             if (d > 10000F) {
                 binding.unit.text = "km"
                 binding.distance.text = String.format("%.1f", d / 1000)
@@ -465,7 +472,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             updateSondeDirection()
         }
         timeLastSeen = Instant.now()
-        if (lastPrediction==null || Instant.now().epochSecond-lastPrediction!!.epochSecond>60) {
+        if (nPositionsReceived>10 && lastPrediction==null || Instant.now().epochSecond-lastPrediction!!.epochSecond>60) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
         }
@@ -516,10 +523,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
-        if (lat != 0.0 || lon != 0.0)
-            updateSondeLocation(name, lat, lon, height)
 
-        if (height!=0.0 || vel!=0.0) {
+        if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
+
+        nPositionsReceived++
+
+        updateSondeLocation(name, lat, lon, height)
+
+        if (vel!=0.0) {
             @Suppress("SetTextI18n")
             binding.height.text = "H: ${height}m"
             binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
@@ -749,7 +760,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             layoutTransition?.enableTransitionType(LayoutTransition.CHANGING)
 
             onFocusChangeListener = View.OnFocusChangeListener { _, _ ->
-                Log.i(TAG, "Lost focus")
                 closeMenu()
             }
         }
@@ -777,6 +787,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             //////////////////////////////////////////////////////////////////////////////////
             closeMenu()
         }
+        binding.menuCenter.setOnLongClickListener {
+            Toast.makeText(applicationContext, "Center user on map", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
+        }
         binding.menuSettings.setOnClickListener {
             if (deviceInterface == null)
                 ttgoNotConnectedWarning()
@@ -785,6 +802,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 showProgress(true)
             }
             closeMenu()
+        }
+        binding.menuSettings.setOnLongClickListener {
+            Toast.makeText(applicationContext, "Radio settings\n(radio must be connected)", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
         }
         binding.menuLayer.setOnClickListener {
             satelliteView = !satelliteView
@@ -798,6 +822,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 binding.map.setTileSource(TileSourceFactory.MAPNIK)
             closeMenu()
         }
+        binding.menuLayer.setOnLongClickListener {
+            Toast.makeText(applicationContext, "Choose layer\n(base map or satellite)", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
+        }
         binding.menuCenterSonde.setOnClickListener {
             if (sondeId != null)
                 binding.map.controller?.setCenter(mkSonde?.position)
@@ -807,6 +838,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 show()
             }
             closeMenu()
+        }
+        binding.menuCenterSonde.setOnLongClickListener{
+            Toast.makeText(applicationContext, "Center sonde on map\n(only if receiving location data)", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
         }
         binding.menuMaps.setOnClickListener {
             if (sondeId != null)
@@ -818,11 +856,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
             closeMenu()
         }
+        binding.menuMaps.setOnLongClickListener {
+            Toast.makeText(applicationContext, "Quick! Bring me where the sonde is!", Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
+        }
         binding.menuOpen.setOnClickListener {
             if (!expandedMenu)
                 openMenu()
             else
                 closeMenu()
+        }
+        binding.menuOpen.setOnLongClickListener {
+            Toast.makeText(applicationContext, "Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Toast.LENGTH_LONG).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
+            true
         }
 
         Configuration.getInstance().userAgentValue = applicationContext.packageName
@@ -993,7 +1045,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun navigate(position:GeoPoint) {
-        val uri = Uri.parse("google.navigation:q=${position.latitude},${position.longitude}")
+        val uri = Uri.parse(String.format(Locale.US,"google.navigation:q=%f,%f",position.latitude,position.longitude))
         val intent = Intent(Intent.ACTION_VIEW, uri)
         intent.setPackage("com.google.android.apps.maps")
         startActivity(intent)

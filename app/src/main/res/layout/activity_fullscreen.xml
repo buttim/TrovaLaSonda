@@ -254,7 +254,6 @@
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@drawable/ic_car"
-            android:visibility="gone"
             android:contentDescription="@string/launch_navigation" />
 
         <ImageView
