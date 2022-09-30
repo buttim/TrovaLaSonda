@@ -42,9 +42,9 @@
 
         <meta-data
             android:name="MAPBOX_MAPID"
-            android:value="mapbox.satellite" />
+            android:value="satellite-streets-v11" />
         <meta-data
             android:name="MAPBOX_ACCESS_TOKEN"
-            android:value="pk.eyJ1IjoiYnV0dGltIiwiYSI6ImNqaHV4dmgxdTBwMXUzcnFrdGU5dTdvbGMifQ.5l3OMGh6_nX_8Hp7W2Otfg" />
+            android:value="sk.eyJ1IjoiYnV0dGltIiwiYSI6ImNsOG9ydTRsajBhd2kzcXJ1dTZwazI0YXQifQ.2zwAGXykU272aRDBHHshtg" />
     </application>
 </manifest>

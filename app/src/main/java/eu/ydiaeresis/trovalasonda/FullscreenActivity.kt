@@ -1,5 +1,8 @@
 package eu.ydiaeresis.trovalasonda
 
+//import androidx.core.view.WindowInsetsCompat
+//import androidx.core.view.WindowInsetsControllerCompat
+
 import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
@@ -9,17 +12,21 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.*
 import android.content.pm.PackageManager
-import android.graphics.*
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.drawable.LevelListDrawable
 import android.location.Location
 import android.location.LocationListener
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
+import android.preference.PreferenceManager
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.*
-import android.widget.*
+import android.view.Gravity
+import android.view.View
+import android.view.Window
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -27,8 +34,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
-//import androidx.core.view.WindowInsetsCompat
-//import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.children
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
@@ -42,7 +47,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
-import org.osmdroid.events.*
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.MapTileProviderBasic
+import org.osmdroid.tileprovider.constants.OpenStreetMapTileProviderConstants
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -53,7 +60,6 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import org.osmdroid.views.overlay.Polygon as Polygon1
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -62,6 +68,8 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
+import org.osmdroid.views.overlay.Polygon as Polygon1
+
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -98,6 +106,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private val handler = Handler(Looper.getMainLooper())
     private var burst=false
     private var batteryLevel=0
+    private val mapbox = MapBoxTileSource("MapBoxSatelliteLabelled",1,19,256,".png")
 
     private var receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -702,6 +711,18 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().apply {
+            load(applicationContext, this@FullscreenActivity.getPreferences(Context.MODE_PRIVATE))
+            userAgentValue = BuildConfig.APPLICATION_ID
+            //isDebugMapTileDownloader=true
+        }
+
+        mapbox.retrieveAccessToken(this)
+        mapbox.retrieveMapBoxMapId(this)
+        TileSourceFactory.addTileSource(mapbox)
+
+        sondeTypes = resources.getStringArray(R.array.sonde_types)
         sondeTypes = resources.getStringArray(R.array.sonde_types)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
@@ -714,7 +735,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.INTERNET
         ))
 
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
@@ -828,18 +850,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
         binding.menuLayer.setOnClickListener {
             satelliteView = !satelliteView
-            if (satelliteView) {
-                val mapbox = MapBoxTileSource()
-                mapbox.retrieveAccessToken(this)
-                mapbox.retrieveMapBoxMapId(this)
-                TileSourceFactory.addTileSource(mapbox)
-                binding.map.setTileSource(mapbox)
-            } else
-                binding.map.setTileSource(TileSourceFactory.MAPNIK)
-            closeMenu()
+            with (binding.map) {
+                if (satelliteView)
+                    setTileSource(mapbox)
+                else
+                    setTileSource(TileSourceFactory.MAPNIK)
+                closeMenu()
+            }
         }
         binding.menuLayer.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Choose layer\n(base map or satellite)", Toast.LENGTH_SHORT).apply {
+            Toast.makeText(applicationContext, "Choose layer\n(Mapnik or satellite)", Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
@@ -978,9 +998,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     outlinePaint.color=Color.argb(128,0,0,255)
                 }
 
+                val copyrightOverlay= CopyrightOverlay(context).apply {
+                    setAlignBottom(false)
+                    setAlignRight(false)
+                }
+
                 overlays?.addAll(
                     listOf(accuracyOverlay, path, sondePath, sondeDirection, scaleBar, mkSonde,
-                        locationOverlay, trajectory, mkBurst, mkTarget,
+                        locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay,
                         MapEventsOverlay(this@FullscreenActivity))
                 )
 
