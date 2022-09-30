@@ -79,6 +79,7 @@ dependencies {
     kapt "com.android.databinding:compiler:3.1.4"
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
     implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'eo.view:batterymeter:2.0.0'

@@ -20,7 +20,6 @@ import android.location.LocationListener
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
-import android.preference.PreferenceManager
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
@@ -48,8 +47,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.MapTileProviderBasic
-import org.osmdroid.tileprovider.constants.OpenStreetMapTileProviderConstants
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -69,7 +66,6 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import org.osmdroid.views.overlay.Polygon as Polygon1
-
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -264,8 +260,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         deviceInterface?.setListeners(this::onMessageReceived, this::onMessageSent, this::onError)
 
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_yellow)
-        locationOverlay?.setDirectionArrow(bmp, bmp)
+        locationOverlay?.setPersonIcon(bmp)
+        locationOverlay?.setDirectionIcon(bmp)
+        locationOverlay?.setDirectionAnchor(.5f,.5f)
         muteChanged = false
+        binding.buzzer.isEnabled=true
+        playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
         try {
             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
@@ -285,8 +285,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun onDisconnected() {
         Log.i(TAG, "onDisconnected")
+        playSound(R.raw._541506__se2001__cartoon_quick_zip_reverse)
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_red)
-        locationOverlay?.setDirectionArrow(bmp, bmp)
+        locationOverlay?.setPersonIcon(bmp)
+        locationOverlay?.setDirectionIcon(bmp)
+        locationOverlay?.setDirectionAnchor(.5f,.5f)
         sondeLevelListDrawable.level = 0
         muteChanged = true
         bluetoothManager.closeDevice(btMacAddress)
@@ -539,6 +542,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         nPositionsReceived++
 
+        if (timeLastSeen!=null) {
+            val delta=Instant.now().epochSecond-timeLastSeen!!.epochSecond
+            if (delta!=0L) {
+                val verticalSpeed =
+                    (height - this.height) / delta
+                @Suppress("SetTextI18n")
+                binding.verticalSpeed.text = String.format(Locale.US, "Vs: %.1fm/s", verticalSpeed)
+            }
+        }
+
         updateSondeLocation(name, lat, lon, height)
 
         if (vel!=0.0) {
@@ -558,12 +571,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
             @Suppress("SetTextI18n")
             binding.horizontalSpeed.text = "V: ${vel}km/h"
-            if (timeLastSeen!=null) {
-                val verticalSpeed =
-                    (height - this.height) / (timeLastSeen!!.epochSecond - Instant.now().epochSecond)
-                @Suppress("SetTextI18n")
-                binding.verticalSpeed.text = "V: ${verticalSpeed}m/s"
-            }
             heightDelta = newHeightDelta
             this.height = height
         }
@@ -747,7 +754,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 ttgoNotConnectedWarning()
             else
                 Toast.makeText(applicationContext, "Battery: ${batteryLevel/1000.0}V", Toast.LENGTH_SHORT).apply {
-                    setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                    setGravity(Gravity.BOTTOM, 0, 0)
                     show()
                 }
         }
@@ -951,7 +958,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         onLocationChanged(location)
                     }
                 }.apply {
-                    setDirectionArrow(bmp, bmp)
+                    setPersonIcon(bmp)
+                    setDirectionIcon(bmp)
+                    setDirectionAnchor(.5f,.5f)
+                    isDrawAccuracyEnabled = true
                     enableMyLocation()
                     runOnFirstFix {
                         runOnUiThread {
@@ -1004,8 +1014,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
 
                 overlays?.addAll(
-                    listOf(accuracyOverlay, path, sondePath, sondeDirection, scaleBar, mkSonde,
-                        locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay,
+                    listOf(accuracyOverlay, path, sondePath, sondeDirection, scaleBar,
+                        locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay, mkSonde,
                         MapEventsOverlay(this@FullscreenActivity))
                 )
 
