@@ -97,6 +97,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private val sondeLevelListDrawable = LevelListDrawable()
     private val handler = Handler(Looper.getMainLooper())
     private var burst=false
+    private var batteryLevel=0
 
     private var receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -511,15 +512,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.rssi.progress = (binding.rssi.max-rssi).toInt()
     }
 
-    private fun updateBattery(v: Int) {
-        binding.batteryMeter.chargeLevel=v
+    private fun updateBattery(percent:Int,mV: Int) {
+        batteryLevel=mV
+        binding.batteryMeter.chargeLevel=percent
     }
 
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSondePos(
-            type: String, freq: Double, name: String, lat: Double, lon: Double,
-            height: Double, vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
-            bktime: Int, batv: Int, mute: Boolean, ver: String
+        type: String, freq: Double, name: String, lat: Double, lon: Double,
+        height: Double, vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
+        bktime: Int, batV: Int, mute: Boolean, ver: String
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
@@ -545,14 +547,20 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
                 playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
             }
-            heightDelta = newHeightDelta
-            this.height = height
             @Suppress("SetTextI18n")
             binding.horizontalSpeed.text = "V: ${vel}km/h"
+            if (timeLastSeen!=null) {
+                val verticalSpeed =
+                    (height - this.height) / (timeLastSeen!!.epochSecond - Instant.now().epochSecond)
+                @Suppress("SetTextI18n")
+                binding.verticalSpeed.text = "V: ${verticalSpeed}m/s"
+            }
+            heightDelta = newHeightDelta
+            this.height = height
         }
         if (bk && bktime>0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
-        updateBattery(bat)
+        updateBattery(bat,batV)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -564,7 +572,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         updateMute(mute)
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
-        updateBattery(bat)
+        updateBattery(bat,batV)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -577,7 +585,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.id.text = name
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
-        updateBattery(bat)
+        updateBattery(bat,batV)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -712,7 +720,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.buzzer.setOnClickListener { toggleBuzzer() }
-
+        binding.batteryMeter.setOnClickListener {
+            if (deviceInterface == null)
+                ttgoNotConnectedWarning()
+            else
+                Toast.makeText(applicationContext, "Battery: ${batteryLevel/1000.0}V", Toast.LENGTH_SHORT).apply {
+                    setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                    show()
+                }
+        }
         binding.lat.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde latitude", binding.lat.text)
@@ -731,7 +747,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 show()
             }
         }
-        binding.sonde.setOnClickListener {
+        binding.panel.setOnClickListener {
             if (deviceInterface == null) {
                 ttgoNotConnectedWarning()
                 return@setOnClickListener

@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/frame"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:theme="@style/ThemeOverlay.TrovaLaSonda.ActionBar.Fullscreen"
     tools:context=".FullscreenActivity">
 
-    <org.osmdroid.views.MapView android:id="@+id/map"
+    <org.osmdroid.views.MapView
+        android:id="@+id/map"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="true"/>
+        android:clickable="true"
+        android:focusable="true" />
 
     <ProgressBar
         android:id="@+id/progress"
@@ -19,196 +22,197 @@
         android:layout_gravity="center"
         android:visibility="gone"/>
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#80000000"
         android:orientation="vertical"
         android:layout_gravity="bottom">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#80000000"
+
+        <ImageView
+            android:id="@+id/buzzer"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="10dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:src="@drawable/ic_buzzer_on"
+            android:contentDescription="@string/toggle_buzzer"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <eo.view.batterymeter.BatteryMeterView
+            android:id="@+id/battery_meter"
+            android:layout_width="40dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
             android:orientation="horizontal"
-            android:baselineAligned="false">
+            app:batteryMeterColor="#FFFF00"
+            app:batteryMeterCriticalChargeLevel="15"
+            app:batteryMeterCriticalColor="#FF2020"
+            app:batteryMeterIndicatorColor="#000000"
+            app:batteryMeterIsCharging="false"
+            app:batteryMeterTheme="rounded"
+            app:batteryMeterUnknownColor="#FFFF00"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/buzzer"
+            app:layout_constraintBottom_toTopOf="@+id/rssi"/>
 
-            <LinearLayout
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
+        <TextView
+            android:id="@+id/distance"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:gravity="end"
+            android:text="\??"
+            android:textColor="@color/yellow"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            app:layout_constraintLeft_toRightOf="@+id/buzzer"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
 
-                <ImageView
-                    android:id="@+id/buzzer"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:src="@drawable/ic_buzzer_on"
-                    android:contentDescription="@string/toggle_buzzer" />
+        <TextView
+            android:id="@+id/unit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/km"
+            android:textColor="@color/yellow"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:layout_constraintBaseline_toBaselineOf="@+id/distance"
+            app:layout_constraintStart_toEndOf="@+id/distance" />
 
-                <eo.view.batterymeter.BatteryMeterView
-                    android:id="@+id/battery_meter"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="horizontal"
-                    xmlns:app="http://schemas.android.com/apk/res-auto"
-                    app:batteryMeterColor="#FFFF00"
-                    app:batteryMeterCriticalChargeLevel="15"
-                    app:batteryMeterCriticalColor="#FF2020"
-                    app:batteryMeterIndicatorColor="#000000"
-                    app:batteryMeterIsCharging="false"
-                    app:batteryMeterTheme="rounded"
-                    app:batteryMeterUnknownColor="#FFFF00" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:id="@+id/distance"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="@color/yellow"
-                        android:textSize="30sp"
-                        android:textStyle="bold"
-                        android:text="-"
-                        tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/bk"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginStart="32dp"
+            android:background="#80000000"
+            android:gravity="center"
+            android:text="BK 8:30:00"
+            android:textColor="#FF0000"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintLeft_toRightOf="@+id/buzzer"
+            app:layout_constraintRight_toLeftOf="@+id/id"
+            app:layout_constraintTop_toBottomOf="@+id/distance"
+            tools:ignore="HardcodedText" />
 
-                    <TextView
-                        android:id="@+id/unit"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="10dp"
-                        android:textColor="@color/yellow"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        android:text="@string/km"/>
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/bk"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="bottom"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="#FF0000"
-                    android:background="#80000000"
-                    android:gravity="center"
-                    android:visibility="gone"/>
-            </LinearLayout>
+        <TextView
+            android:id="@+id/id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/no_sonde"
+            android:textColor="#7FFF7F"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintLeft_toRightOf="@id/unit"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <LinearLayout
-                android:id="@+id/sonde"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:gravity="start"
-                android:layout_marginStart="10dp"
-                android:orientation="vertical">
+        <TextView
+            android:id="@+id/type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/yellow"
+            android:text="RS41 ???.???MHz"
+            tools:ignore="HardcodedText"
+            app:layout_constraintTop_toBottomOf="@id/id"
+            app:layout_constraintLeft_toLeftOf="@+id/id"/>
 
-                <TextView
-                    android:id="@+id/id"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="#7FFF7F"
-                    android:gravity="center"
-                    android:text="@string/no_sonde"/>
+        <TextView
+            android:id="@+id/height"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:textColor="@color/yellow"
+            android:text="H: -m"
+            tools:ignore="HardcodedText"
+            app:layout_constraintTop_toBottomOf="@id/type"
+            app:layout_constraintLeft_toLeftOf="@+id/id"/>
 
-                <TextView
-                    android:id="@+id/type"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/yellow"
-                    android:text="RS41 403.000MHz"
-                    tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/horizontal_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:textColor="@color/yellow"
+            android:text="V: -km/h"
+            tools:ignore="HardcodedText"
+            app:layout_constraintTop_toBottomOf="@id/height"
+            app:layout_constraintLeft_toLeftOf="@+id/id" />
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/height"
-                            android:layout_width="wrap_content"
-                            android:layout_height="0dp"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:layout_weight="1"
-                            android:textColor="@color/yellow"
-                            android:text="H: -m"
-                            tools:ignore="HardcodedText" />
-                        <TextView
-                            android:id="@+id/horizontal_speed"
-                            android:layout_width="wrap_content"
-                            android:layout_height="0dp"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:layout_weight="1"
-                            android:textColor="@color/yellow"
-                            android:text="V: -km/h"
-                            tools:ignore="HardcodedText" />
-                    </LinearLayout>
-                    <TextView
-                        android:id="@+id/direction"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:textSize="40sp"
-                        android:textColor="#FFFF00"/>
-                </RelativeLayout>
-            </LinearLayout>
-        </LinearLayout>
-        <RelativeLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/vertical_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:textColor="@color/yellow"
+            android:text="Vs: -m/s"
+            tools:ignore="HardcodedText"
+            app:layout_constraintTop_toBottomOf="@id/horizontal_speed"
+            app:layout_constraintLeft_toLeftOf="@+id/id" />
+
+        <TextView
+            android:id="@+id/direction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:textColor="#FFFF00"
+            android:textSize="40sp"
+            app:layout_constraintBottom_toBottomOf="@id/vertical_speed"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintLeft_toRightOf="@+id/height"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="@id/height"
+            tools:ignore="HardcodedText" />
+
+        <ProgressBar
+            android:id="@+id/rssi"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
             android:layout_height="30dp"
-            android:background="#80000000">
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@+id/dbm"
+            android:background="@drawable/ic_prog_back"
+            android:indeterminate="false"
+            android:max="157"
+            android:minHeight="30dp"
+            android:paddingStart="3dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="3dp"
+            android:progressDrawable="@drawable/background"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/dbm"
+            app:layout_constraintStart_toStartOf="parent" />
 
-            <ProgressBar
-                android:id="@+id/rssi"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="30dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="3dp"
-                android:paddingStart="3dp"
-                android:layout_alignParentStart="true"
-                android:layout_marginEnd="10dp"
-                android:layout_toStartOf="@+id/dbm"
-                android:indeterminate="false"
-                android:max="157"
-                android:minHeight="30dp"
-                android:background="@drawable/ic_prog_back"
-                android:progressDrawable="@drawable/background"/>
-
-            <TextView
-                android:id="@+id/dbm"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:textStyle="bold"
-                android:layout_alignParentEnd="true"
-                android:textSize="18sp"
-                android:text="@string/dbm"/>
-        </RelativeLayout>
-    </LinearLayout>
+        <TextView
+            android:id="@+id/dbm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="@string/dbm"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/menu"
