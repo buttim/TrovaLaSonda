@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="large_text">Thanks to
+<a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> for writing
+the <a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a>TTGO Lora32 firmware and
+releasing <a href='https://download.farenight.it/MySondyGoAPI.pdf'>the APIs documentation</a>\n\n
+<big>Testing and suggestions</big>\n
+Many friendly people from the
+<a href='https://www.facebook.com/groups/919693011428093'>RADIOSONDE Italia</a> Facebook group\n\n
+<big>Sounds from freesound.org</big>\n
+<a href='https://freesound.org/people/EminYILDIRIM/sounds/541192/'>Balloon explosion pop</a>\n
+<a href='https://freesound.org/people/se2001/sounds/541506'>Cartoon Quick Zip</a>\n
+<a href='https://freesound.org/people/ammaro/sounds/573381'>Ding</a>\n\n
+<big>Some hints</big>\n
+Long tap any menu item to get an explanation of what it does.\n
+You can tap on:\n
+    ･ the loudspeaker icon to toggle the TTGO beep\n
+    ･ the battery icon to get precise charge level indication\n
+    ･ the landing zone (orange circle) to get google maps directions to the predicted landing site\n
+    ･ the explosion icon to get the time of the (predicted or actual) burst local time\n
+    </string>
+</resources>

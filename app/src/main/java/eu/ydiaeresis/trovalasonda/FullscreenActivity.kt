@@ -557,26 +557,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         updateSondeLocation(name, lat, lon, height)
 
-//        if (vel!=0.0) {
-            @Suppress("SetTextI18n")
-            binding.height.text = "H: ${height}m"
-            binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
-            val newHeightDelta = height - this.height
-            if (!burst && heightDelta > 0 && newHeightDelta < 0) {
-                burst=true
-                mkBurst?.apply {
-                    position = GeoPoint(lat, lon)
-                    setVisible(true)
-                    val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                    title = LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
-                }
-                playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
+        @Suppress("SetTextI18n")
+        binding.height.text = "H: ${height}m"
+        binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
+        val newHeightDelta = height - this.height
+        if (!burst && heightDelta > 0 && newHeightDelta < 0) {
+            burst=true
+            mkBurst?.apply {
+                position = GeoPoint(lat, lon)
+                setVisible(true)
+                val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                title = LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
             }
-            @Suppress("SetTextI18n")
-            binding.horizontalSpeed.text = "V: ${vel}km/h"
-            heightDelta = newHeightDelta
-            this.height = height
-//        }
+            playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
+        }
+        @Suppress("SetTextI18n")
+        binding.horizontalSpeed.text = "V: ${vel}km/h"
+        heightDelta = newHeightDelta
+        this.height = height
+
         if (bk && bktime>0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
         updateBattery(bat,batV)
@@ -920,15 +919,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
-            closeMenu()
             true
         }
 
         binding.help.setOnClickListener {
-            Toast.makeText(applicationContext, "Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Toast.LENGTH_LONG).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            startActivity(Intent(this,ScrollingActivity::class.java))
+            closeMenu()
         }
 
         Configuration.getInstance().userAgentValue = applicationContext.packageName
