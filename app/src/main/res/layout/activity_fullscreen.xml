@@ -65,7 +65,7 @@
             android:id="@+id/distance"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
+            android:layout_marginLeft="8dp"
             android:gravity="end"
             android:text="\??"
             android:textColor="@color/yellow"
@@ -92,7 +92,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginStart="32dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginEnd="8dp"
             android:background="#80000000"
             android:gravity="center"
             android:text="BK 8:30:00"
@@ -100,6 +101,7 @@
             android:textSize="20sp"
             android:textStyle="bold"
             android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@+id/height"
             app:layout_constraintLeft_toRightOf="@+id/buzzer"
             app:layout_constraintRight_toLeftOf="@+id/id"
             app:layout_constraintTop_toBottomOf="@+id/distance"
@@ -114,6 +116,7 @@
             android:textColor="#7FFF7F"
             android:textSize="18sp"
             android:textStyle="bold"
+            app:layout_constraintHorizontal_bias="0.22"
             app:layout_constraintLeft_toRightOf="@id/unit"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -265,6 +268,12 @@
             android:layout_width="fill_parent"
             android:layout_height="60dp"
             android:src="@android:drawable/ic_menu_preferences"
+            android:contentDescription="@string/settings" />
+        <ImageView
+            android:id="@+id/help"
+            android:layout_width="fill_parent"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_question_mark"
             android:contentDescription="@string/settings" />
     </LinearLayout>
 

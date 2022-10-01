@@ -14,6 +14,7 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.LevelListDrawable
 import android.location.Location
 import android.location.LocationListener
@@ -441,6 +442,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             sondeId = id
             binding.id.text = id
             bk = null
+            burst=false
+            binding.bk.visibility=View.GONE
             nPositionsReceived=0
 
             mkSonde?.setVisible(true)
@@ -476,10 +479,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         if (currentLocation != null) {
             if (d > 10000F) {
                 binding.unit.text = "km"
-                binding.distance.text = String.format("%.1f", d / 1000)
+                binding.distance.text = String.format(Locale.US,"%.1f", d / 1000)
             } else {
                 binding.unit.text = "m"
-                binding.distance.text = String.format("%.1f", d)
+                binding.distance.text = String.format(Locale.US,"%.1f", d)
             }
 
             updateSondeDirection()
@@ -554,7 +557,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         updateSondeLocation(name, lat, lon, height)
 
-        if (vel!=0.0) {
+//        if (vel!=0.0) {
             @Suppress("SetTextI18n")
             binding.height.text = "H: ${height}m"
             binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
@@ -573,7 +576,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             binding.horizontalSpeed.text = "V: ${vel}km/h"
             heightDelta = newHeightDelta
             this.height = height
-        }
+//        }
         if (bk && bktime>0 && bktime != 8 * 3600 + 30 * 60) updateBk(bktime)
         updateRSSI(sign)
         updateBattery(bat,batV)
@@ -917,7 +920,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 setGravity(Gravity.CENTER_VERTICAL, 0, 0)
                 show()
             }
+            closeMenu()
             true
+        }
+
+        binding.help.setOnClickListener {
+            Toast.makeText(applicationContext, "Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Toast.LENGTH_LONG).apply {
+                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                show()
+            }
         }
 
         Configuration.getInstance().userAgentValue = applicationContext.packageName
@@ -998,6 +1009,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
                 path.outlinePaint.color = Color.rgb(0, 0, 255)
                 sondePath.outlinePaint.color = Color.rgb(255, 128, 0)
+                sondePath.outlinePaint.strokeJoin= Paint.Join.ROUND
+                sondePath.outlinePaint.strokeCap= Paint.Cap.ROUND
                 sondeDirection.outlinePaint.color = Color.rgb(255, 0, 0)
                 sondeDirection.isVisible = false
                 trajectory.outlinePaint.color = Color.argb(128,255, 128, 0)
