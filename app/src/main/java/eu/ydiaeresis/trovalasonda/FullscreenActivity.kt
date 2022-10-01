@@ -23,10 +23,8 @@ import android.net.Uri
 import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Gravity
 import android.view.View
 import android.view.Window
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +33,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.children
+import com.google.android.material.snackbar.Snackbar
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
@@ -129,10 +128,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         }
                     }
                     catch(ex:SecurityException) {
-                        Toast.makeText(applicationContext, "Failed Bluetooth discovery", Toast.LENGTH_LONG).apply {
-                            setGravity(Gravity.CENTER_VERTICAL, 0, 70)
-                            show()
-                        }
+                        Snackbar.make(binding.root,"Failed Bluetooth discovery", Snackbar.LENGTH_LONG).show()
                     }
                 }
             }
@@ -228,10 +224,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 Unit
             }
             catch (ex:SecurityException) {
-                Toast.makeText(applicationContext, "Cannot start Bluetooth discovery", Toast.LENGTH_LONG).apply {
-                    setGravity(Gravity.CENTER_VERTICAL, 0, 70)
-                    show()
-                }
+                Snackbar.make(binding.root,"Cannot start Bluetooth discovery", Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -271,16 +264,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         try {
             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
             val name = btAdapter.getRemoteDevice(btMacAddress).name
-            Toast.makeText(applicationContext, "Connected to $name", Toast.LENGTH_LONG).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 70)
-                show()
-            }
+            Snackbar.make(binding.root,"Connected to $name", Snackbar.LENGTH_LONG).show()
         }
         catch (ex:SecurityException) {
-            Toast.makeText(applicationContext, "Cannot connect !", Toast.LENGTH_LONG).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 70)
-                show()
-            }
+            Snackbar.make(binding.root,"Cannot connect !", Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -297,10 +284,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         btMacAddress = null
         deviceInterface = null
         showProgress(false)
-        Toast.makeText(applicationContext, "Connection to TTGO lost", Toast.LENGTH_LONG).apply {
-            setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-            show()
-        }
+        Snackbar.make(binding.root,"Connection to TTGO lost", Snackbar.LENGTH_LONG).show()
         Handler(Looper.getMainLooper()).postDelayed({
             connect()
         }, 1000)
@@ -666,10 +650,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun ttgoNotConnectedWarning() {
-        Toast.makeText(applicationContext, "TTGO not connected", Toast.LENGTH_LONG).apply {
-            setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-            show()
-        }
+        Snackbar.make(binding.root,"TTGO not connected",Snackbar.LENGTH_LONG).show()
     }
 
     private fun toggleBuzzer() {
@@ -755,28 +736,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (deviceInterface == null)
                 ttgoNotConnectedWarning()
             else
-                Toast.makeText(applicationContext, "Battery: ${batteryLevel/1000.0}V", Toast.LENGTH_SHORT).apply {
-                    setGravity(Gravity.BOTTOM, 0, 0)
-                    show()
-                }
+                Snackbar.make(binding.root, "Battery: ${batteryLevel/1000.0}V", Snackbar.LENGTH_SHORT).show()
         }
         binding.lat.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde latitude", binding.lat.text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(applicationContext, "Latitude copied to clipboard", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root, "Latitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
         binding.lon.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde longitude", binding.lon.text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(applicationContext, "Longitude copied to clipboard", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
         binding.panel.setOnClickListener {
             if (deviceInterface == null) {
@@ -815,10 +787,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (currentLocation != null)
                 binding.map.controller?.setCenter(GeoPoint(currentLocation))
             else
-                Toast.makeText(applicationContext, "No current location (yet)", Toast.LENGTH_SHORT).apply {
-                    setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                    show()
-                }
+                Snackbar.make(binding.root,"No current location (yet)", Snackbar.LENGTH_SHORT).show()
             //////////////////////////////////////////////////////////////////////////////////
             if(Debug.isDebuggerConnected()) {
                 val msgs = arrayOf(
@@ -835,10 +804,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuCenter.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Center user on map", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Center user on map", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuSettings.setOnClickListener {
@@ -851,10 +817,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuSettings.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Radio settings\n(radio must be connected)", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Radio settings\n(radio must be connected)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuLayer.setOnClickListener {
@@ -868,44 +831,30 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
         binding.menuLayer.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Choose layer\n(Mapnik or satellite)", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Choose layer\n(Mapnik or satellite)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuCenterSonde.setOnClickListener {
             if (sondeId != null)
                 binding.map.controller?.setCenter(mkSonde?.position)
             else
-                Toast.makeText(applicationContext, "No sonde to show", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+                Snackbar.make(binding.root,"No sonde to show", Snackbar.LENGTH_SHORT).show()
             closeMenu()
         }
         binding.menuCenterSonde.setOnLongClickListener{
-            Toast.makeText(applicationContext, "Center sonde on map\n(only if receiving location data)", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Center sonde on map\n(only if receiving location data)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuMaps.setOnClickListener {
             if (sondeId != null)
                 navigate(mkSonde?.position!!)
             else
-                Toast.makeText(applicationContext, "No sonde to navigate to", Toast.LENGTH_SHORT).apply {
-                    setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                    show()
-                }
+                Snackbar.make(binding.root,"No sonde to navigate to", Snackbar.LENGTH_SHORT).show()
+            
             closeMenu()
         }
         binding.menuMaps.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Quick! Bring me where the sonde is!", Toast.LENGTH_SHORT).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Quick! Bring me where the sonde is!", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuOpen.setOnClickListener {
@@ -915,10 +864,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 closeMenu()
         }
         binding.menuOpen.setOnLongClickListener {
-            Toast.makeText(applicationContext, "Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Toast.LENGTH_LONG).apply {
-                setGravity(Gravity.CENTER_VERTICAL, 0, 0)
-                show()
-            }
+            Snackbar.make(binding.root,"Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             true
         }
 
@@ -1135,7 +1081,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .setTitle("TrovaLaSonda")
                     .setMessage("Are you sure you want to exit?")
-                    .setPositiveButton("Yes") { _, _ -> bluetoothManager.closeDevice(btMacAddress); finish() }
+                    .setPositiveButton("Yes") { _, _ ->
+                        if (bluetoothManager!=null)
+                            bluetoothManager.closeDevice(btMacAddress)
+                        finish()
+                    }
                     .setNegativeButton("No", null)
                     .show()
     }
