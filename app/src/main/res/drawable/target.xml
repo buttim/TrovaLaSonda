@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <size android:height="30dp" android:width="30dp"/>
-    <stroke android:width="2dp" android:color="#B0ff8000" />
-    <solid android:color="#40ff8000" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="25dp" android:right="25dp" android:top="25dp" android:bottom="25dp">
+        <shape android:shape="oval">
+            <size android:height="30dp" android:width="30dp"/>
+            <solid android:color="#80ff8000" />
+        </shape>
+    </item>
+    <item android:left="12dp" android:right="12dp" android:top="12dp" android:bottom="12dp">
+        <shape android:shape="oval">
+            <size android:height="30dp" android:width="30dp"/>
+            <stroke android:width="2dp" android:color="#80ff8000" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <size android:height="30dp" android:width="30dp"/>
+            <stroke android:width="2dp" android:color="#B0ff8000" />
+            <solid android:color="#40ff8000" />
+        </shape>
+    </item>
+</layer-list>

@@ -102,7 +102,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private val handler = Handler(Looper.getMainLooper())
     private var burst=false
     private var batteryLevel=0
-    private val mapbox = MapBoxTileSource("MapBoxSatelliteLabelled",1,19,256,".png")
+    private val mapbox = MapBoxTileSource()//"MapBoxSatelliteLabelled",1,19,256,".png")
 
     private var receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -256,6 +256,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_yellow)
         locationOverlay?.setPersonIcon(bmp)
         locationOverlay?.setDirectionIcon(bmp)
+        locationOverlay?.setPersonAnchor(.5f,.5f)
         locationOverlay?.setDirectionAnchor(.5f,.5f)
         muteChanged = false
         binding.buzzer.isEnabled=true
@@ -750,6 +751,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             clipboard.setPrimaryClip(clip)
             Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
+        binding.id.setOnClickListener {
+            if (sondeId!=null)
+                Intent(Intent.ACTION_VIEW).apply {
+                    data = Uri.parse("https://radiosondy.info/sonde.php?sondenumber=$sondeId")
+                    startActivity(this)
+                }
+            else
+                Snackbar.make(binding.root,"Not receiving any sonde", Snackbar.LENGTH_SHORT).show()
+        }
+        binding.id.setOnLongClickListener {
+            Snackbar.make(binding.root,"Show radiosondy.info page for this sonde", Snackbar.LENGTH_SHORT).show()
+            true
+        }
         binding.panel.setOnClickListener {
             if (deviceInterface == null) {
                 ttgoNotConnectedWarning()
@@ -850,7 +864,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 navigate(mkSonde?.position!!)
             else
                 Snackbar.make(binding.root,"No sonde to navigate to", Snackbar.LENGTH_SHORT).show()
-            
+
             closeMenu()
         }
         binding.menuMaps.setOnLongClickListener {
@@ -1017,8 +1031,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 //TODO: usare velocità verticale corrente in discesa
                 val tawhiri = Tawhiri(Instant.now(), lat, lng, alt, if (burst) alt + 1 else 33000.0)
                 mkTarget?.setVisible(false)
+                mkBurst?.setVisible(false)
                 trajectory.actualPoints.clear()
                 trajectory.isVisible=false
+
                 var lastPoint: GeoPoint? = null
                 var lastTrajectoryPoint:TrajectoryPoint?=null
                 tawhiri.getPrediction().apply {

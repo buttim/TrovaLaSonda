@@ -11,12 +11,15 @@ Many friendly people from the
 <a href='https://freesound.org/people/EminYILDIRIM/sounds/541192/'>Balloon explosion pop</a>\n
 <a href='https://freesound.org/people/se2001/sounds/541506'>Cartoon Quick Zip</a>\n
 <a href='https://freesound.org/people/ammaro/sounds/573381'>Ding</a>\n\n
+<big>Predictions</big>\n
+Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n\n
 <big>Some hints</big>\n
 Long tap any menu item to get an explanation of what it does.\n
 You can tap on:\n
-    ･ the loudspeaker icon to toggle the TTGO beep\n
-    ･ the battery icon to get precise charge level indication\n
-    ･ the landing zone (orange circle) to get google maps directions to the predicted landing site\n
-    ･ the explosion icon to get the time of the (predicted or actual) burst local time\n
+    ･ the <ul>loudspeaker</ul> icon to toggle the TTGO beep\n
+    ･ the <ul>battery</ul> icon to get precise charge level indication\n
+    ･ the <ul>sonde ID</ul> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a> page for the sonde\n
+    ･ the <ul>landing zone</ul> (orange circle) to get Google maps directions to the predicted landing site\n
+    ･ the <ul>explosion</ul> icon to get the time of the (predicted or actual) burst local time\n
     </string>
 </resources>
