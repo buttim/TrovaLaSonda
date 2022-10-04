@@ -38,6 +38,7 @@
     <string name="settings">Settings</string>
     <string name="save">Save</string>
     <string name="title_activity_scrolling">Trova la sonda</string>
+    <string name="help">Help</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

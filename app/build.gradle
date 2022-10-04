@@ -46,7 +46,7 @@ android {
 
     defaultConfig {
         applicationId "eu.ydiaeresis.trovalasonda"
-        minSdkVersion 24
+        minSdkVersion 21
         targetSdkVersion 33
 
         versionCode 100000+versionBuild

@@ -473,7 +473,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             updateSondeDirection()
         }
         timeLastSeen = Instant.now()
-        if (nPositionsReceived>10 && lastPrediction==null || Instant.now().epochSecond-(lastPrediction?.epochSecond?:0)>60) {
+        if (nPositionsReceived>10 && (lastPrediction==null || Instant.now().epochSecond-(lastPrediction?.epochSecond?:0)>60)) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
         }
@@ -1094,7 +1094,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         else
             AlertDialog.Builder(this)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setTitle("TrovaLaSonda")
                     .setMessage("Are you sure you want to exit?")
                     .setPositiveButton("Yes") { _, _ ->
