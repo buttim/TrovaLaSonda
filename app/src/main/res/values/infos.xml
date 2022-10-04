@@ -1,25 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="large_text">Thanks to
-<a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> for writing
+    <string name="large_text">
+<b><big>Some hints</big></b>\n
+Long tap any menu item to get an explanation of what it does.\n
+You can tap on:\n
+･ the <u>loudspeaker</u> icon to toggle the TTGO beep\n
+･ the <u>battery</u> icon to get precise charge level indication\n
+･ the <u>sonde ID</u> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a> page for the sonde\n
+･ the <u>landing zone</u> (orange circle) to get Google maps directions to the predicted landing site\n
+･ the <u>explosion</u> icon to get the time of the (predicted or actual) burst local time\n\n
+<b><big>Thanks</big></b>\n
+To <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> for writing
 the <a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a>TTGO Lora32 firmware and
 releasing <a href='https://download.farenight.it/MySondyGoAPI.pdf'>the APIs documentation</a>\n\n
-<big>Testing and suggestions</big>\n
+<b><big>Testing and suggestions</big></b>\n
 Many friendly people from the
 <a href='https://www.facebook.com/groups/919693011428093'>RADIOSONDE Italia</a> Facebook group\n\n
-<big>Sounds from freesound.org</big>\n
+<b><big>Sounds from freesound.org</big></b>\n
 <a href='https://freesound.org/people/EminYILDIRIM/sounds/541192/'>Balloon explosion pop</a>\n
 <a href='https://freesound.org/people/se2001/sounds/541506'>Cartoon Quick Zip</a>\n
 <a href='https://freesound.org/people/ammaro/sounds/573381'>Ding</a>\n\n
-<big>Predictions</big>\n
-Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n\n
-<big>Some hints</big>\n
-Long tap any menu item to get an explanation of what it does.\n
-You can tap on:\n
-    ･ the <ul>loudspeaker</ul> icon to toggle the TTGO beep\n
-    ･ the <ul>battery</ul> icon to get precise charge level indication\n
-    ･ the <ul>sonde ID</ul> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a> page for the sonde\n
-    ･ the <ul>landing zone</ul> (orange circle) to get Google maps directions to the predicted landing site\n
-    ･ the <ul>explosion</ul> icon to get the time of the (predicted or actual) burst local time\n
+<b><big>Maps</big></b>\n
+©<a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> (<a href='https://opendatacommons.org/licenses/odbl/'>ODbl</a>)\n
+©<a href='https://www.mapbox.com/about/maps/'>MapBox</a> (<a href='https://www.mapbox.com/map-feedback/'>Improve this map</a>)\n\n
+<b><big>Libraries</big></b>\n
+<a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n\n
+<b><big>Predictions</big></b>\n
+Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>
     </string>
 </resources>

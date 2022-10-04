@@ -116,8 +116,16 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                             convertview: View?,
                             parent: ViewGroup
                         ): View {
-                            val view=it.getDropDownView(position, convertview, parent)
-                            view.setBackgroundColor((if (position % 2 == 0) 0xFF404040 else 0xFF606060).toInt())
+                            val view=it.getDropDownView(position, convertview, parent) as TextView
+                            view.setTextColor(applicationContext.getColor(R.color.spinner_text))
+                            view.setBackgroundColor(
+                                applicationContext.getColor(
+                                    if (position % 2 == 0)
+                                        R.color.spinner_background1
+                                    else
+                                        R.color.spinner_background2
+                                    )
+                            )
                             return view
                         }
                     }

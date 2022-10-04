@@ -33,10 +33,48 @@ data class Request(
     val version: Int)
 
 @Serializable
-data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>)
+data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Stage
+
+        if (stage != other.stage) return false
+        if (!trajectory.contentEquals(other.trajectory)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = stage.hashCode()
+        result = 31 * result + trajectory.contentHashCode()
+        return result
+    }
+}
 
 @Serializable
-data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request)
+data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Response
+
+        if (metadata != other.metadata) return false
+        if (!prediction.contentEquals(other.prediction)) return false
+        if (request != other.request) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = metadata.hashCode()
+        result = 31 * result + prediction.contentHashCode()
+        result = 31 * result + request.hashCode()
+        return result
+    }
+}
 
 class Tawhiri(private val time: Instant, private val lat:Double, private val lng:Double,
               private val alt:Double, private val burstAlt:Double=33000.0,

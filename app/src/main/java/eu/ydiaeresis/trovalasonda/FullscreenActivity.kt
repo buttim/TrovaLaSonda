@@ -473,7 +473,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             updateSondeDirection()
         }
         timeLastSeen = Instant.now()
-        if (nPositionsReceived>10 && lastPrediction==null || Instant.now().epochSecond-lastPrediction!!.epochSecond>60) {
+        if (nPositionsReceived>10 && lastPrediction==null || Instant.now().epochSecond-(lastPrediction?.epochSecond?:0)>60) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
         }
