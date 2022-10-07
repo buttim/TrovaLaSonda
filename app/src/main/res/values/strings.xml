@@ -39,6 +39,11 @@
     <string name="save">Save</string>
     <string name="title_activity_scrolling">Trova la sonda</string>
     <string name="help">Help</string>
+    <string name="map">map</string>
+    <string name="battery_level">battery level</string>
+    <string name="sqkxy_tracker_logo">SQKXY tracker logo</string>
+    <string name="sondehub_logo">sondehub logo</string>
+    <string name="open_web_page">Open web page</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

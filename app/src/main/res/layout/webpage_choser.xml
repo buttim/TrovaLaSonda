@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20sp"
+        android:textSize="35sp"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/open_web_page"
+        />
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="10dp"
+        android:layout_gravity="center_horizontal"
+        android:id="@+id/tracker">
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="100dp"
+            android:layout_marginEnd="5dp"
+            android:background="@color/white"
+            android:src="@drawable/tracker"
+            android:contentDescription="@string/sqkxy_tracker_logo" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SQ6KXY Radiosonde Tracker"
+            android:textSize="20sp"
+            android:layout_gravity="center_vertical"
+            tools:ignore="HardcodedText" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="10dp"
+        android:id="@+id/sondehub">
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="100dp"
+            android:layout_marginEnd="5dp"
+            android:src="@drawable/sondehub_logo"
+            android:contentDescription="@string/sondehub_logo" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sondehub Tracker"
+            android:layout_gravity="center_vertical"
+            android:textSize="20sp"
+            tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+</LinearLayout>

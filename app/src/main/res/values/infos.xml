@@ -2,13 +2,17 @@
 <resources>
     <string name="large_text">
 <b><big>Some hints</big></b>\n
-Long tap any menu item to get an explanation of what it does.\n
 You can tap on:\n
 ･ the <u>loudspeaker</u> icon to toggle the TTGO beep\n
 ･ the <u>battery</u> icon to get precise charge level indication\n
 ･ the <u>sonde ID</u> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a> page for the sonde\n
 ･ the <u>landing zone</u> (orange circle) to get Google maps directions to the predicted landing site\n
-･ the <u>explosion</u> icon to get the time of the (predicted or actual) burst local time\n\n
+･ the <u>explosion</u> icon to get the time of the (predicted or actual) burst local time\n
+･ the <u>menu</u> icon to show the menu <b>and</b> the sonde coordinates\n
+･ the <u>latitude</u> (or logitude) of the sonde to copy it to the clipboard\n\n
+Long tap:\n
+･ any menu item to get an explanation of what it does\n
+･ the <u>latitude</u> of the sonde to copy both coordinates to the clipboard\n\n
 <b><big>Thanks</big></b>\n
 To <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> for writing
 the <a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a>TTGO Lora32 firmware and
@@ -24,7 +28,10 @@ Many friendly people from the
 ©<a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> (<a href='https://opendatacommons.org/licenses/odbl/'>ODbl</a>)\n
 ©<a href='https://www.mapbox.com/about/maps/'>MapBox</a> (<a href='https://www.mapbox.com/map-feedback/'>Improve this map</a>)\n\n
 <b><big>Libraries</big></b>\n
-<a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n\n
+<a href='https://github.com/harry1453/android-bluetooth-serial'>android-bluetooth-serial</a> (<a href='https://github.com/harry1453/android-bluetooth-serial/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/MKergall/osmbonuspack'>osmbonuspack</a> (<a href='https://github.com/MKergall/osmbonuspack/blob/master/LICENSE.md'>GNU Lesser 3.0</a>)\n
+<a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/eo/battery-meter-view'>battery-meter-view</a> (<a href='https://github.com/eo/battery-meter-view/blob/master/LICENSE'>Apache-2.0</a>)\n\n
 <b><big>Predictions</big></b>\n
 Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>
     </string>

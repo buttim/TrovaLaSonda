@@ -13,7 +13,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
-        android:focusable="true" >
+        android:focusable="true"
+        android:contentDescription="@string/map">
     </org.osmdroid.views.MapView>
 
     <ProgressBar
@@ -21,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        android:visibility="gone"/>
+        android:visibility="invisible"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel"
@@ -58,6 +59,7 @@
             app:batteryMeterIsCharging="false"
             app:batteryMeterTheme="rounded"
             app:batteryMeterUnknownColor="#FFFF00"
+            android:contentDescription="@string/battery_level"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/buzzer"
             app:layout_constraintBottom_toTopOf="@+id/rssi"/>
@@ -66,11 +68,10 @@
             android:id="@+id/id"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:gravity="center"
             android:text="@string/no_sonde"
             android:textColor="#7FFF7F"
-            android:textSize="24sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             app:layout_constraintLeft_toRightOf="@id/buzzer"
             app:layout_constraintTop_toTopOf="parent" />
@@ -112,7 +113,7 @@
             android:textColor="#FF0000"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:visibility="gone"
+            android:visibility="invisible"
             app:layout_constraintBottom_toTopOf="@+id/rssi"
             app:layout_constraintEnd_toStartOf="@+id/type"
             app:layout_constraintStart_toEndOf="@+id/battery_meter"
@@ -123,7 +124,7 @@
             android:id="@+id/type"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
+            android:layout_marginStart="8dp"
             android:text="RS41 ???.???MHz"
             android:textColor="@color/yellow"
             android:textSize="15sp"
@@ -283,7 +284,7 @@
         android:background="#80000000"
         android:layout_marginTop="20dp"
         android:layout_gravity="end|top"
-        android:visibility="gone"
+        android:visibility="invisible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
         <TextView

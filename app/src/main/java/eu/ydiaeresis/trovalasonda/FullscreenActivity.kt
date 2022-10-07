@@ -15,6 +15,7 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LevelListDrawable
 import android.location.Location
 import android.location.LocationListener
@@ -85,6 +86,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var accuracyOverlay= Polygon1()
     private var expandedMenu = false
     private var currentLocation: Location? = null
+    private var sondePosition: GeoPoint? = null
     private var satelliteView = false
     private var btMacAddress: String? = null
     private var deviceInterface: SimpleBluetoothDeviceInterface? = null
@@ -181,6 +183,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         currentLocation = location
         path.addPoint(point)
         path.actualPoints.apply { if (size > 400) removeAt(0) }
+        if (sondePosition!=null) {
+            val d = GeoPoint(currentLocation).distanceToAsDouble(sondePosition)
+            setDistance(d)
+        }
         updateSondeDirection()
 
         accuracyOverlay.points = Polygon1.pointsAsCircle(
@@ -418,7 +424,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     @SuppressLint("SetTextI18n")
     private fun updateSondeLocation(id: String, lat: Double, lon: Double, alt: Double) {
-        val d=if (currentLocation != null) GeoPoint(currentLocation).distanceToAsDouble(GeoPoint(lat,lon)) else 0.0
+        sondePosition=GeoPoint(lat,lon)
+        val d=if (currentLocation != null) GeoPoint(currentLocation).distanceToAsDouble(sondePosition) else 0.0
         if (d>1000000.0) return
 
         binding.lat.text = String.format(Locale.US, " %.5f", lat)
@@ -462,20 +469,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 1
 
         if (currentLocation != null) {
-            if (d > 10000F) {
-                binding.unit.text = "km"
-                binding.distance.text = String.format(Locale.US,"%.1f", d / 1000)
-            } else {
-                binding.unit.text = "m"
-                binding.distance.text = String.format(Locale.US,"%.1f", d)
-            }
-
+            setDistance(d)
             updateSondeDirection()
         }
         timeLastSeen = Instant.now()
         if (nPositionsReceived>10 && (lastPrediction==null || Instant.now().epochSecond-(lastPrediction?.epochSecond?:0)>60)) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
+        }
+    }
+
+    private fun setDistance(distance:Double) {
+        if (distance > 10000F) {
+            binding.unit.text = "km"
+            binding.distance.text = String.format(Locale.US,"%.1f", distance / 1000)
+        } else {
+            binding.unit.text = "m"
+            binding.distance.text = String.format(Locale.US,"%.1f", distance)
         }
     }
 
@@ -751,14 +761,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             clipboard.setPrimaryClip(clip)
             Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
+        binding.lat.setOnLongClickListener {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("sonde coordinates", "${binding.lat.text} ${binding.lon.text}")
+            clipboard.setPrimaryClip(clip)
+            Snackbar.make(binding.root, "Coordinates copied to clipboard", Snackbar.LENGTH_SHORT).show()
+            true
+        }
         binding.id.setOnClickListener {
-            if (sondeId!=null)
-                Intent(Intent.ACTION_VIEW).apply {
-                    data = Uri.parse("https://radiosondy.info/sonde.php?sondenumber=$sondeId")
-                    startActivity(this)
-                }
+            if (sondeId!=null) {
+                val dlg = WebPageChoserDialog()
+                dlg.sondeId = sondeId
+                dlg.lat=sondePosition!!.latitude
+                dlg.lon=sondePosition!!.longitude
+                dlg.show(supportFragmentManager, "")
+            }
             else
-                Snackbar.make(binding.root,"Not receiving any sonde", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,"No sonde to open a webpage for", Snackbar.LENGTH_SHORT).show()
         }
         binding.id.setOnLongClickListener {
             Snackbar.make(binding.root,"Show radiosondy.info page for this sonde", Snackbar.LENGTH_SHORT).show()
@@ -831,7 +850,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuSettings.setOnLongClickListener {
-            Snackbar.make(binding.root,"Radio settings\n(radio must be connected)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,"Radio settings (radio must be connected)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuLayer.setOnClickListener {
@@ -845,7 +864,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
         binding.menuLayer.setOnLongClickListener {
-            Snackbar.make(binding.root,"Choose layer\n(Mapnik or satellite)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,"Choose layer (Mapnik/satellite)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuCenterSonde.setOnClickListener {
@@ -856,7 +875,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuCenterSonde.setOnLongClickListener{
-            Snackbar.make(binding.root,"Center sonde on map\n(only if receiving location data)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,"Center sonde on map (if receiving location data)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuMaps.setOnClickListener {
@@ -878,7 +897,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 closeMenu()
         }
         binding.menuOpen.setOnLongClickListener {
-            Snackbar.make(binding.root,"Trova la sonda\nversion ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             true
         }
 
