@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.SondetypeBinding
 import eu.ydiaeresis.trovalasonda.databinding.WebpageChoserBinding
 import java.util.*
@@ -31,7 +32,7 @@ class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
                 sondehub.setOnClickListener {
                     Intent(Intent.ACTION_VIEW).apply {
                         val url=String.format(Locale.US,
-                            "https://tracker.sondehub.org/#!mt=Mapnik&mz=10&qm=3h&mc=%f,%f&f=%s",
+                            "https://tracker.sondehub.org/#!mt=Mapnik&mz=10&qm=0&mc=%f,%f&f=%s",
                             lat,lon,sondeId)
                         data = Uri.parse(url)
                         startActivity(this)
@@ -39,7 +40,7 @@ class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
                     dialog?.cancel()
                 }
             }
-            return AlertDialog.Builder(it)
+            return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setNegativeButton("Cancel") { _, _ -> dialog?.cancel() }
                 .create()

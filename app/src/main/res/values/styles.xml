@@ -10,4 +10,19 @@
     <style name="NumberPickerText">
         <item name="android:textSize">40dp</item>
     </style>
+    <style name="MaterialAlertDialog_rounded" parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/DialogCorners</item>
+    </style>
+    <style name="DialogCorners">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="roundedImageView" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+    <style name="Widget.MaterialComponents.Toolbar.Primary">
+        <item name="android:background">?attr/colorPrimaryVariant</item>
+    </style>
+
 </resources>

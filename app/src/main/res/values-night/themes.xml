@@ -18,4 +18,8 @@
         <item name="fullscreenBackgroundColor">@color/light_blue_900</item>
         <item name="fullscreenTextColor">@color/light_blue_A400</item>
     </style>
+
+    <style name="Theme.TrovaLaSonda.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="Theme.TrovaLaSonda.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark" />
 </resources>

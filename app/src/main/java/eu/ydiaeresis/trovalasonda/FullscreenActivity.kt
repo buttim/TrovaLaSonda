@@ -780,7 +780,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 Snackbar.make(binding.root,"No sonde to open a webpage for", Snackbar.LENGTH_SHORT).show()
         }
         binding.id.setOnLongClickListener {
-            Snackbar.make(binding.root,"Show radiosondy.info page for this sonde", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,"Show a web page for this sonde", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.panel.setOnClickListener {

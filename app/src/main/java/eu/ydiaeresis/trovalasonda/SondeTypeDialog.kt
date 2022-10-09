@@ -1,11 +1,14 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.SondetypeBinding
 import kotlin.math.roundToInt
 
@@ -41,7 +44,7 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
             }
             binding.root.invalidate()
             binding.type.setSelection(type-1)
-            return AlertDialog.Builder(it)
+            return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setPositiveButton("OK") { _, _ ->
                     binding.apply {

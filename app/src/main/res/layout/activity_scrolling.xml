@@ -20,8 +20,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fitsSystemWindows="true"
-            app:contentScrim="?attr/colorPrimary"
+            app:contentScrim="?attr/colorPrimaryVariant"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
+            android:background="@color/design_default_color_primary_variant"
             app:toolbarId="@+id/toolbar">
 
             <androidx.appcompat.widget.Toolbar
