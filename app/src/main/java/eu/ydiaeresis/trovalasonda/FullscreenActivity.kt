@@ -15,7 +15,6 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LevelListDrawable
 import android.location.Location
 import android.location.LocationListener
@@ -50,6 +49,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
@@ -67,6 +67,7 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import org.osmdroid.views.overlay.Polygon as Polygon1
+
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -87,7 +88,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var expandedMenu = false
     private var currentLocation: Location? = null
     private var sondePosition: GeoPoint? = null
-    private var satelliteView = false
+    private var mapStyle = 0
     private var btMacAddress: String? = null
     private var deviceInterface: SimpleBluetoothDeviceInterface? = null
     private var mute = false
@@ -105,6 +106,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var burst=false
     private var batteryLevel=0
     private val mapbox = MapBoxTileSource()//"MapBoxSatelliteLabelled",1,19,256,".png")
+    private val cyclOSM = XYTileSource(
+        "CyclOSM",
+        0, 18, 256, ".png", arrayOf(
+            "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/"
+        )
+    )
 
     private var receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -421,6 +428,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.buzzer.imageAlpha = 255
         muteChanged = false
     }
+    private fun newSonde(id:String) {
+        sondeId = id
+        binding.id.text = id
+        bk = null
+        burst=false
+        binding.bk.visibility=View.GONE
+        sondePosition=null
+        nPositionsReceived=0
+
+
+        mkSonde?.setVisible(true)
+        sondePath.actualPoints.clear()
+        mkBurst?.setVisible(false)
+        trajectory.actualPoints.clear()
+        trajectory.isVisible=false
+        mkTarget?.setVisible(false)
+    }
 
     @SuppressLint("SetTextI18n")
     private fun updateSondeLocation(id: String, lat: Double, lon: Double, alt: Double) {
@@ -431,20 +455,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.lat.text = String.format(Locale.US, " %.5f", lat)
         binding.lon.text = String.format(Locale.US, " %.5f", lon)
         if (sondeId != id) {
-            sondeId = id
-            binding.id.text = id
-            bk = null
-            burst=false
-            binding.bk.visibility=View.GONE
-            nPositionsReceived=0
-
-            mkSonde?.setVisible(true)
-            sondePath.actualPoints.clear()
-            mkBurst?.setVisible(false)
-            trajectory.actualPoints.clear()
-            trajectory.isVisible=false
-            mkTarget?.setVisible(false)
-
+            newSonde(id)
             if (currentLocation != null) {
                 binding.map.zoomToBoundingBox(
                         BoundingBox.fromGeoPointsSafe(
@@ -599,6 +610,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat,batV)
+        if (sondeId!=name) newSonde(name)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -724,7 +736,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         TileSourceFactory.addTileSource(mapbox)
 
         sondeTypes = resources.getStringArray(R.array.sonde_types)
-        sondeTypes = resources.getStringArray(R.array.sonde_types)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
         /*WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -772,8 +783,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (sondeId!=null) {
                 val dlg = WebPageChoserDialog()
                 dlg.sondeId = sondeId
-                dlg.lat=sondePosition!!.latitude
-                dlg.lon=sondePosition!!.longitude
+                if (sondePosition!=null) {
+                    dlg.lat=sondePosition!!.latitude
+                    dlg.lon=sondePosition!!.longitude
+                }
                 dlg.show(supportFragmentManager, "")
             }
             else
@@ -854,17 +867,23 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             true
         }
         binding.menuLayer.setOnClickListener {
-            satelliteView = !satelliteView
+            mapStyle = (mapStyle+1)%3
+            Snackbar.make(binding.root,
+                arrayOf("Mapnik","CyclOSM","Mapbox satellite")[mapStyle]+" map style selected",
+                Snackbar.LENGTH_SHORT).show()
             with (binding.map) {
-                if (satelliteView)
-                    setTileSource(mapbox)
-                else
-                    setTileSource(TileSourceFactory.MAPNIK)
+                setTileSource(
+                    when (mapStyle) {
+                        0 -> TileSourceFactory.MAPNIK
+                        1 -> cyclOSM
+                        else -> mapbox
+                    }
+                )
                 closeMenu()
             }
         }
         binding.menuLayer.setOnLongClickListener {
-            Snackbar.make(binding.root,"Choose layer (Mapnik/satellite)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,"Choose layer (Mapnik/CyclOSM/satellite)", Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuCenterSonde.setOnClickListener {
@@ -982,10 +1001,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     setVisible(false)
                 }
 
-                path.outlinePaint.color = Color.rgb(0, 0, 255)
-                sondePath.outlinePaint.color = Color.rgb(255, 128, 0)
-                sondePath.outlinePaint.strokeJoin= Paint.Join.ROUND
-                sondePath.outlinePaint.strokeCap= Paint.Cap.ROUND
+                path.outlinePaint.apply {
+                    color = Color.rgb(0, 0, 255)
+                    strokeCap = Paint.Cap.ROUND
+                }
+                sondePath.outlinePaint.apply{
+                    color = Color.rgb(255, 128, 0)
+                    strokeCap= Paint.Cap.ROUND
+                }
                 sondeDirection.outlinePaint.color = Color.rgb(255, 0, 0)
                 sondeDirection.isVisible = false
                 trajectory.outlinePaint.color = Color.argb(128,255, 128, 0)
@@ -1130,7 +1153,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         Log.i(TAG,"onSaveInstanceState")
         outState.putAll(bundleOf(
             EXPANDED_MENU to expandedMenu,
-            SATELLITE_VIEW to satelliteView,
+            MAP_STYLE to mapStyle,
             CURRENT_LOCATION to currentLocation,
             SONDE_ID to sondeId,
             MUTE to mute,
@@ -1162,7 +1185,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         Log.i(TAG,"onRestoreInstanceState")
         with(savedInstanceState) {
             expandedMenu = getBoolean(EXPANDED_MENU)
-            satelliteView = getBoolean(SATELLITE_VIEW)
+            mapStyle = getInt(MAP_STYLE)
             mute = getBoolean(MUTE)
             muteChanged = getBoolean(MUTE_CHANGE)
             sondeType = getInt(SONDE_TYPE)
@@ -1201,7 +1224,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     companion object {
         private const val TAG = "MAURI"
         private const val EXPANDED_MENU = "expandedMenu"
-        private const val SATELLITE_VIEW = "satelliteView"
+        private const val MAP_STYLE = "mapStyle"
         private const val MUTE = "mute"
         private const val MUTE_CHANGE = "muteChange"
         private const val SONDE_TYPE = "sondeType"
