@@ -45,6 +45,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.osmdroid.bonuspack.routing.OSRMRoadManager
+import org.osmdroid.bonuspack.routing.Road
+import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
@@ -106,6 +109,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var burst=false
     private var batteryLevel=0
     private val mapbox = MapBoxTileSource()//"MapBoxSatelliteLabelled",1,19,256,".png")
+    private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
+    private var roadOverlay : Polyline?=null
     private val cyclOSM = XYTileSource(
         "CyclOSM",
         0, 18, 256, ".png", arrayOf(
@@ -262,6 +267,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             bluetoothManager.closeDevice(connectedDevice.mac)
             return
         }
+        timeLastMessage=null
         btMacAddress = connectedDevice.mac
         deviceInterface = connectedDevice.toSimpleDeviceInterface()
         deviceInterface?.setListeners(this::onMessageReceived, this::onMessageSent, this::onError)
@@ -840,7 +846,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
                         "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
                         "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o"
+                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o"
                 )
                 n++
                 n %= msgs.size
@@ -1062,12 +1078,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         if (deviceInterface == null) connect()
     }
 
+    val scope: CoroutineScope=object : CoroutineScope {
+        private var job: Job = Job()
+        override val coroutineContext: CoroutineContext
+            get() = Dispatchers.Main + job
+    }
+    val scope1: CoroutineScope=object : CoroutineScope {
+        private var job: Job = Job()
+        override val coroutineContext: CoroutineContext
+            get() = Dispatchers.Main + job
+    }
+
     private fun predict(lat:Double,lng:Double,alt:Double) {
-        val scope: CoroutineScope=object : CoroutineScope {
-            private var job: Job = Job()
-            override val coroutineContext: CoroutineContext
-                get() = Dispatchers.Main + job
-        }
+
         scope.launch {
             try {
                 //TODO: usare velocità verticale corrente in discesa
@@ -1099,6 +1122,21 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 trajectory.isVisible = true
                 mkTarget?.position = trajectory.actualPoints[trajectory.actualPoints.size - 1]
                 mkTarget?.setVisible(true)
+
+                val waypoints = ArrayList<GeoPoint>()
+                waypoints.add(GeoPoint(currentLocation))
+                val endPoint = trajectory.actualPoints[trajectory.actualPoints.size - 1]
+                waypoints.add(endPoint)
+
+                /*scope1.launch {
+                    (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
+                    val road = roadManager.getRoad(waypoints)
+                    roadOverlay = RoadManager.buildRoadOverlay(road)
+                    if (roadOverlay != null)
+                        binding.map.overlays.remove(roadOverlay)
+                    binding.map.overlays.add(roadOverlay)
+                    binding.map.invalidate()
+                }*/
             }
             catch (e:Exception) {
                 Log.e(TAG,e.toString())
