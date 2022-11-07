@@ -33,6 +33,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.children
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
@@ -70,7 +71,7 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import org.osmdroid.views.overlay.Polygon as Polygon1
-
+import kotlin.math.max
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -168,7 +169,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         cmds.add(Pair<String, Any>(k, data.extras?.getInt(k)!!))
                 }
                 if (reset)
-                    AlertDialog.Builder(this)
+                    MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
                         .setTitle("Alert")
                         .setMessage("New settings require a restart, do you want to apply them anyway?")
                         .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
@@ -1093,8 +1094,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         scope.launch {
             try {
-                //TODO: usare velocità verticale corrente in discesa
-                val tawhiri = Tawhiri(Instant.now(), lat, lng, alt, if (burst) alt + 1 else 33000.0)
+                //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
+                val tawhiri = Tawhiri(Instant.now(), lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
                 mkTarget?.setVisible(false)
                 mkBurst?.setVisible(false)
                 trajectory.actualPoints.clear()
@@ -1173,7 +1174,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         if (expandedMenu)
             closeMenu()
         else
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
                     .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setTitle("TrovaLaSonda")
                     .setMessage("Are you sure you want to exit?")
