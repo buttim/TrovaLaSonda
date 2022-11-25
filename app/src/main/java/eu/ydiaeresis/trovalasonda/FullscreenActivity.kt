@@ -133,9 +133,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     try {
                         val deviceName = device?.name
                         Log.i(TAG, "BT device found: $deviceName")
-                        if (deviceInterface == null && deviceName != null && deviceName.startsWith(
-                                MYSONDYGOPREFIX
-                            )
+                        if (deviceInterface == null && deviceName != null &&
+                            (deviceName.startsWith(MYSONDYGOPREFIX) ||
+                                    deviceName.startsWith(TROVALASONDAPREFIX))
                         ) {
                             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
                             btAdapter.cancelDiscovery()
@@ -274,10 +274,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         deviceInterface?.setListeners(this::onMessageReceived, this::onMessageSent, this::onError)
 
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_yellow)
-        locationOverlay?.setPersonIcon(bmp)
-        locationOverlay?.setDirectionIcon(bmp)
-        locationOverlay?.setPersonAnchor(.5f,.5f)
-        locationOverlay?.setDirectionAnchor(.5f,.5f)
+        locationOverlay?.apply {
+            setPersonIcon(bmp)
+            setDirectionIcon(bmp)
+            setPersonAnchor(.5f, .5f)
+            setDirectionAnchor(.5f, .5f)
+        }
         muteChanged = false
         binding.buzzer.isEnabled=true
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
@@ -435,6 +437,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.buzzer.imageAlpha = 255
         muteChanged = false
     }
+
     private fun newSonde(id:String) {
         sondeId = id
         binding.id.text = id
@@ -779,13 +782,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             clipboard.setPrimaryClip(clip)
             Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
-        binding.lat.setOnLongClickListener {
+        val copyCoordinates = { v: View ->
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde coordinates", "${binding.lat.text} ${binding.lon.text}")
             clipboard.setPrimaryClip(clip)
             Snackbar.make(binding.root, "Coordinates copied to clipboard", Snackbar.LENGTH_SHORT).show()
             true
         }
+        binding.lat.setOnLongClickListener(copyCoordinates)
+        binding.lon.setOnLongClickListener(copyCoordinates)
         binding.id.setOnClickListener {
             if (sondeId!=null) {
                 val dlg = WebPageChoserDialog()
@@ -923,7 +928,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuMaps.setOnLongClickListener {
-            Snackbar.make(binding.root,"Quick! Bring me where the sonde is!", Snackbar.LENGTH_SHORT).show()
+            //Snackbar.make(binding.root,"Quick! Bring me where the sonde is!", Snackbar.LENGTH_SHORT).show()
+            navigateGeneric(mkSonde?.position!!)
             true
         }
         binding.menuOpen.setOnClickListener {
@@ -998,14 +1004,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
                 mkSonde = Marker(binding.map).apply {
                     icon = sondeLevelListDrawable
-                    position = GeoPoint(45.088144, 7.633692)
+                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
                 }
                 mkTarget=Marker(binding.map).apply {
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.target)
-                    position = GeoPoint(45.088144, 7.633692)
+                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> navigate(marker.position); true }
@@ -1013,7 +1019,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 mkBurst=Marker(binding.map).apply {
                     title="Burst"
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_burst)
-                    position = GeoPoint(45.088144, 7.633692)
+                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                 }
@@ -1084,14 +1090,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         override val coroutineContext: CoroutineContext
             get() = Dispatchers.Main + job
     }
-    val scope1: CoroutineScope=object : CoroutineScope {
+    /*val scope1: CoroutineScope=object : CoroutineScope {
         private var job: Job = Job()
         override val coroutineContext: CoroutineContext
             get() = Dispatchers.Main + job
-    }
+    }*/
 
     private fun predict(lat:Double,lng:Double,alt:Double) {
-
         scope.launch {
             try {
                 //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
@@ -1151,6 +1156,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         val uri = Uri.parse(String.format(Locale.US,"google.navigation:q=%f,%f",position.latitude,position.longitude))
         val intent = Intent(Intent.ACTION_VIEW, uri)
         intent.setPackage("com.google.android.apps.maps")
+        startActivity(intent)
+    }
+
+    private fun navigateGeneric(position:GeoPoint) {
+        val uri = Uri.parse(String.format(Locale.US,"geo:%f,%f",position.latitude,position.longitude))
+        val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
 
@@ -1285,6 +1296,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
+        private const val TROVALASONDAPREFIX = "TrovaLaSonda"
         private var freqOffsetReceiver: FreqOffsetReceiver?=null
         fun registerFreqOffsetReceiver(r: FreqOffsetReceiver) {
             freqOffsetReceiver=r
