@@ -7,7 +7,6 @@ import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.*
@@ -23,8 +22,10 @@ import android.net.Uri
 import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -47,7 +48,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
-import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
@@ -57,6 +57,7 @@ import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
+import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.*
 import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
@@ -70,8 +71,9 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
-import org.osmdroid.views.overlay.Polygon as Polygon1
 import kotlin.math.max
+import org.osmdroid.views.overlay.Polygon as Polygon1
+
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
     private lateinit var binding:ActivityFullscreenBinding
@@ -81,8 +83,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private val path = Polyline()
     private val sondePath = Polyline()
     private val trajectory=Polyline()
-    private var mkSonde: Marker? = null
-    private var mkTarget: Marker?=null
+    private var mkSonde: MyMarker? = null
+    private var mkTarget: MyMarker?=null
     private var mkBurst:Marker?=null
     private var lastPrediction:Instant?=null
     private var nPositionsReceived=0
@@ -747,6 +749,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         sondeTypes = resources.getStringArray(R.array.sonde_types)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         /*WindowInsetsControllerCompat(window, window.decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -1002,19 +1005,21 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     addLevel(1, 1, AppCompatResources.getDrawable(applicationContext, R.drawable.ic_sonde_green))
                     level = 0
                 }
-                mkSonde = Marker(binding.map).apply {
+                mkSonde = MyMarker(binding.map).apply {
                     icon = sondeLevelListDrawable
                     //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
+                    setOnLongPressListener { _, _ -> if (sondeId != null) navigateGeneric(mkSonde!!.position); true }
                 }
-                mkTarget=Marker(binding.map).apply {
+                mkTarget = MyMarker(binding.map).apply {
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.target)
                     //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> navigate(marker.position); true }
+                    setOnLongPressListener { _ , _-> navigateGeneric(mkTarget!!.position); true }
                 }
                 mkBurst=Marker(binding.map).apply {
                     title="Burst"
@@ -1293,7 +1298,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         private const val UNITS = "units"
         private const val HORIZONTAL_SPEED = "horizontalSpeed"
         private const val DIRECTION = "direction"
-
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
         private const val TROVALASONDAPREFIX = "TrovaLaSonda"
@@ -1305,5 +1309,22 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         fun unregisterFreqOffsetReceiver() {
             freqOffsetReceiver =null
         }
+    }
+}
+
+class MyMarker(mapView: MapView?) : Marker(mapView) {
+    fun interface OnLongPressListener {
+        fun invoke(event: MotionEvent?, mapView: MapView?):Boolean
+    }
+    private var longPress:OnLongPressListener?=null
+    fun setOnLongPressListener(longPress: OnLongPressListener) {
+        this.longPress=longPress
+    }
+    override fun onLongPress(event: MotionEvent?, mapView: MapView?): Boolean {
+        if (hitTest(event,mapView)) {
+            Log.d("TAG", "onLongPress: ")
+            longPress?.invoke(event,mapView)
+        }
+        return super.onLongPress(event, mapView)
     }
 }

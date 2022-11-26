@@ -5,6 +5,7 @@
 You can tap on:\n
 ･ the <u>loudspeaker</u> icon to toggle the TTGO beep\n
 ･ the <u>battery</u> icon to get precise charge level indication\n
+･ the <u>sonde</u> or <u>target</u> icons to launch Google Maps in navigation mode\n
 ･ the <u>sonde ID</u> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a>
 or <a href='https://tracker.sondehub.org/'>Sondehub</a> page for the sonde\n
 ･ the <u>landing zone</u> (orange circle) to get Google maps directions to the predicted landing site\n
@@ -12,7 +13,8 @@ or <a href='https://tracker.sondehub.org/'>Sondehub</a> page for the sonde\n
 ･ the <u>menu</u> icon to show the menu <b>and</b> the sonde coordinates\n
 ･ the <u>latitude</u> (or logitude) of the sonde to copy it to the clipboard\n\n
 Long tap on:\n
-･ the car menu item to chose the navigatio app to bring you to the sonde current position\n
+･ the <u>car</u> menu item to chose the navigation app to bring you to the sonde current position\n
+･ the <u>sonde</u> or <u>target</u> icons to choose a navigation app that will guide you there\n
 ･ any other menu item to get an explanation of what it does\n
 ･ the <u>latitude</u> or <u>longitude</u> of the sonde to copy both coordinates to the clipboard\n\n
 <b><big>Thanks</big></b>\n
