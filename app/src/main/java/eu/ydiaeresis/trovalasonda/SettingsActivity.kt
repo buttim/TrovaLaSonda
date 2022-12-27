@@ -3,6 +3,7 @@ package eu.ydiaeresis.trovalasonda
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.Spanned
@@ -117,15 +118,17 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                             parent: ViewGroup
                         ): View {
                             val view=it.getDropDownView(position, convertview, parent) as TextView
-                            view.setTextColor(applicationContext.getColor(R.color.spinner_text))
-                            view.setBackgroundColor(
-                                applicationContext.getColor(
-                                    if (position % 2 == 0)
-                                        R.color.spinner_background1
-                                    else
-                                        R.color.spinner_background2
-                                    )
-                            )
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                view.setTextColor(applicationContext.getColor(R.color.spinner_text))
+                                view.setBackgroundColor(
+                                    applicationContext.getColor(
+                                        if (position % 2 == 0)
+                                            R.color.spinner_background1
+                                        else
+                                            R.color.spinner_background2
+                                        )
+                                )
+                            }
                             return view
                         }
                     }

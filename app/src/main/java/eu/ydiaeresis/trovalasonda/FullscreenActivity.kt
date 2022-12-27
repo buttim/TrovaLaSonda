@@ -47,8 +47,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import org.osmdroid.bonuspack.routing.OSRMRoadManager
-import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
@@ -63,6 +61,8 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+//import org.osmdroid.bonuspack.routing.OSRMRoadManager
+//import org.osmdroid.bonuspack.routing.RoadManager
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -74,10 +74,10 @@ import kotlin.math.abs
 import kotlin.math.max
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
-
-class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver {
+class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
+    SimpleBluetoothDeviceInterface.OnMessageReceivedListener,SimpleBluetoothDeviceInterface.OnErrorListener, SimpleBluetoothDeviceInterface.OnMessageSentListener {
     private lateinit var binding:ActivityFullscreenBinding
-    private var bluetoothManager = BluetoothManager.getInstance()
+    private var bluetoothManager = BluetoothManager.instance//.getInstance()
     private var btSerialDevice: Disposable?=null
     private var sondeTypes: Array<String>? = null
     private val path = Polyline()
@@ -111,9 +111,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private val handler = Handler(Looper.getMainLooper())
     private var burst=false
     private var batteryLevel=0
-    private val mapbox = MapBoxTileSource()//"MapBoxSatelliteLabelled",1,19,256,".png")
-    private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
-    private var roadOverlay : Polyline?=null
+    private val mapbox = MapBoxTileSource()
+    //private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
+    //private var roadOverlay : Polyline?=null
     private val cyclOSM = XYTileSource(
         "CyclOSM",
         0, 18, 256, ".png", arrayOf(
@@ -139,6 +139,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             (deviceName.startsWith(MYSONDYGOPREFIX) ||
                                     deviceName.startsWith(TROVALASONDAPREFIX))
                         ) {
+                            Log.i(TAG,device.uuids.joinToString())
                             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
                             btAdapter.cancelDiscovery()
                             connectDevice(device.address)
@@ -252,12 +253,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     @SuppressLint("CheckResult")
     private fun connectDevice(mac: String) {
-        btSerialDevice=bluetoothManager.openSerialDevice(mac)
+        btSerialDevice=bluetoothManager?.openSerialDevice(mac)!!
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(this::onConnected) { error ->
                 Log.e(TAG, error.toString())
-                bluetoothManager.closeDevice(mac)
+                bluetoothManager?.closeDevice(mac)
                 /*Handler(Looper.getMainLooper()).postDelayed({
                     connect()
                 }, 1000)*/
@@ -267,13 +268,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private fun onConnected(connectedDevice: BluetoothSerialDevice) {
         Log.i(TAG, "------------------------CONNECTED " + connectedDevice.mac)
         if (btMacAddress != null) {
-            bluetoothManager.closeDevice(connectedDevice.mac)
+            bluetoothManager?.closeDevice(connectedDevice.mac)
             return
         }
         timeLastMessage=null
         btMacAddress = connectedDevice.mac
         deviceInterface = connectedDevice.toSimpleDeviceInterface()
-        deviceInterface?.setListeners(this::onMessageReceived, this::onMessageSent, this::onError)
+        deviceInterface?.setListeners(this,this,this)//this::onMessageReceived, this::onMessageSent, this::onError)
 
         val bmp = BitmapFactory.decodeResource(resources, R.drawable.ic_person_yellow)
         locationOverlay?.apply {
@@ -305,7 +306,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         locationOverlay?.setDirectionAnchor(.5f,.5f)
         sondeLevelListDrawable.level = 0
         muteChanged = true
-        bluetoothManager.closeDevice(btMacAddress)
+        bluetoothManager?.closeDevice(btMacAddress!!)
         btMacAddress = null
         deviceInterface = null
         showProgress(false)
@@ -316,12 +317,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.batteryMeter.chargeLevel=null
     }
 
-    private fun onError(error: Throwable) {
+    override fun onError(error: Throwable) {
         Log.d(TAG, error.toString())
         onDisconnected()
     }
 
-    private fun onMessageSent(message: String) {
+    override fun onMessageSent(message: String) {
         Log.i(TAG, "SENT: $message")
     }
 
@@ -422,7 +423,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
-    private fun onMessageReceived(message: String) {
+    override fun onMessageReceived(message: String) {
         Log.i(TAG, "RECEIVED: $message")
         try {
             process(message)
@@ -553,13 +554,18 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSondePos(
         type: String, freq: Double, name: String, lat: Double, lon: Double,
-        height: Double, vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
+        height: Double, _vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
         bktime: Int, batV: Int, mute: Boolean, ver: String
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
 
         if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
+
+        //HACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
+        var vel=_vel
+        if (ver=="2.30" && (type=="M10" || type=="M20"))
+            vel*=3.6
 
         nPositionsReceived++
 
@@ -590,7 +596,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
         }
         @Suppress("SetTextI18n")
-        binding.horizontalSpeed.text = "V: ${vel}km/h"
+        binding.horizontalSpeed.text = String.format(Locale.US, "V: %.1fkm/h",vel)
         heightDelta = newHeightDelta
         this.height = height
 
@@ -761,6 +767,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.INTERNET
         ))
 
@@ -785,7 +792,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             clipboard.setPrimaryClip(clip)
             Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
         }
-        val copyCoordinates = { v: View ->
+        val copyCoordinates = { _: View ->
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde coordinates", "${binding.lat.text} ${binding.lon.text}")
             clipboard.setPrimaryClip(clip)
@@ -798,6 +805,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (sondeId!=null) {
                 val dlg = WebPageChoserDialog()
                 dlg.sondeId = sondeId
+                dlg.sondeType=sondeTypes!![sondeType-1]
                 if (sondePosition!=null) {
                     dlg.lat=sondePosition!!.latitude
                     dlg.lon=sondePosition!!.longitude
@@ -1077,7 +1085,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         )!! > 10L
                 ) {
                     if (deviceInterface != null) {
-                        bluetoothManager.closeDevice(btMacAddress)
+                        bluetoothManager?.closeDevice(btMacAddress!!)
                         onDisconnected()
                     }
                 }
@@ -1090,12 +1098,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         if (deviceInterface == null) connect()
     }
 
-    val scope: CoroutineScope=object : CoroutineScope {
+    private val scope: CoroutineScope=object : CoroutineScope {
         private var job: Job = Job()
         override val coroutineContext: CoroutineContext
             get() = Dispatchers.Main + job
     }
-    /*val scope1: CoroutineScope=object : CoroutineScope {
+    /*private val scope1: CoroutineScope=object : CoroutineScope {
         private var job: Job = Job()
         override val coroutineContext: CoroutineContext
             get() = Dispatchers.Main + job
@@ -1113,21 +1121,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
                 var lastPoint: GeoPoint? = null
                 var lastTrajectoryPoint:TrajectoryPoint?=null
-                tawhiri.getPrediction().apply {
-                    forEach {
-                        if (it.stage == "descent" && !burst)
-                            mkBurst?.apply {
-                                position = lastPoint
-                                val t=Instant.parse(lastTrajectoryPoint?.datetime)
-                                val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                                title=LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
-                                setVisible(true)
-                            }
-                        it.trajectory.forEach { point ->
-                            lastTrajectoryPoint=point
-                            lastPoint = GeoPoint(point.latitude, point.longitude)
-                            trajectory.addPoint(lastPoint)
+                tawhiri.getPrediction().onEach {
+                    if (it.stage == "descent" && !burst)
+                        mkBurst?.apply {
+                            position = lastPoint
+                            val t=Instant.parse(lastTrajectoryPoint?.datetime)
+                            val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                            title=LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
+                            setVisible(true)
                         }
+                    it.trajectory.forEach { point ->
+                        lastTrajectoryPoint=point
+                        lastPoint = GeoPoint(point.latitude, point.longitude)
+                        trajectory.addPoint(lastPoint)
                     }
                 }
                 trajectory.isVisible = true
@@ -1195,8 +1201,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     .setTitle("TrovaLaSonda")
                     .setMessage("Are you sure you want to exit?")
                     .setPositiveButton("Yes") { _, _ ->
-                        if (bluetoothManager!=null)
-                            bluetoothManager.closeDevice(btMacAddress)
+                        if (bluetoothManager!=null &&btMacAddress!=null)
+                            bluetoothManager?.closeDevice(btMacAddress!!)
                         finish()
                     }
                     .setNegativeButton("No", null)

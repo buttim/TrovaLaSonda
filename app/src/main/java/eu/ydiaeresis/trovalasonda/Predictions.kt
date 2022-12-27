@@ -30,7 +30,8 @@ data class Request(
     val launch_latitude: Double,
     val launch_longitude: Double,
     val profile: String,
-    val version: Int)
+    val version: Int,
+    val format:String="json")
 
 @Serializable
 data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
@@ -55,6 +56,7 @@ data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
 
 @Serializable
 data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request) {
+    //TODO: aggiungere campo warnings
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -76,6 +78,8 @@ data class Response(val metadata:Metadata,val prediction:Array<Stage>,val reques
     }
 }
 
+private val json = Json { ignoreUnknownKeys = true }
+
 class Tawhiri(private val time: Instant, private val lat:Double, private val lng:Double,
               private val alt:Double, private val burstAlt:Double=33000.0,
               private val ascRate:Double=5.0, private val descRate:Double=5.0) {
@@ -94,12 +98,13 @@ class Tawhiri(private val time: Instant, private val lat:Double, private val lng
     suspend fun getPrediction():Array<Stage> {
         HttpClient(CIO).use {
             val response: HttpResponse = it.get(getUri().toString())
-            val result:Response = Json.decodeFromString(Response.serializer(),response.bodyAsText())
+            //Log.d("MAURI",response.bodyAsText())
+            val result:Response = json.decodeFromString(Response.serializer(),response.bodyAsText())
             //Log.d("MAURI",result.request.toString())
             return result.prediction
         }
     }
     companion object {
-        private const val URI="http://predict.cusf.co.uk/api/v1"
+        private const val URI="https://api.v2.sondehub.org/tawhiri"
     }
 }

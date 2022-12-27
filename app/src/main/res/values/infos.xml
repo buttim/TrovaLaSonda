@@ -11,7 +11,7 @@ or <a href='https://tracker.sondehub.org/'>Sondehub</a> page for the sonde\n
 ･ the <u>landing zone</u> (orange circle) to get Google maps directions to the predicted landing site\n
 ･ the <u>explosion</u> icon to get the time of the (predicted or actual) burst local time\n
 ･ the <u>menu</u> icon to show the menu <b>and</b> the sonde coordinates\n
-･ the <u>latitude</u> (or logitude) of the sonde to copy it to the clipboard\n\n
+･ the <u>latitude</u> (or longitude) of the sonde to copy it to the clipboard\n\n
 Long tap on:\n
 ･ the <u>car</u> menu item to chose the navigation app to bring you to the sonde current position\n
 ･ the <u>sonde</u> or <u>target</u> icons to choose a navigation app that will guide you there\n
@@ -38,6 +38,6 @@ Many friendly people from the
 <a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/eo/battery-meter-view'>battery-meter-view</a> (<a href='https://github.com/eo/battery-meter-view/blob/master/LICENSE'>Apache-2.0</a>)\n\n
 <b><big>Predictions</big></b>\n
-Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>
+Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
     </string>
 </resources>
