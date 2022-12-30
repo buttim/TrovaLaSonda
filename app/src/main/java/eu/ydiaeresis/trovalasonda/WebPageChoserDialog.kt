@@ -39,7 +39,7 @@ class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
     private fun getSondehubId():String =
         when (sondeType) {
             "M10","M20" -> sondeId!!.substring(0,3)+"-"+sondeId!!.substring(3,4)+"-"+sondeId!!.substring(4)
-            else -> sondeType!!
+            else -> sondeId!!
         }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {

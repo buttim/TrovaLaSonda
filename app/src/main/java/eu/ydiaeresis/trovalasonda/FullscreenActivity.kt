@@ -77,13 +77,15 @@ import org.osmdroid.views.overlay.Polygon as Polygon1
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
     SimpleBluetoothDeviceInterface.OnMessageReceivedListener,SimpleBluetoothDeviceInterface.OnErrorListener, SimpleBluetoothDeviceInterface.OnMessageSentListener {
     private lateinit var binding:ActivityFullscreenBinding
-    private var bluetoothManager = BluetoothManager.instance//.getInstance()
+    private var bluetoothManager = BluetoothManager.instance
     private var btSerialDevice: Disposable?=null
     private var sondeTypes: Array<String>? = null
     private val path = Polyline()
     private val sondePath = Polyline()
+    private val sondehubPath = Polyline()
     private val trajectory=Polyline()
     private var mkSonde: MyMarker? = null
+    private var mkSondehub: MyMarker? = null
     private var mkTarget: MyMarker?=null
     private var mkBurst:Marker?=null
     private var lastPrediction:Instant?=null
@@ -106,6 +108,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var height=0.0
     private var bk: Instant? = null
     private var timeLastSeen: Instant? = null
+    private var timeLastSondehub: Instant? = null
     private var timeLastMessage: Instant? = null
     private val sondeLevelListDrawable = LevelListDrawable()
     private val handler = Handler(Looper.getMainLooper())
@@ -449,14 +452,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.bk.visibility=View.GONE
         sondePosition=null
         nPositionsReceived=0
-
-
+        mkSondehub?.setVisible(false)
+        sondehubPath.actualPoints.clear()
+        sondehubPath.isVisible=false
         mkSonde?.setVisible(true)
         sondePath.actualPoints.clear()
         mkBurst?.setVisible(false)
         trajectory.actualPoints.clear()
         trajectory.isVisible=false
         mkTarget?.setVisible(false)
+        timeLastSeen=Instant.now()
     }
 
     @SuppressLint("SetTextI18n")
@@ -488,7 +493,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             playSound()
         }
 
-        mkSonde?.position = GeoPoint(lat, lon)
+        mkSonde?.position = GeoPoint(lat, lon, alt)
         sondePath.addPoint(mkSonde?.position)
         sondeLevelListDrawable.level = 1
 
@@ -497,7 +502,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             updateSondeDirection()
         }
         timeLastSeen = Instant.now()
-        if (nPositionsReceived>10 && (lastPrediction==null || Instant.now().epochSecond-(lastPrediction?.epochSecond?:0)>60)) {
+        if (nPositionsReceived>10 && (lastPrediction==null || lastPrediction?.until(Instant.now(),ChronoUnit.SECONDS)!!>60)) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
         }
@@ -562,6 +567,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
 
+        mkSondehub?.setVisible(false)
+        sondehubPath.isVisible=false
+
         //HACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
         var vel=_vel
         if (ver=="2.30" && (type=="M10" || type=="M20"))
@@ -615,6 +623,35 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat,batV)
+    }
+
+    private fun getFromSondeHub(type:String,id:String,lastSeen:Instant) {
+        val sh=Sondehub(type,id,lastSeen)
+
+        val scope: CoroutineScope=object : CoroutineScope {
+            private var job: Job = Job()
+            override val coroutineContext: CoroutineContext
+                get() = Dispatchers.Main + job
+        }
+        scope.launch {
+            val points=sh.getTrack()
+            if (points.isNotEmpty()) {
+                sondehubPath.actualPoints.clear()
+                points.forEach { pt ->
+                    sondehubPath.addPoint(pt)
+                }
+                mkSondehub?.position=points.last()
+                mkSondehub?.setVisible(true)
+                sondehubPath.isVisible=true
+
+                if ((lastPrediction==null || lastPrediction?.until(Instant.now(),ChronoUnit.SECONDS)!!>60)) {
+                    lastPrediction=Instant.now()
+                    points.last().apply {
+                        predict(latitude,longitude,altitude)
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -951,6 +988,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
         binding.menuOpen.setOnLongClickListener {
             Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
+            //////////////////////
+            //getFromSondeHub("RS41","T4231137",Instant.now().minus(1,ChronoUnit.HOURS))
+            //////////////////////
             true
         }
 
@@ -1015,15 +1055,20 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
                 mkSonde = MyMarker(binding.map).apply {
                     icon = sondeLevelListDrawable
-                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
                     setOnLongPressListener { _, _ -> if (sondeId != null) navigateGeneric(mkSonde!!.position); true }
                 }
+                mkSondehub = MyMarker(binding.map).apply {
+                    icon = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_sonde_blue)
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    setVisible(false)
+                    setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
+                    setOnLongPressListener { _, _ -> if (sondeId != null) navigateGeneric(mkSondehub!!.position); true }
+                }
                 mkTarget = MyMarker(binding.map).apply {
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.target)
-                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> navigate(marker.position); true }
@@ -1032,7 +1077,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 mkBurst=Marker(binding.map).apply {
                     title="Burst"
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_burst)
-                    //position = GeoPoint(45.088144, 7.633692)
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     setVisible(false)
                 }
@@ -1041,8 +1085,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     color = Color.rgb(0, 0, 255)
                     strokeCap = Paint.Cap.ROUND
                 }
-                sondePath.outlinePaint.apply{
+                sondePath.outlinePaint.apply {
                     color = Color.rgb(255, 128, 0)
+                    strokeCap= Paint.Cap.ROUND
+                }
+                sondehubPath.outlinePaint.apply {
+                    color = Color.rgb(0, 255, 255)
                     strokeCap= Paint.Cap.ROUND
                 }
                 sondeDirection.outlinePaint.color = Color.rgb(255, 0, 0)
@@ -1061,8 +1109,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
 
                 overlays?.addAll(
-                    listOf(accuracyOverlay, path, sondePath, sondeDirection, scaleBar,
-                        locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay, mkSonde,
+                    listOf(accuracyOverlay, path, sondePath, sondehubPath, sondeDirection, scaleBar,
+                        locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay, mkSondehub, mkSonde,
                         MapEventsOverlay(this@FullscreenActivity))
                 )
 
@@ -1079,6 +1127,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     if (bk != null)
                         updateBk(Instant.now().until(bk, ChronoUnit.SECONDS).toInt())
                 }
+
+                if (timeLastSeen!=null && timeLastSeen?.until(Instant.now(),ChronoUnit.MINUTES)!!>=2 &&
+                    (timeLastSondehub==null || timeLastSondehub?.until(Instant.now(),ChronoUnit.SECONDS)!!>=30)) {
+                    getFromSondeHub(sondeTypes!![sondeType-1],sondeId!!,timeLastSeen!!)
+                    timeLastSondehub=Instant.now()
+                }
+
                 if (timeLastMessage != null && timeLastMessage?.until(
                                 Instant.now(),
                                 ChronoUnit.SECONDS
@@ -1113,7 +1168,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         scope.launch {
             try {
                 //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
-                val tawhiri = Tawhiri(Instant.now(), lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
+                val tawhiri = Tawhiri(timeLastSeen!!, lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
                 mkTarget?.setVisible(false)
                 mkBurst?.setVisible(false)
                 trajectory.actualPoints.clear()

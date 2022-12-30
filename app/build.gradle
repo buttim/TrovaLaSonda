@@ -49,8 +49,8 @@ android {
         minSdkVersion 21
         targetSdkVersion 33
 
-        versionCode 100000+versionBuild
-        versionName "1.0.0."+versionBuild
+        versionCode 100100+versionBuild
+        versionName "1.0.1."+versionBuild
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -76,6 +76,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.android.datatransport:transport-runtime:3.1.2'
     kapt "com.android.databinding:compiler:3.1.4"
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
     implementation 'androidx.core:core-ktx:1.9.0'
@@ -102,4 +103,5 @@ dependencies {
     def ktor_version = "2.1.0"
     implementation "io.ktor:ktor-client-core:$ktor_version"
     implementation "io.ktor:ktor-client-cio:$ktor_version"
+    implementation "io.ktor:ktor-client-encoding:$ktor_version"
 }

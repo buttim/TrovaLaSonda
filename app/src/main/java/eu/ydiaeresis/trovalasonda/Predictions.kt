@@ -10,7 +10,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 
 @Serializable
-data class Metadata(val complete_datetime: String, val start_datetime: String)
+private data class Metadata(val complete_datetime: String, val start_datetime: String)
 
 @Serializable
 data class TrajectoryPoint(
@@ -20,7 +20,7 @@ data class TrajectoryPoint(
     val longitude: Double)
 
 @Serializable
-data class Request(
+private data class Request(
     val ascent_rate: Double,
     val burst_altitude: Double,
     val dataset: String,
@@ -55,7 +55,7 @@ data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
 }
 
 @Serializable
-data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request) {
+private data class Response(val metadata:Metadata,val prediction:Array<Stage>,val request:Request) {
     //TODO: aggiungere campo warnings
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
