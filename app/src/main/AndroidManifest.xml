@@ -25,6 +25,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TrovaLaSonda">
         <activity
+            android:name=".ReportActivity"
+            android:exported="false"
+            android:label="@string/ReportYourFinding"
+            android:theme="@style/Theme.TrovaLaSonda.NoActionBar"
+            android:configChanges="orientation|screenSize">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".ScrollingActivity"
             android:exported="false"
             android:label="@string/title_activity_scrolling"
@@ -37,6 +47,7 @@
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
             android:theme="@style/Theme.TrovaLaSonda.NoActionBar" />
+
         <activity
             android:name=".FullscreenActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"

@@ -44,6 +44,7 @@
     <string name="sqkxy_tracker_logo">SQKXY tracker logo</string>
     <string name="sondehub_logo">sondehub logo</string>
     <string name="open_web_page">Open web page</string>
+    <string name="ReportYourFinding">Report your finding</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

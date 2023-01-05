@@ -71,7 +71,7 @@
             android:gravity="center"
             android:text="@string/no_sonde"
             android:textColor="#7FFF7F"
-            android:textSize="28sp"
+            android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintLeft_toRightOf="@id/buzzer"
             app:layout_constraintTop_toTopOf="parent" />

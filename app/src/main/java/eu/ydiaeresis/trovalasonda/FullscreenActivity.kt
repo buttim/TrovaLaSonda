@@ -76,6 +76,8 @@ import org.osmdroid.views.overlay.Polygon as Polygon1
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
     SimpleBluetoothDeviceInterface.OnMessageReceivedListener,SimpleBluetoothDeviceInterface.OnErrorListener, SimpleBluetoothDeviceInterface.OnMessageSentListener {
+    private var reportAlreadyShown=false
+    private var distance=999999.9
     private lateinit var binding:ActivityFullscreenBinding
     private var bluetoothManager = BluetoothManager.instance
     private var btSerialDevice: Disposable?=null
@@ -203,8 +205,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         path.addPoint(point)
         path.actualPoints.apply { if (size > 400) removeAt(0) }
         if (sondePosition!=null) {
-            val d = GeoPoint(currentLocation).distanceToAsDouble(sondePosition)
-            setDistance(d)
+            distance = GeoPoint(currentLocation).distanceToAsDouble(sondePosition)
+            setDistance(distance)
         }
         updateSondeDirection()
 
@@ -462,6 +464,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         trajectory.isVisible=false
         mkTarget?.setVisible(false)
         timeLastSeen=Instant.now()
+        reportAlreadyShown=false
     }
 
     @SuppressLint("SetTextI18n")
@@ -623,6 +626,21 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat,batV)
+
+        if (sondePosition!=null && !reportAlreadyShown && distance<30)
+            showReport()
+    }
+
+    private fun showReport() {
+        if (sondePosition==null) return;
+        val intent = Intent(this, ReportActivity::class.java)
+        intent.putExtras(Bundle().apply {
+            putString("sondeId",sondeId)
+            putDouble("lat",sondePosition!!.latitude)
+            putDouble("lng",sondePosition!!.longitude)
+        })
+        reportAlreadyShown=true
+        startActivity(intent)
     }
 
     private fun getFromSondeHub(type:String,id:String,lastSeen:Instant) {
@@ -988,9 +1006,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
         binding.menuOpen.setOnLongClickListener {
             Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
-            //////////////////////
-            //getFromSondeHub("RS41","T4231137",Instant.now().minus(1,ChronoUnit.HOURS))
-            //////////////////////
+            //////////////////////////
+//            sondeId="U4254177"
+//            sondePosition=GeoPoint(44.01,7.77)
+//            showReport()
+            //////////////////////////
             true
         }
 
@@ -1284,10 +1304,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             TIME_LAST_MESSAGE to timeLastMessage,
             LAT to binding.lat.text,
             LON to binding.lon.text,
-            DISTANCE to binding.distance.text,
+            DISTANCE to distance,
             UNITS to binding.unit.text,
             HORIZONTAL_SPEED to binding.horizontalSpeed.text,
-            DIRECTION to binding.direction.text
+            DIRECTION to binding.direction.text,
+            REPORT_ALREADY_SHOWN to reportAlreadyShown
         ))
     }
 
@@ -1316,10 +1337,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             sondeId = getString(SONDE_ID)
             binding.lat.text=getString(LAT)
             binding.lon.text=getString(LON)
-            binding.distance.text=getString(DISTANCE)
+            distance=getDouble(DISTANCE)
+            setDistance(distance)
             binding.unit.text=getString(UNITS)
             binding.horizontalSpeed.text=getString(HORIZONTAL_SPEED)
             binding.direction.text=getString(DIRECTION)
+            reportAlreadyShown=getBoolean(REPORT_ALREADY_SHOWN)
         }
         binding.id.text=sondeId
         binding.height.text=height.toString()
@@ -1359,6 +1382,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         private const val UNITS = "units"
         private const val HORIZONTAL_SPEED = "horizontalSpeed"
         private const val DIRECTION = "direction"
+        private const val REPORT_ALREADY_SHOWN = "reportAlreadyShown"
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
         private const val TROVALASONDAPREFIX = "TrovaLaSonda"
