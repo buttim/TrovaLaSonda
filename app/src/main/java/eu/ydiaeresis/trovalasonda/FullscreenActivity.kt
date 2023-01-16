@@ -1,7 +1,7 @@
 package eu.ydiaeresis.trovalasonda
 
-//import androidx.core.view.WindowInsetsCompat
-//import androidx.core.view.WindowInsetsControllerCompat
+//import org.osmdroid.bonuspack.routing.OSRMRoadManager
+//import org.osmdroid.bonuspack.routing.RoadManager
 
 import android.Manifest
 import android.animation.LayoutTransition
@@ -45,8 +45,8 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
@@ -61,15 +61,12 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-//import org.osmdroid.bonuspack.routing.OSRMRoadManager
-//import org.osmdroid.bonuspack.routing.RoadManager
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.*
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.abs
 import kotlin.math.max
 import org.osmdroid.views.overlay.Polygon as Polygon1
@@ -117,6 +114,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var burst=false
     private var batteryLevel=0
     private val mapbox = MapBoxTileSource()
+    private var versionInfo:VersionInfo?=null
+    private var versionChecked=false
+    private var isRdzTrovaLaSonda=false
+    private var otaRunning=false
+    private val mutexOta=Mutex()
+    private var otaAck=""
     //private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
     //private var roadOverlay : Polyline?=null
     private val cyclOSM = XYTileSource(
@@ -147,6 +150,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             Log.i(TAG,device.uuids.joinToString())
                             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
                             btAdapter.cancelDiscovery()
+                            isRdzTrovaLaSonda=deviceName.startsWith(TROVALASONDAPREFIX)
                             connectDevice(device.address)
                         }
                     }
@@ -193,6 +197,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
 
+    fun startOta() { otaRunning=true }
+    fun stopOta() { otaRunning=false }
     private fun showProgress(show: Boolean) {
         binding.progress.visibility = if (show) View.VISIBLE else View.GONE
     }
@@ -320,6 +326,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             connect()
         }, 1000)
         binding.batteryMeter.chargeLevel=null
+        versionChecked=false
     }
 
     override fun onError(error: Throwable) {
@@ -327,13 +334,22 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         onDisconnected()
     }
 
-    override fun onMessageSent(message: String) {
-        Log.i(TAG, "SENT: $message")
+    override fun onMessageSent(message: ByteArray) {
+        //Log.i(TAG, "SENT: $message")
+        if (otaRunning && mutexOta.isLocked) mutexOta.unlock()
+    }
+
+    fun sendOTA(length:Int) {
+        sendCommand("ota",length)
+    }
+
+    fun sendBytes(bytes:ByteArray) {
+        deviceInterface?.sendMessage(bytes)
     }
 
     private fun sendCommand(cmd: String) {
         try {
-            deviceInterface?.sendMessage("o{$cmd}o\r\n")
+            deviceInterface?.sendMessage("o{$cmd}o\r\n".toByteArray())
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
             btSerialDevice?.dispose()
@@ -342,7 +358,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
-    @Suppress("SameParameterValue")
+    //@Suppress("SameParameterValue")
     private fun sendCommand(cmd: String, value: Any) {
         sendCommand("$cmd=$value")
     }
@@ -536,8 +552,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             @Suppress("SetTextI18n")
             binding.type.text = "$type ${freq}MHz"
             sondeType = sondeTypes?.indexOf(type)!! + 1
+            this.freq = freq
         }
-        this.freq = freq
     }
 
     private fun updateBk(bk: Int) {
@@ -621,6 +637,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             type: String, freq: Double, sign: Double, bat: Int, batV: Int,
             mute: Boolean, ver: String
     ) {
+        if (isRdzTrovaLaSonda && !versionChecked && versionInfo!=null && versionInfo?.version!=ver) {
+            versionChecked=true
+            UpdateDialog().apply {
+                fullscreenActivity=this@FullscreenActivity
+                mutex=this@FullscreenActivity.mutexOta
+                show(supportFragmentManager,"")
+            }
+        }
         updateTypeAndFreq(type, freq)
         updateMute(mute)
         sondeLevelListDrawable.level = 0
@@ -632,7 +656,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun showReport() {
-        if (sondePosition==null) return;
+        if (sondePosition==null) return
         val intent = Intent(this, ReportActivity::class.java)
         intent.putExtras(Bundle().apply {
             putString("sondeId",sondeId)
@@ -646,12 +670,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private fun getFromSondeHub(type:String,id:String,lastSeen:Instant) {
         val sh=Sondehub(type,id,lastSeen)
 
-        val scope: CoroutineScope=object : CoroutineScope {
-            private var job: Job = Job()
-            override val coroutineContext: CoroutineContext
-                get() = Dispatchers.Main + job
-        }
-        scope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             val points=sh.getTrack()
             if (points.isNotEmpty()) {
                 sondehubPath.actualPoints.clear()
@@ -792,7 +811,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             )
         }
     }
-    private var n: Int = 0
+    private var n: Int = 0 //solo per debug
 
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -801,7 +820,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         Configuration.getInstance().apply {
             load(applicationContext, this@FullscreenActivity.getPreferences(Context.MODE_PRIVATE))
             userAgentValue = BuildConfig.APPLICATION_ID
-            //isDebugMapTileDownloader=true
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            versionInfo=FirmwareUpdater().getVersion()
         }
 
         mapbox.retrieveAccessToken(this)
@@ -809,7 +831,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         TileSourceFactory.addTileSource(mapbox)
 
         sondeTypes = resources.getStringArray(R.array.sonde_types)
-        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         /*WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -879,24 +901,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 ttgoNotConnectedWarning()
                 return@setOnClickListener
             }
-            val dlg = SondeTypeDialog()
-            dlg.freq = freq
-            dlg.type = sondeType
-            dlg.dialogCloseListener = object : DialogCloseListener {
-                override fun handleDialogClose() {
-                    freq = dlg.freq
-                    sondeType = dlg.type
-
-                    sendCommands(
-                            listOf<Pair<String, Any>>(
-                                    Pair("f", freq),
-                                    Pair("tipo", sondeType)
-                            )
-                    )
+            SondeTypeDialog().apply {
+                freq=this@FullscreenActivity.freq
+                type=sondeType
+                dialogCloseListener=object:DialogCloseListener {
+                    override fun handleDialogClose() {
+                        sendCommands(listOf<Pair<String,Any>>(Pair("f",freq),
+                            Pair("tipo",type)))
+                    }
                 }
+                show(supportFragmentManager, "")
             }
-
-            dlg.show(supportFragmentManager, "")
         }
 
         binding.menu.apply {
@@ -915,10 +930,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             //////////////////////////////////////////////////////////////////////////////////
             if(Debug.isDebuggerConnected()) {
                 val msgs = arrayOf(
-                        "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
+                    "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
                     "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
                     "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
                     "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
@@ -994,7 +1009,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuMaps.setOnLongClickListener {
-            //Snackbar.make(binding.root,"Quick! Bring me where the sonde is!", Snackbar.LENGTH_SHORT).show()
             navigateGeneric(mkSonde?.position!!)
             true
         }
@@ -1006,10 +1020,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
         binding.menuOpen.setOnLongClickListener {
             Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
-            //////////////////////////
-//            sondeId="U4254177"
-//            sondePosition=GeoPoint(44.01,7.77)
-//            showReport()
             //////////////////////////
             true
         }
@@ -1154,7 +1164,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     timeLastSondehub=Instant.now()
                 }
 
-                if (timeLastMessage != null && timeLastMessage?.until(
+                if (!otaRunning && timeLastMessage != null && timeLastMessage?.until(
                                 Instant.now(),
                                 ChronoUnit.SECONDS
                         )!! > 10L
@@ -1173,19 +1183,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         if (deviceInterface == null) connect()
     }
 
-    private val scope: CoroutineScope=object : CoroutineScope {
-        private var job: Job = Job()
-        override val coroutineContext: CoroutineContext
-            get() = Dispatchers.Main + job
-    }
-    /*private val scope1: CoroutineScope=object : CoroutineScope {
-        private var job: Job = Job()
-        override val coroutineContext: CoroutineContext
-            get() = Dispatchers.Main + job
-    }*/
-
     private fun predict(lat:Double,lng:Double,alt:Double) {
-        scope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
                 val tawhiri = Tawhiri(timeLastSeen!!, lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
@@ -1220,7 +1219,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 val endPoint = trajectory.actualPoints[trajectory.actualPoints.size - 1]
                 waypoints.add(endPoint)
 
-                /*scope1.launch {
+                /*
                     (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
                     val road = roadManager.getRoad(waypoints)
                     roadOverlay = RoadManager.buildRoadOverlay(road)
@@ -1228,7 +1227,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         binding.map.overlays.remove(roadOverlay)
                     binding.map.overlays.add(roadOverlay)
                     binding.map.invalidate()
-                }*/
+                */
             }
             catch (e:Exception) {
                 Log.e(TAG,e.toString())
