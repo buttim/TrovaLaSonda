@@ -1,7 +1,7 @@
 package eu.ydiaeresis.trovalasonda
 
-//import org.osmdroid.bonuspack.routing.OSRMRoadManager
-//import org.osmdroid.bonuspack.routing.RoadManager
+import org.osmdroid.bonuspack.routing.OSRMRoadManager
+import org.osmdroid.bonuspack.routing.RoadManager
 
 import android.Manifest
 import android.animation.LayoutTransition
@@ -47,6 +47,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
@@ -57,6 +58,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.*
+import org.osmdroid.views.overlay.infowindow.BasicInfoWindow
 import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
@@ -66,9 +68,14 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.temporal.Temporal
+import java.time.temporal.TemporalAmount
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
@@ -120,8 +127,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var otaRunning=false
     private val mutexOta=Mutex()
     private var otaAck=""
-    //private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
-    //private var roadOverlay : Polyline?=null
+    private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
+    private var roadOverlay : Polyline?=null
     private val cyclOSM = XYTileSource(
         "CyclOSM",
         0, 18, 256, ".png", arrayOf(
@@ -147,7 +154,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             (deviceName.startsWith(MYSONDYGOPREFIX) ||
                                     deviceName.startsWith(TROVALASONDAPREFIX))
                         ) {
-                            Log.i(TAG,device.uuids.joinToString())
                             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
                             btAdapter.cancelDiscovery()
                             isRdzTrovaLaSonda=deviceName.startsWith(TROVALASONDAPREFIX)
@@ -204,6 +210,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     override fun onLocationChanged(location: Location) {
+        //discard points with accuracy less than 100m
+        if (location.hasAccuracy() && location.accuracy>100)
+            return
         val point = GeoPoint(location)
         if (currentLocation == null)
             binding.map.controller?.setCenter(point)
@@ -929,6 +938,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 Snackbar.make(binding.root,"No current location (yet)", Snackbar.LENGTH_SHORT).show()
             //////////////////////////////////////////////////////////////////////////////////
             if(Debug.isDebuggerConnected()) {
+                predict(45.0,7.0,1000.0)
                 val msgs = arrayOf(
                     "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
                     "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
@@ -1143,8 +1153,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         locationOverlay, trajectory, mkBurst, mkTarget, copyrightOverlay, mkSondehub, mkSonde,
                         MapEventsOverlay(this@FullscreenActivity))
                 )
-
-                //predict(45.0,7.0,1000.0)///////////////////////////////////////////////////////////////////////////
             }
         }
         handler.post(object : Runnable {
@@ -1158,7 +1166,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         updateBk(Instant.now().until(bk, ChronoUnit.SECONDS).toInt())
                 }
 
-                if (timeLastSeen!=null && timeLastSeen?.until(Instant.now(),ChronoUnit.MINUTES)!!>=2 &&
+                if (sondeId?.length?:0>0 && timeLastSeen!=null && timeLastSeen?.until(Instant.now(),ChronoUnit.MINUTES)!!>=2 &&
                     (timeLastSondehub==null || timeLastSondehub?.until(Instant.now(),ChronoUnit.SECONDS)!!>=30)) {
                     getFromSondeHub(sondeTypes!![sondeType-1],sondeId!!,timeLastSeen!!)
                     timeLastSondehub=Instant.now()
@@ -1187,7 +1195,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
-                val tawhiri = Tawhiri(timeLastSeen!!, lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
+                val tawhiri = Tawhiri(timeLastSeen?:Instant.now(), lat, lng, alt, if (burst) alt + 1 else max(alt+100,33000.0))
                 mkTarget?.setVisible(false)
                 mkBurst?.setVisible(false)
                 trajectory.actualPoints.clear()
@@ -1219,15 +1227,32 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 val endPoint = trajectory.actualPoints[trajectory.actualPoints.size - 1]
                 waypoints.add(endPoint)
 
-                /*
-                    (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
-                    val road = roadManager.getRoad(waypoints)
-                    roadOverlay = RoadManager.buildRoadOverlay(road)
-                    if (roadOverlay != null)
-                        binding.map.overlays.remove(roadOverlay)
+                //////////////////////////////
+                (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
+                val road = roadManager.getRoad(waypoints)
+                if (road.mStatus!=Road.STATUS_OK) {
+                    Log.e("MAURI","getRoad fallita")
+                }
+                else {
+                    if (roadOverlay!=null) binding.map.overlays.remove(roadOverlay)
+                    roadOverlay=RoadManager.buildRoadOverlay(road).apply {
+                        outlinePaint.apply {
+                            color=Color.rgb(0,0,192)
+                            strokeWidth=10F
+                            strokeCap=Paint.Cap.ROUND
+                        }
+                        var duration=road.mDuration
+                            .toDuration(DurationUnit.SECONDS)
+                            .toComponents { hours, minutes, _, _ ->
+                                hours.toDuration(DurationUnit.HOURS)+minutes.toDuration(DurationUnit.MINUTES)
+                            }
+                        title="Route to predicted landing site"
+                        snippet="By car: ${duration}"
+                        setInfoWindow(BasicInfoWindow(R.layout.bonuspack_bubble,binding.map))
+                    }
                     binding.map.overlays.add(roadOverlay)
                     binding.map.invalidate()
-                */
+                }
             }
             catch (e:Exception) {
                 Log.e(TAG,e.toString())

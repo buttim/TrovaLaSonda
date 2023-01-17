@@ -93,7 +93,7 @@ class FirmwareUpdater {
 
     companion object {
         const val CHUNK_SIZE=4096
-        const val BASE_URI="http://192.168.43.204/"//"https://www.ydiaeresis.eu/public/"
+        const val BASE_URI="https://www.ydiaeresis.eu/public/"//"http://192.168.43.204/"
         const val JSON="rdzTrovaLaSonda.json"
         const val FIRMWARE="rdzTrovaLaSonda.ino.bin"
     }

@@ -1,6 +1,7 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.net.Uri
+import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -26,25 +27,26 @@ class Sondehub(private val sondeType:String, private val sondeId:String, private
             .build()
         val points=mutableListOf<GeoPoint>()
 
-        HttpClient(CIO).config {
-            ContentEncoding { gzip() }
-        }.use {
-            val response: HttpResponse = it.get(uri.toString())
-            //Log.d("MAURI", response.bodyAsText())
-            val json = Json.parseToJsonElement(response.bodyAsText())
-            val map = json.jsonObject.toMap()
+        try {
+            HttpClient(CIO).config {
+                ContentEncoding {gzip()}
+            }.use {
+                val response:HttpResponse=it.get(uri.toString())
+                //Log.d("MAURI", response.bodyAsText())
+                val json=Json.parseToJsonElement(response.bodyAsText())
+                val map=json.jsonObject.toMap()
 
-            if (!map.values.isEmpty())
-                for (x in map.values.first().jsonObject.values)
-                    x.jsonObject.apply {
-                        val t=Instant.parse(get("time_received")?.jsonPrimitive?.content)//get("time_received").toString().trimStart('"').trimEnd('"'))
-                        if (t>lastSeen)
-                            points.add(
-                                GeoPoint(get("lat")?.jsonPrimitive?.double!!,
-                                    get("lon")?.jsonPrimitive?.double!!,
-                                    get("alt")?.jsonPrimitive?.double!!)
-                            )
-                    }
+                if (!map.values.isEmpty()) for (x in map.values.first().jsonObject.values) x.jsonObject.apply {
+                    val t=
+                        Instant.parse(get("time_received")?.jsonPrimitive?.content)//get("time_received").toString().trimStart('"').trimEnd('"'))
+                    if (t>lastSeen) points.add(GeoPoint(get("lat")?.jsonPrimitive?.double!!,
+                        get("lon")?.jsonPrimitive?.double!!,
+                        get("alt")?.jsonPrimitive?.double!!))
+                }
+            }
+        }
+        catch (ex:Exception) {
+            Log.i("MAURI",ex.toString())
         }
         return points
     }
