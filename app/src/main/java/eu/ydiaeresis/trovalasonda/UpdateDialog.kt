@@ -61,7 +61,7 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
                                 }
                                 is DownloadStatus.Success -> {
                                     dlg.setTitle("Updating firmware")
-                                    dlg.setMessage("The firmware was downloaded. Now updating the radio")
+                                    dlg.setMessage("The firmware has been downloaded. Now updating the radio")
                                     binding.progressBar.progress=0
                                     CoroutineScope(Dispatchers.IO).launch {
                                         FirmwareUpdater().update(fullscreenActivity,mutex,file).collect {

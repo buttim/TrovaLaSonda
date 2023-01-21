@@ -1,8 +1,5 @@
 package eu.ydiaeresis.trovalasonda
 
-import org.osmdroid.bonuspack.routing.OSRMRoadManager
-import org.osmdroid.bonuspack.routing.RoadManager
-
 import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
@@ -11,9 +8,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.*
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.graphics.Paint
+import android.graphics.*
 import android.graphics.drawable.LevelListDrawable
 import android.location.Location
 import android.location.LocationListener
@@ -22,16 +17,14 @@ import android.net.Uri
 import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.MotionEvent
-import android.view.View
-import android.view.Window
-import android.view.WindowManager
+import android.view.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.plus
 import androidx.core.os.bundleOf
 import androidx.core.view.children
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -47,9 +40,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
+import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
+import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -63,20 +60,22 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
+import uk.co.deanwild.materialshowcaseview.ShowcaseConfig
+import uk.co.deanwild.materialshowcaseview.target.ViewTarget
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.temporal.Temporal
-import java.time.temporal.TemporalAmount
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
+
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
     SimpleBluetoothDeviceInterface.OnMessageReceivedListener,SimpleBluetoothDeviceInterface.OnErrorListener, SimpleBluetoothDeviceInterface.OnMessageSentListener {
@@ -105,7 +104,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var mapStyle = 0
     private var btMacAddress: String? = null
     private var deviceInterface: SimpleBluetoothDeviceInterface? = null
-    private var mute = false
+    private var mute = -1
     private var muteChanged = true
     private var sondeId: String? = null
     private var sondeType = -1
@@ -203,6 +202,46 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
 
+    fun showcase() {
+        MaterialShowcaseSequence(this,Instant.now().toString()).apply {
+            setConfig(ShowcaseConfig().apply {
+                delay=500
+                dismissTextColor=Color.GREEN
+            })
+
+            /*val mcsv1=MaterialShowcaseView.Builder(this@FullscreenActivity)
+                .setTarget(binding.type)
+                .setTitleText("Your location")
+                .setContentText("Red when no TTGO connected, yellow when connected")
+                .setDismissText("GOT IT")
+                .build()
+            mcsv1.setTarget(GeoPointTarget(binding.map,GeoPoint(currentLocation!!)))
+            addSequenceItem(mcsv1)*/
+            val mcsv=MaterialShowcaseView.Builder(this@FullscreenActivity)
+                .setTarget(binding.type)
+                .setTitleText("Sonde data")
+                .setContentText("Tap here to change sonde type & frequency")
+                .setDismissText("GOT IT")
+                .build()
+            mcsv.setTarget(MultipleViewsTarget(listOf(binding.verticalSpeed,binding.horizontalSpeed,binding.height,binding.type)))
+            addSequenceItem(mcsv)
+            addSequenceItem(binding.id,"Serial number for the sonde you are receiving", "You can tap it to open Sondehub or radiosondy.info","GOT IT")
+            addSequenceItem(binding.distance,"Distance","Between you and the sonde you are receiving","GOT IT")
+            addSequenceItem(binding.buzzer,"Buzzer","Mute your TTGO tapping this","GOT IT")
+            addSequenceItem(binding.batteryMeter,"Battery","Keep an eye on your TTGGO's battery level","GOT IT")
+            addSequenceItem(binding.rssi,"RSSI","Signal strength is shown here","GOT IT")
+            addSequenceItem(binding.menuLayer,"Map layers","Choose between three different map layers","GOT IT")
+            addSequenceItem(binding.menuMaps,"Navigation","Launch Google maps for driving directions to the sonde current position\nLong tap fo selecting a different app for navigation","GOT IT")
+            addSequenceItem(binding.menuSettings,"TTGO's parameters","Set pins, bandwidth and calibration for your TTGO","GOT IT")
+            setOnItemShownListener {_, i ->
+                if (i==6) openMenu()
+            }
+            setOnItemDismissedListener { _, i ->
+                if (i==8) closeMenu()
+            }
+            start()
+        }
+    }
     fun startOta() { otaRunning=true }
     fun stopOta() { otaRunning=false }
     private fun showProgress(show: Boolean) {
@@ -304,7 +343,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             setDirectionAnchor(.5f, .5f)
         }
         muteChanged = false
-        binding.buzzer.isEnabled=true
+        //binding.buzzer.isEnabled=true
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
         try {
@@ -393,7 +432,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             "0" -> if (campi.size == 9)
                 mySondyGOStatus(
                         campi[1], campi[2].toDouble(), campi[3].toDouble(), campi[4].toInt(),
-                        campi[5].toInt(), campi[6] == "1", campi[7]
+                        campi[5].toInt(), campi[6].toInt(), campi[7]
                 )
             else {
                 Log.e(
@@ -407,7 +446,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     campi[1], campi[2].toDouble(), campi[3], campi[4].toDouble(),
                     campi[5].toDouble(), campi[6].toDouble(), campi[7].toDouble(),
                     campi[8].toDouble(), campi[9].toInt(), campi[10].toInt(), campi[11] == "1",
-                    campi[12].toInt(), campi[13].toInt(), campi[14] == "1", campi[18]
+                    campi[12].toInt(), campi[13].toInt(), campi[14].toInt(), campi[18]
                 )
                 freqOffsetReceiver?.freqOffset(campi[10].toInt())
             }
@@ -421,7 +460,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             "2" -> if (campi.size == 11) {
                 mySondyGOSonde(
                         campi[1], campi[2].toDouble(), campi[3], campi[4].toDouble(),
-                        campi[5].toInt(), campi[6].toInt(), campi[7].toInt(), campi[8] == "1",
+                        campi[5].toInt(), campi[6].toInt(), campi[7].toInt(), campi[8].toInt(),
                         campi[9]
                 )
                 freqOffsetReceiver?.freqOffset(campi[6].toInt())
@@ -464,16 +503,24 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
-    private fun updateMute(mute: Boolean) {
+    private fun updateMute(mute: Int) {
         this.mute = mute
-        binding.buzzer.setImageResource(if (mute) R.drawable.ic_buzzer_off else R.drawable.ic_buzzer_on)
-        binding.buzzer.imageAlpha = 255
+        binding.buzzer.apply {
+            if (mute==-1) {
+                isEnabled=false
+                imageAlpha=128
+            } else {
+                setImageResource(if (mute==1) R.drawable.ic_buzzer_off else R.drawable.ic_buzzer_on)
+                isEnabled=true
+                imageAlpha=255
+            }
+        }
         muteChanged = false
     }
 
     private fun newSonde(id:String) {
         sondeId = id
-        binding.id.text = id
+        binding.id.text = if (id.isEmpty()) "??????" else id
         bk = null
         burst=false
         binding.bk.visibility=View.GONE
@@ -588,7 +635,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private fun mySondyGOSondePos(
         type: String, freq: Double, name: String, lat: Double, lon: Double,
         height: Double, _vel: Double, sign: Double, bat: Int, afc: Int, bk: Boolean,
-        bktime: Int, batV: Int, mute: Boolean, ver: String
+        bktime: Int, batV: Int, mute: Int, ver: String
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
@@ -600,7 +647,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         //HACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
         var vel=_vel
-        if (ver=="2.30" && (type=="M10" || type=="M20"))
+        if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20"))
             vel*=3.6
 
         nPositionsReceived++
@@ -644,7 +691,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOStatus(
             type: String, freq: Double, sign: Double, bat: Int, batV: Int,
-            mute: Boolean, ver: String
+            mute: Int, ver: String
     ) {
         if (isRdzTrovaLaSonda && !versionChecked && versionInfo!=null && versionInfo?.version!=ver) {
             versionChecked=true
@@ -703,7 +750,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSonde(
             type: String, freq: Double, name: String, sign: Double, bat: Int, afc: Int,
-            batV: Int, mute: Boolean, ver: String
+            batV: Int, mute: Int, ver: String
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
@@ -782,8 +829,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             ttgoNotConnectedWarning()
         else {
             if (muteChanged) return
-            mute = !mute
-            sendCommand("mute", if (mute) 1 else 0)
+            mute = if (mute==1) 0 else 1
+            sendCommand("mute", mute)
             binding.buzzer.imageAlpha = 64
             muteChanged = true
         }
@@ -841,6 +888,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         sondeTypes = resources.getStringArray(R.array.sonde_types)
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
+        //TODO: screen on solo se connesso ?
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         /*WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -1031,6 +1079,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.menuOpen.setOnLongClickListener {
             Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             //////////////////////////
+            showcase()
             true
         }
 
@@ -1220,6 +1269,47 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
                 trajectory.isVisible = true
                 mkTarget?.position = trajectory.actualPoints[trajectory.actualPoints.size - 1]
+
+                //preload map cache
+                /*val cacheManager=CacheManager(cyclOSM, binding.map.tileProvider.tileWriter,0,12)//binding.map)
+                val start=trajectory.actualPoints[trajectory.actualPoints.size-1]
+                //Go 10km NW and 10km SE
+                val nw=start.destinationPoint(10000.0,-45.0)
+                val se=start.destinationPoint(10000.0,135.0)
+                val bb=BoundingBox(nw.latitude,nw.longitude,se.latitude,se.longitude)
+                withContext(Dispatchers.Main) {
+                    try {
+                        cacheManager.downloadAreaAsyncNoUI(this@FullscreenActivity,bb,0,9, object: CacheManager.CacheManagerCallback {
+                            override fun onTaskComplete() {
+                                Log.i("MAURI","cache download completed")
+                            }
+
+                            override fun updateProgress(progress:Int,
+                                                        currentZoomLevel:Int,
+                                                        zoomMin:Int,
+                                                        zoomMax:Int) {
+                                Log.i("MAURI","downloading cache ($currentZoomLevel): $progress")
+                            }
+
+                            override fun downloadStarted() {
+                                Log.i("MAURI","cache download started")
+                            }
+
+                            override fun setPossibleTilesInArea(total:Int) {
+                                Log.i("MAURI","$total tiles to download")
+                            }
+
+                            override fun onTaskFailed(errors:Int) {
+                                Log.e("MAURI","Cache download error $errors")
+                            }
+
+                        })
+                    }
+                    catch (ex:Exception) {
+                        Log.e("MAURI",ex.toString())
+                    }
+                }*/
+
                 mkTarget?.setVisible(true)
 
                 val waypoints = ArrayList<GeoPoint>()
@@ -1227,7 +1317,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 val endPoint = trajectory.actualPoints[trajectory.actualPoints.size - 1]
                 waypoints.add(endPoint)
 
-                //////////////////////////////
                 (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
                 val road = roadManager.getRoad(waypoints)
                 if (road.mStatus!=Road.STATUS_OK) {
@@ -1347,7 +1436,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         with(savedInstanceState) {
             expandedMenu = getBoolean(EXPANDED_MENU)
             mapStyle = getInt(MAP_STYLE)
-            mute = getBoolean(MUTE)
+            mute = getInt(MUTE)
             muteChanged = getBoolean(MUTE_CHANGE)
             sondeType = getInt(SONDE_TYPE)
             heightDelta = getDouble(HEIGHT_DELTA)
@@ -1430,10 +1519,39 @@ class MyMarker(mapView: MapView?) : Marker(mapView) {
         this.longPress=longPress
     }
     override fun onLongPress(event: MotionEvent?, mapView: MapView?): Boolean {
-        if (hitTest(event,mapView)) {
-            Log.d("TAG", "onLongPress: ")
+        if (hitTest(event,mapView))
             longPress?.invoke(event,mapView)
-        }
         return super.onLongPress(event, mapView)
+    }
+}
+
+class MultipleViewsTarget(val views:List<View>) : ViewTarget(views.first()) {
+    var boundingBox:Rect
+    init {
+        boundingBox=views.fold(Rect()) {result,element->
+            var l=IntArray(2)
+            element.getLocationInWindow(l)
+            val r=Rect(l[0],l[1],l[0]+element.measuredWidth,l[1]+element.measuredHeight)
+            result.plus(r)
+        }
+    }
+    override fun getPoint():Point = Point(boundingBox.centerX(),boundingBox.centerY())
+
+    override fun getBounds():Rect = boundingBox
+}
+
+class GeoPointTarget(val map:MapView,val geoPoint:GeoPoint) : uk.co.deanwild.materialshowcaseview.target.Target {
+    override fun getPoint():Point {
+        val pt=Point()
+        map.projection.toPixels(geoPoint,pt)
+        val origin=IntArray(2)
+        map.getLocationInWindow(origin)
+        return Point(pt.x+origin[0],pt.y+origin[1])
+    }
+
+    override fun getBounds():Rect {
+        val size=200
+        val pt=getPoint()
+        return Rect(pt.x-size/2,pt.y-size/2,pt.x+size/2,pt.y+size/2)
     }
 }

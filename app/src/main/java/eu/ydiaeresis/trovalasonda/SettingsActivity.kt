@@ -49,6 +49,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         nOffsets++
         currentOffset=sumOfOffsets/nOffsets+this.offset
         binding.content.currentOffset.text = "(${currentOffset}Hz)"
+        binding.content.currentOffset.invalidate()
         binding.content.tune.isEnabled=true
     }
 
@@ -82,6 +83,8 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        sumOfOffsets=0
+        nOffsets=0
         with (intent.extras!!) {
             sda = getInt("oled_sda")
             scl = getInt("oled_scl")
