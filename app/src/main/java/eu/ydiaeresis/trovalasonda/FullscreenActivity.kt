@@ -40,13 +40,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.withContext
+//import kotlinx.coroutines.withContext
+//import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.MapBoxTileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -125,7 +125,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var isRdzTrovaLaSonda=false
     private var otaRunning=false
     private val mutexOta=Mutex()
-    private var otaAck=""
     private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
     private var roadOverlay : Polyline?=null
     private val cyclOSM = XYTileSource(
@@ -202,8 +201,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
 
-    fun showcase() {
-        MaterialShowcaseSequence(this,Instant.now().toString()).apply {
+    private fun showcase(id:String) {
+        MaterialShowcaseSequence(this,id).apply {
             setConfig(ShowcaseConfig().apply {
                 delay=500
                 dismissTextColor=Color.GREEN
@@ -343,7 +342,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             setDirectionAnchor(.5f, .5f)
         }
         muteChanged = false
-        //binding.buzzer.isEnabled=true
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
         try {
@@ -520,7 +518,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun newSonde(id:String) {
         sondeId = id
-        binding.id.text = if (id.isEmpty()) "??????" else id
+        binding.id.text =id.ifEmpty {"??????"}
         bk = null
         burst=false
         binding.bk.visibility=View.GONE
@@ -585,6 +583,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun setDistance(distance:Double) {
         if (distance > 10000F) {
+            @SuppressLint("SetTextI18n")
             binding.unit.text = "km"
             binding.distance.text = String.format(Locale.US,"%.1f", distance / 1000)
         } else {
@@ -645,7 +644,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         mkSondehub?.setVisible(false)
         sondehubPath.isVisible=false
 
-        //HACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
+        //HACKHACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
         var vel=_vel
         if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20"))
             vel*=3.6
@@ -1079,7 +1078,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.menuOpen.setOnLongClickListener {
             Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             //////////////////////////
-            showcase()
+            if(Debug.isDebuggerConnected())
+                showcase(Instant.now().toString())
             true
         }
 
@@ -1234,10 +1234,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 handler.postDelayed(this, 1000)
             }
         })
-
         registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
-
         if (deviceInterface == null) connect()
+        Handler(Looper.getMainLooper()).postDelayed({
+            showcase("info")
+        },2000)
     }
 
     private fun predict(lat:Double,lng:Double,alt:Double) {
@@ -1330,14 +1331,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             strokeWidth=10F
                             strokeCap=Paint.Cap.ROUND
                         }
-                        var duration=road.mDuration
+                        val duration=road.mDuration
                             .toDuration(DurationUnit.SECONDS)
                             .toComponents { hours, minutes, _, _ ->
                                 hours.toDuration(DurationUnit.HOURS)+minutes.toDuration(DurationUnit.MINUTES)
                             }
                         title="Route to predicted landing site"
-                        snippet="By car: ${duration}"
-                        setInfoWindow(BasicInfoWindow(R.layout.bonuspack_bubble,binding.map))
+                        snippet="By car: $duration"
+                        infoWindow=BasicInfoWindow(R.layout.bonuspack_bubble,binding.map)
                     }
                     binding.map.overlays.add(roadOverlay)
                     binding.map.invalidate()
@@ -1525,33 +1526,30 @@ class MyMarker(mapView: MapView?) : Marker(mapView) {
     }
 }
 
-class MultipleViewsTarget(val views:List<View>) : ViewTarget(views.first()) {
-    var boundingBox:Rect
-    init {
-        boundingBox=views.fold(Rect()) {result,element->
-            var l=IntArray(2)
-            element.getLocationInWindow(l)
-            val r=Rect(l[0],l[1],l[0]+element.measuredWidth,l[1]+element.measuredHeight)
-            result.plus(r)
-        }
+class MultipleViewsTarget(views:List<View>) : ViewTarget(views.first()) {
+    var boundingBox=views.fold(Rect()) {result,element->
+        val l=IntArray(2)
+        element.getLocationInWindow(l)
+        val r=Rect(l[0],l[1],l[0]+element.measuredWidth,l[1]+element.measuredHeight)
+        result.plus(r)
     }
+
     override fun getPoint():Point = Point(boundingBox.centerX(),boundingBox.centerY())
 
     override fun getBounds():Rect = boundingBox
 }
 
-class GeoPointTarget(val map:MapView,val geoPoint:GeoPoint) : uk.co.deanwild.materialshowcaseview.target.Target {
+class GeoPointTarget(private val map:MapView,private val geoPoint:GeoPoint) : uk.co.deanwild.materialshowcaseview.target.Target {
     override fun getPoint():Point {
         val pt=Point()
-        map.projection.toPixels(geoPoint,pt)
         val origin=IntArray(2)
+        map.projection.toPixels(geoPoint,pt)
         map.getLocationInWindow(origin)
         return Point(pt.x+origin[0],pt.y+origin[1])
     }
 
     override fun getBounds():Rect {
         val size=200
-        val pt=getPoint()
-        return Rect(pt.x-size/2,pt.y-size/2,pt.x+size/2,pt.y+size/2)
+        return Rect(point.x-size/2,point.y-size/2,point.x+size/2,point.y+size/2)
     }
 }
