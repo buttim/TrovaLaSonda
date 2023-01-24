@@ -4,24 +4,23 @@ import android.os.Bundle
 import android.text.method.LinkMovementMethod
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import eu.ydiaeresis.trovalasonda.databinding.ActivityScrollingBinding
+import eu.ydiaeresis.trovalasonda.databinding.ActivityDonationBinding
 
-class ScrollingActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityScrollingBinding
+class DonationActivity:AppCompatActivity() {
+    private lateinit var binding:ActivityDonationBinding
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding=ActivityScrollingBinding.inflate(layoutInflater).apply {
+        binding=ActivityDonationBinding.inflate(layoutInflater).apply {
             setContentView(root)
             setSupportActionBar(toolbar)
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            toolbarLayout.title="$title ${BuildConfig.VERSION_NAME}"
-            content.text?.movementMethod=LinkMovementMethod.getInstance()
+            contentDonation.text?.movementMethod=LinkMovementMethod.getInstance()
         }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    override fun onOptionsItemSelected(item:MenuItem): Boolean {
         return if (item.itemId == android.R.id.home) {
             finish()
             true

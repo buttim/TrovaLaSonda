@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string name="donation_title">Just a second…</string>
+        <string name="donation_text">
+This app is and will always be <b>free</b> and with <b>no ads</b>.\n\n
+I hope you enjoy it and will use it for finding many sondes and have lots of fun.\n\n
+But. I cannot help thinking of other countries, where you are not free to wander through the country as we do chasing sondes.
+Because of <b>landmines</b>. Because of <b>unexploded bombs</b>.
+If you use this app I strongly encourage you to donate to help demining Cambodia.\n
+And when you find a sonde take a minute to send some more.\n\n
+Thank you\n\n
+<a href="https://www.landmine-relief-fund.com/">More information here</a>\n\n
+<a href="https://www.landmine-relief-fund.com/donate/">Donate</a>
+        </string>
+</resources>

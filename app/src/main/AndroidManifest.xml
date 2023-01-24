@@ -11,7 +11,6 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.google.android.things.permission.USE_PERIPHERAL_IO" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -25,11 +24,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TrovaLaSonda">
         <activity
+            android:name=".DonationActivity"
+            android:exported="false"
+            android:label="@string/title_activity_donation"
+            android:theme="@style/Theme.TrovaLaSonda.NoActionBar" />
+        <activity
             android:name=".ReportActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="@string/ReportYourFinding"
-            android:theme="@style/Theme.TrovaLaSonda.NoActionBar"
-            android:configChanges="orientation|screenSize">
+            android:theme="@style/Theme.TrovaLaSonda.NoActionBar">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -47,7 +51,6 @@
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
             android:theme="@style/Theme.TrovaLaSonda.NoActionBar" />
-
         <activity
             android:name=".FullscreenActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -69,4 +72,5 @@
             android:name="MAPBOX_ACCESS_TOKEN"
             android:value="sk.eyJ1IjoiYnV0dGltIiwiYSI6ImNsOG9ydTRsajBhd2kzcXJ1dTZwazI0YXQifQ.2zwAGXykU272aRDBHHshtg" />
     </application>
+
 </manifest>

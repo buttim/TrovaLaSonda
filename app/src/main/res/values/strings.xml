@@ -1,19 +1,50 @@
 <resources>
-    <string name="app_name">TrovaLaSonda</string>
-    <string name="dummy_button">Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
-    <string name="action_search">search</string>
-    <string name="action_settings">settings</string>
-    <string name="title_activity_settings">Settings</string>
-    <string name="first_fragment_label">First Fragment</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="second_fragment_label">Second Fragment</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
-    <string name="hello_first_fragment">Hello first fragment</string>
-
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-    <string name="reset">Reset</string>
+    <string name="app_name" translatable="false">TrovaLaSonda</string>
+    <string name="title_activity_settings" translatable="false">Settings</string>
+    <string name="reset" translatable="false">Reset</string>
+    <string name="mhz" translatable="false">MHz</string>
+    <string name="dbm" translatable="false">-dBm</string>
+    <string name="km" translatable="false">km</string>
+    <string name="sqkxy_tracker_logo" translatable="false">SQKXY tracker logo</string>
+    <string name="sondehub_logo" translatable="false">sondehub logo</string>
+    <string name="title_activity_scrolling" translatable="false">Trova la sonda</string>
+    <string name="CLOSE">Close</string>
+    <string name="CONNECTED">Connected</string>
+    <string name="CONNECTION_LOST">Connection to TTGO lost</string>
+    <string name="CANNOT_CONNECT">Cannot connect !</string>
+    <string name="TTGO_NOT_CONNECTED">TTGO not connected</string>
+    <string name="LATITUDE_COPIED">Latitude copied to clipboard</string>
+    <string name="LONGITUDE_COPIED">Longitude copied to clipboard</string>
+    <string name="COORDINATES_COPIED">Coordinates copied to clipboard</string>
+    <string name="NO_SONDE_TO_OPEN_A_WEBPAGE_FOR">No sonde to open a webpage for</string>
+    <string name="SHOW_A_WEB_PAGE">Show a web page for this sonde</string>
+    <string name="NO_CURRENT_LOCATION">No current location (yet)</string>
+    <string name="RADIO_SETTINGS">Radio settings (radio must be connected)</string>
+    <string name="NO_SONDE_TO_SHOW">No sonde to show</string>
+    <string name="CHOOSE_LAYER">Choose layer (Mapnik/CyclOSM/satellite)</string>
+    <string name="CENTER_SONDE_ON_MAP">Center sonde on map (if receiving location data)</string>
+    <string name="NO_SONDE_TO_NAVIGATE_TO">No sonde to navigate to</string>
+    <string name="ROUTE_TO_PREDICTED_LANDING_SITE">Route to predicted landing site</string>
+    <string name="CONNECTED_TO">Connected to </string>
+    <string name="BATTERY_">Battery </string>
+    <string name="BY_CAR">By car: </string>
+    <string name="MAP_STYLE_SELECTED"> map style selected</string>
+    <string name="FIRMWARE_UPDATE_AVAILABLE">Firmware update available</string>
+    <string name="A_NEW_VERSION_OF_THE_FIRMWARE">A new version of the firmware is available for this receiver.\nDo you want to update the receiver now?</string>
+    <string name="UPDATE_NOW">Update now</string>
+    <string name="DOWNLOADING_FIRMWARE">Downloading firmware</string>
+    <string name="THE_FIRMWARE_WILL_BE_LOADED">The firmware will be loaded on the receiver once the download is complete</string>
+    <string name="FIRMWARE_DOWNLOAD_FAILED">Firmware download failed</string>
+    <string name="UPDATING_FIRMWARE">Updating firmware</string>
+    <string name="THE_FIRMWARE_HAS_BEEN_DOWNLOADED">The firmware has been downloaded. Now updating the radio</string>
+    <string name="FIRMWARE_UPDATE_FAILED">Firmware update failed</string>
+    <string name="FIRMWARE_UPDATE_FINISHED">Firmware update finished</string>
+    <string name="WAIT_FOR_THE_RADIO_TO_REBOOT">Wait for the radio to reboot and reconnect</string>
+    <string name="ARE_YOU_SURE_YOU_WANT_TO_EXIT">Are you sure you want to exit?</string>
+    <string name="YES">Yes</string>
+    <string name="ALERT">Alert</string>
+    <string name="CANCEL">Cancel</string>
+    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">New settings require to restart the TTGO, do you want to apply them anyway?</string>
     <string name="tune">Tune</string>
     <string name="offset">Offset</string>
     <string name="radio">Radio</string>
@@ -25,11 +56,8 @@
     <string name="sda_pin">SDA pin</string>
     <string name="sonde_settings">Sonde settings</string>
     <string name="frequency">frequency</string>
-    <string name="mhz">MHz</string>
     <string name="toggle_buzzer">Toggle buzzer</string>
-    <string name="km">km</string>
     <string name="no_sonde">[no sonde]</string>
-    <string name="dbm">-dBm</string>
     <string name="menu">Menu</string>
     <string name="center_user_in_map">Center user in map</string>
     <string name="center_sonde_in_map">Center sonde in map</string>
@@ -37,14 +65,31 @@
     <string name="launch_navigation">Launch navigation</string>
     <string name="settings">Settings</string>
     <string name="save">Save</string>
-    <string name="title_activity_scrolling">Trova la sonda</string>
     <string name="help">Help</string>
     <string name="map">map</string>
     <string name="battery_level">battery level</string>
-    <string name="sqkxy_tracker_logo">SQKXY tracker logo</string>
-    <string name="sondehub_logo">sondehub logo</string>
     <string name="open_web_page">Open web page</string>
     <string name="ReportYourFinding">Report your finding</string>
+    <string name="title_activity_donation">Donation</string>
+    <string name="SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING">Serial number for the sonde you are receiving</string>
+    <string name="YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY"> You can tap it to open Sondehub or radiosondy.info</string>
+    <string name="DISTANCE">Distance</string>
+    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Between you and the sonde you are receiving</string>
+    <string name="BUZZER">Buzzer</string>
+    <string name="MUTE_YOUR_TTGO_TAPPING_THIS">Mute your TTGO tapping this</string>
+    <string name="BATTERY">Battery</string>
+    <string name="KEEP_AN_EYE_ON_YOUR_TTGOS_BATTERY_LEVEL">Keep an eye on your TTGO\'s battery level</string>
+    <string name="RSSI" translatable="false">RSSI</string>
+    <string name="SIGNAL_STRENGTH_IS_SHOWN_HERE">Signal strength is shown here</string>
+    <string name="MAP_LAYERS">Map layers</string>
+    <string name="CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS">Choose between three different map layers</string>
+    <string name="NAVIGATION">Navigation</string>
+    <string name="LAUNCH_GOOGLE_MAPS">Launch Google maps for driving directions to the sonde current position\nLong tap fo selecting a different app for navigation</string>
+    <string name="TTGOS_PARAMETERS">TTGO\'s parameters</string>
+    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_TTGO">Set pins, bandwidth and calibration for your TTGO</string>
+    <string name="GOT_IT">GOT IT</string>
+    <string name="SONDE_DATA">Sonde data</string>
+    <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Tap here to change sonde type &amp; frequency</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

@@ -2,7 +2,6 @@ package eu.ydiaeresis.trovalasonda
 
 import android.app.Dialog
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -24,10 +23,10 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
             binding=UpdateDialogBinding.inflate(inflater).apply {}
             val dlg=MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
-                .setTitle("Firmware update available")
-                .setMessage("A new version of the firmware is available for this receiver.\nDo you want to update the receiver now?")
-                .setPositiveButton("Update now") { _, _ ->  }
-                .setNegativeButton("Cancel") { _, _ -> dialog?.cancel() }
+                .setTitle(R.string.FIRMWARE_UPDATE_AVAILABLE)
+                .setMessage(R.string.A_NEW_VERSION_OF_THE_FIRMWARE)
+                .setPositiveButton(R.string.UPDATE_NOW) { _, _ ->  }
+                .setNegativeButton(R.string.CANCEL) { _, _ -> dialog?.cancel() }
                 .create()
             dlg.setCanceledOnTouchOutside(false)
             dlg
@@ -41,8 +40,8 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
             setOnClickListener {
                 this.isEnabled=false
                 dlg.apply {
-                    setTitle("Downloading firmware")
-                    setMessage("The firmware will be loaded on the receiver once the download is complete")
+                    setTitle(R.string.DOWNLOADING_FIRMWARE)
+                    setMessage(context.getString(R.string.THE_FIRMWARE_WILL_BE_LOADED))
                 }
                 val file=File.createTempFile("firmware",".bin",context.cacheDir).apply {
                     deleteOnExit()
@@ -55,13 +54,13 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
                                 is DownloadStatus.Progress ->
                                     binding.progressBar.progress=it.progress
                                 is DownloadStatus.Error -> dlg.apply {
-                                    setTitle("Firmware download failed")
+                                    setTitle(R.string.FIRMWARE_DOWNLOAD_FAILED)
                                     setMessage(it.message)
                                     fullscreenActivity.stopOta()
                                 }
                                 is DownloadStatus.Success -> {
-                                    dlg.setTitle("Updating firmware")
-                                    dlg.setMessage("The firmware has been downloaded. Now updating the radio")
+                                    dlg.setTitle(R.string.UPDATING_FIRMWARE)
+                                    dlg.setMessage(context.getString(R.string.THE_FIRMWARE_HAS_BEEN_DOWNLOADED))
                                     binding.progressBar.progress=0
                                     CoroutineScope(Dispatchers.IO).launch {
                                         FirmwareUpdater().update(fullscreenActivity,mutex,file).collect {
@@ -70,15 +69,15 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
                                                     is DownloadStatus.Progress ->
                                                         binding.progressBar.progress=it.progress
                                                     is DownloadStatus.Error -> dlg.apply {
-                                                        setTitle("Firmware update failed")
+                                                        setTitle(R.string.FIRMWARE_DOWNLOAD_FAILED)
                                                         setMessage(it.message)
                                                         fullscreenActivity.stopOta()
                                                     }
                                                     is DownloadStatus.Success -> dlg.apply {
-                                                        setTitle("Firmware update finished")
-                                                        setMessage("Wait for the radio to reboot and reconnect")
+                                                        setTitle(R.string.FIRMWARE_UPDATE_FINISHED)
+                                                        setMessage(context.getString(R.string.WAIT_FOR_THE_RADIO_TO_REBOOT))
                                                         getButton(AlertDialog.BUTTON_POSITIVE).isVisible = false
-                                                        getButton(AlertDialog.BUTTON_NEGATIVE).text="close"
+                                                        getButton(AlertDialog.BUTTON_NEGATIVE).text=context.getString(R.string.CLOSE)
                                                         invalidate()
                                                         fullscreenActivity.stopOta()
                                                     }

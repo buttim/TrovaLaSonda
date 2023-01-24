@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".ScrollingActivity">
+    tools:context=".DonationActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
@@ -23,7 +23,8 @@
             app:contentScrim="?attr/colorPrimaryVariant"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
             android:background="@color/design_default_color_primary_variant"
-            app:toolbarId="@+id/toolbar">
+            app:toolbarId="@+id/toolbar"
+            app:title="@string/donation_title">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
@@ -36,6 +37,6 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <include layout="@layout/content_donation"
-        android:id="@+id/content"/>
+        android:id="@+id/content_donation"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

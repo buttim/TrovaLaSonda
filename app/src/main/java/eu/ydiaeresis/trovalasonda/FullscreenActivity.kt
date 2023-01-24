@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.graphics.plus
 import androidx.core.os.bundleOf
 import androidx.core.view.children
@@ -76,6 +77,9 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
+fun MaterialShowcaseSequence.addSequenceItem(ctx:Context, targetView:View, title:Int, content:Int, dismissText:Int) {
+    addSequenceItem(targetView,ctx.getString(title),ctx.getString(content),ctx.getString(dismissText))
+}
 
 class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsReceiver,
     SimpleBluetoothDeviceInterface.OnMessageReceivedListener,SimpleBluetoothDeviceInterface.OnErrorListener, SimpleBluetoothDeviceInterface.OnMessageSentListener {
@@ -186,9 +190,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 }
                 if (reset)
                     MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
-                        .setTitle("Alert")
-                        .setMessage("New settings require a restart, do you want to apply them anyway?")
-                        .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+                        .setTitle(R.string.ALERT)
+                        .setMessage(R.string.NEW_SETTINGS_REQUIRE_A_RESTART)
+                        .setNegativeButton(R.string.CANCEL) { dialog, _ -> dialog.dismiss() }
                         .setPositiveButton("OK") { dialog, _ ->
                             dialog.dismiss()
                             sendCommands(cmds)
@@ -212,26 +216,26 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 .setTarget(binding.type)
                 .setTitleText("Your location")
                 .setContentText("Red when no TTGO connected, yellow when connected")
-                .setDismissText("GOT IT")
+                .setDismissText(R.string.GOT_IT)
                 .build()
             mcsv1.setTarget(GeoPointTarget(binding.map,GeoPoint(currentLocation!!)))
             addSequenceItem(mcsv1)*/
             val mcsv=MaterialShowcaseView.Builder(this@FullscreenActivity)
                 .setTarget(binding.type)
-                .setTitleText("Sonde data")
-                .setContentText("Tap here to change sonde type & frequency")
-                .setDismissText("GOT IT")
+                .setTitleText(applicationContext.getString(R.string.SONDE_DATA))
+                .setContentText(applicationContext.getString(R.string.TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY))
+                .setDismissText(R.string.GOT_IT)
                 .build()
             mcsv.setTarget(MultipleViewsTarget(listOf(binding.verticalSpeed,binding.horizontalSpeed,binding.height,binding.type)))
             addSequenceItem(mcsv)
-            addSequenceItem(binding.id,"Serial number for the sonde you are receiving", "You can tap it to open Sondehub or radiosondy.info","GOT IT")
-            addSequenceItem(binding.distance,"Distance","Between you and the sonde you are receiving","GOT IT")
-            addSequenceItem(binding.buzzer,"Buzzer","Mute your TTGO tapping this","GOT IT")
-            addSequenceItem(binding.batteryMeter,"Battery","Keep an eye on your TTGGO's battery level","GOT IT")
-            addSequenceItem(binding.rssi,"RSSI","Signal strength is shown here","GOT IT")
-            addSequenceItem(binding.menuLayer,"Map layers","Choose between three different map layers","GOT IT")
-            addSequenceItem(binding.menuMaps,"Navigation","Launch Google maps for driving directions to the sonde current position\nLong tap fo selecting a different app for navigation","GOT IT")
-            addSequenceItem(binding.menuSettings,"TTGO's parameters","Set pins, bandwidth and calibration for your TTGO","GOT IT")
+            addSequenceItem(applicationContext,binding.id,R.string.SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING, R.string.YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.distance,R.string.DISTANCE,R.string.BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.buzzer,R.string.BUZZER,R.string.MUTE_YOUR_TTGO_TAPPING_THIS,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.batteryMeter,R.string.BATTERY,R.string.KEEP_AN_EYE_ON_YOUR_TTGOS_BATTERY_LEVEL,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.rssi,R.string.RSSI,R.string.SIGNAL_STRENGTH_IS_SHOWN_HERE,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.menuLayer,R.string.MAP_LAYERS,R.string.CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.menuMaps,R.string.NAVIGATION,R.string.LAUNCH_GOOGLE_MAPS,R.string.GOT_IT)
+            addSequenceItem(applicationContext,binding.menuSettings,R.string.TTGOS_PARAMETERS,R.string.SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_TTGO,R.string.GOT_IT)
             setOnItemShownListener {_, i ->
                 if (i==6) openMenu()
             }
@@ -347,11 +351,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         try {
             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
             val name = btAdapter.getRemoteDevice(btMacAddress).name
-            Snackbar.make(binding.root,"Connected to $name", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root,applicationContext.getString(R.string.CONNECTED_TO)+name, Snackbar.LENGTH_LONG).show()
         }
         catch (ex:SecurityException) {
-            Snackbar.make(binding.root,"Cannot connect !", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root,R.string.CANNOT_CONNECT, Snackbar.LENGTH_LONG).show()
         }
+        maybeShowDonation()
     }
 
     private fun onDisconnected() {
@@ -367,7 +372,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         btMacAddress = null
         deviceInterface = null
         showProgress(false)
-        Snackbar.make(binding.root,"Connection to TTGO lost", Snackbar.LENGTH_LONG).show()
+        Snackbar.make(binding.root,R.string.CONNECTION_LOST, Snackbar.LENGTH_LONG).show()
         Handler(Looper.getMainLooper()).postDelayed({
             connect()
         }, 1000)
@@ -537,7 +542,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         reportAlreadyShown=false
     }
 
-    @SuppressLint("SetTextI18n")
     private fun updateSondeLocation(id: String, lat: Double, lon: Double, alt: Double) {
         sondePosition=GeoPoint(lat,lon)
         val d=if (currentLocation != null) GeoPoint(currentLocation).distanceToAsDouble(sondePosition) else 0.0
@@ -820,7 +824,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun ttgoNotConnectedWarning() {
-        Snackbar.make(binding.root,"TTGO not connected",Snackbar.LENGTH_LONG).show()
+        Snackbar.make(binding.root,R.string.TTGO_NOT_CONNECTED,Snackbar.LENGTH_LONG).show()
     }
 
     private fun toggleBuzzer() {
@@ -868,6 +872,17 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
     private var n: Int = 0 //solo per debug
 
+    private fun maybeShowDonation() {
+        val prefs=getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE)
+        if (Instant.now().epochSecond-prefs.getLong(LAST_TIME_DONATION_SHOWN,0)>3600*24*8) {
+            startActivity(Intent(this,DonationActivity::class.java))
+            prefs.edit {
+                putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond)
+                apply()
+            }
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -911,25 +926,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (deviceInterface == null)
                 ttgoNotConnectedWarning()
             else
-                Snackbar.make(binding.root, "Battery: ${batteryLevel/1000.0}V", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, applicationContext.getString(R.string.BATTERY_)+"${batteryLevel/1000.0}V", Snackbar.LENGTH_SHORT).show()
         }
         binding.lat.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde latitude", binding.lat.text)
             clipboard.setPrimaryClip(clip)
-            Snackbar.make(binding.root, "Latitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
+            Snackbar.make(binding.root, R.string.LATITUDE_COPIED, Snackbar.LENGTH_SHORT). show()
         }
         binding.lon.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde longitude", binding.lon.text)
             clipboard.setPrimaryClip(clip)
-            Snackbar.make(binding.root, "Longitude copied to clipboard", Snackbar.LENGTH_SHORT). show()
+            Snackbar.make(binding.root, R.string.LONGITUDE_COPIED, Snackbar.LENGTH_SHORT). show()
         }
         val copyCoordinates = { _: View ->
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("sonde coordinates", "${binding.lat.text} ${binding.lon.text}")
             clipboard.setPrimaryClip(clip)
-            Snackbar.make(binding.root, "Coordinates copied to clipboard", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, R.string.COORDINATES_COPIED, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.lat.setOnLongClickListener(copyCoordinates)
@@ -946,10 +961,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 dlg.show(supportFragmentManager, "")
             }
             else
-                Snackbar.make(binding.root,"No sonde to open a webpage for", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,R.string.NO_SONDE_TO_OPEN_A_WEBPAGE_FOR, Snackbar.LENGTH_SHORT).show()
         }
         binding.id.setOnLongClickListener {
-            Snackbar.make(binding.root,"Show a web page for this sonde", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,R.string.SHOW_A_WEB_PAGE, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.panel.setOnClickListener {
@@ -982,7 +997,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (currentLocation != null)
                 binding.map.controller?.setCenter(GeoPoint(currentLocation))
             else
-                Snackbar.make(binding.root,"No current location (yet)", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,R.string.NO_CURRENT_LOCATION, Snackbar.LENGTH_SHORT).show()
             //////////////////////////////////////////////////////////////////////////////////
             if(Debug.isDebuggerConnected()) {
                 predict(45.0,7.0,1000.0)
@@ -1010,7 +1025,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuCenter.setOnLongClickListener {
-            Snackbar.make(binding.root,"Center user on map", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,R.string.center_user_in_map, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuSettings.setOnClickListener {
@@ -1023,13 +1038,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             closeMenu()
         }
         binding.menuSettings.setOnLongClickListener {
-            Snackbar.make(binding.root,"Radio settings (radio must be connected)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,R.string.RADIO_SETTINGS, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuLayer.setOnClickListener {
             mapStyle = (mapStyle+1)%3
             Snackbar.make(binding.root,
-                arrayOf("Mapnik","CyclOSM","Mapbox satellite")[mapStyle]+" map style selected",
+                arrayOf("Mapnik","CyclOSM","Mapbox satellite")[mapStyle]+applicationContext.getString(R.string.MAP_STYLE_SELECTED),
                 Snackbar.LENGTH_SHORT).show()
             with (binding.map) {
                 setTileSource(
@@ -1043,25 +1058,25 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
         binding.menuLayer.setOnLongClickListener {
-            Snackbar.make(binding.root,"Choose layer (Mapnik/CyclOSM/satellite)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,R.string.CHOOSE_LAYER, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuCenterSonde.setOnClickListener {
             if (sondeId != null)
                 binding.map.controller?.setCenter(mkSonde?.position)
             else
-                Snackbar.make(binding.root,"No sonde to show", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,R.string.NO_SONDE_TO_SHOW, Snackbar.LENGTH_SHORT).show()
             closeMenu()
         }
         binding.menuCenterSonde.setOnLongClickListener{
-            Snackbar.make(binding.root,"Center sonde on map (if receiving location data)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root,R.string.CENTER_SONDE_ON_MAP, Snackbar.LENGTH_SHORT).show()
             true
         }
         binding.menuMaps.setOnClickListener {
             if (sondeId != null)
                 navigate(mkSonde?.position!!)
             else
-                Snackbar.make(binding.root,"No sonde to navigate to", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,R.string.NO_SONDE_TO_NAVIGATE_TO, Snackbar.LENGTH_SHORT).show()
 
             closeMenu()
         }
@@ -1076,10 +1091,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 closeMenu()
         }
         binding.menuOpen.setOnLongClickListener {
-            Snackbar.make(binding.root,"Trova la sonda version ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root,"Trova la sonda v. ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             //////////////////////////
-            if(Debug.isDebuggerConnected())
+            if(Debug.isDebuggerConnected()) {
                 showcase(Instant.now().toString())
+                /*getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE).edit {
+                    clear()
+                    apply()
+                }
+                startActivity(Intent(this,DonationActivity::class.java))*/
+            }
             true
         }
 
@@ -1336,8 +1357,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             .toComponents { hours, minutes, _, _ ->
                                 hours.toDuration(DurationUnit.HOURS)+minutes.toDuration(DurationUnit.MINUTES)
                             }
-                        title="Route to predicted landing site"
-                        snippet="By car: $duration"
+                        title=applicationContext.getString(R.string.ROUTE_TO_PREDICTED_LANDING_SITE)
+                        snippet=applicationContext.getString(R.string.BY_CAR)+duration.toString()
                         infoWindow=BasicInfoWindow(R.layout.bonuspack_bubble,binding.map)
                     }
                     binding.map.overlays.add(roadOverlay)
@@ -1388,8 +1409,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
                     .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setTitle("TrovaLaSonda")
-                    .setMessage("Are you sure you want to exit?")
-                    .setPositiveButton("Yes") { _, _ ->
+                    .setMessage(R.string.ARE_YOU_SURE_YOU_WANT_TO_EXIT)
+                    .setPositiveButton(R.string.YES) { _, _ ->
                         if (bluetoothManager!=null &&btMacAddress!=null)
                             bluetoothManager?.closeDevice(btMacAddress!!)
                         finish()
@@ -1500,6 +1521,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
         private const val TROVALASONDAPREFIX = "TrovaLaSonda"
+        private const val LAST_TIME_DONATION_SHOWN="lastTimeDonationShown"
         private var freqOffsetReceiver: FreqOffsetReceiver?=null
         fun registerFreqOffsetReceiver(r: FreqOffsetReceiver) {
             freqOffsetReceiver=r

@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -66,7 +65,7 @@ class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
             }
             return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
-                .setNegativeButton("Cancel") { _, _ -> dialog?.cancel() }
+                .setNegativeButton(R.string.CANCEL) { _, _ -> dialog?.cancel() }
                 .create()
           } ?: throw IllegalStateException("Activity cannot be null")
         }
