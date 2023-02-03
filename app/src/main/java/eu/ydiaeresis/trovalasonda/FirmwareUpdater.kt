@@ -22,16 +22,17 @@ sealed class DownloadStatus {
 }
 
 @Serializable
-data class VersionInfo(val version:String)
+data class VersionInfo(val version:String, val info:String?=null)
 
 class FirmwareUpdater {
+    private val json = Json { ignoreUnknownKeys = true }
     suspend fun getVersion():VersionInfo? {
         val uri=Uri.parse(BASE_URI+JSON)
         Log.i("MAURI",uri.toString())
         try {
             HttpClient(CIO).use {
                 val response:HttpResponse=it.get(uri.toString())
-                return Json.decodeFromString(VersionInfo.serializer(),response.bodyAsText())
+                return json.decodeFromString(VersionInfo.serializer(),response.bodyAsText())
             }
         }
         catch (ex:Exception) {
@@ -93,7 +94,7 @@ class FirmwareUpdater {
 
     companion object {
         const val CHUNK_SIZE=4096
-        const val BASE_URI="https://www.ydiaeresis.eu/public/"//"http://192.168.43.204/"
+        const val BASE_URI="https://www.ydiaeresis.eu/public/"//"http://buttim.asuscomm.com/"//
         const val JSON="rdzTrovaLaSonda.json"
         const val FIRMWARE="rdzTrovaLaSonda.ino.bin"
     }

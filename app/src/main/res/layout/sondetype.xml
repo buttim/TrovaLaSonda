@@ -11,6 +11,7 @@
         android:layout_marginBottom="20sp"
         android:textSize="35sp"
         android:layout_gravity="center_horizontal"
+        android:textAlignment="center"
         android:text="@string/sonde_settings"/>
 
     <LinearLayout

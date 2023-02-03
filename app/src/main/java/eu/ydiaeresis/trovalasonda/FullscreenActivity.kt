@@ -345,6 +345,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             setPersonAnchor(.5f, .5f)
             setDirectionAnchor(.5f, .5f)
         }
+        binding.map.invalidate()
         muteChanged = false
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
@@ -696,13 +697,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             type: String, freq: Double, sign: Double, bat: Int, batV: Int,
             mute: Int, ver: String
     ) {
-        if (isRdzTrovaLaSonda && !versionChecked && versionInfo!=null && versionInfo?.version!=ver) {
+        if (isRdzTrovaLaSonda && !versionChecked && versionInfo!=null) {
             versionChecked=true
-            UpdateDialog().apply {
-                fullscreenActivity=this@FullscreenActivity
-                mutex=this@FullscreenActivity.mutexOta
-                show(supportFragmentManager,"")
-            }
+            if (versionInfo?.version!=ver)
+                UpdateDialog(this,mutexOta,versionInfo!!).show(supportFragmentManager,"")
         }
         updateTypeAndFreq(type, freq)
         updateMute(mute)

@@ -12,10 +12,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
 
-class UpdateDialog  : DialogFragment(), View.OnClickListener {
+class UpdateDialog(val fullscreenActivity:FullscreenActivity, val mutex:Mutex,val versionInfo:VersionInfo)  : DialogFragment(), View.OnClickListener {
     private lateinit var binding:UpdateDialogBinding
-    lateinit var fullscreenActivity:FullscreenActivity
-    lateinit var mutex:Mutex
 
     override fun onCreateDialog(savedInstanceState:Bundle?):Dialog {
         return activity?.let {it ->
@@ -24,7 +22,11 @@ class UpdateDialog  : DialogFragment(), View.OnClickListener {
             val dlg=MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setTitle(R.string.FIRMWARE_UPDATE_AVAILABLE)
-                .setMessage(R.string.A_NEW_VERSION_OF_THE_FIRMWARE)
+                .setMessage(
+                    if (versionInfo.info==null)
+                        context?.getString(R.string.A_NEW_VERSION_OF_THE_FIRMWARE)
+                    else
+                        "v. ${versionInfo.version}\n${versionInfo.info}")
                 .setPositiveButton(R.string.UPDATE_NOW) { _, _ ->  }
                 .setNegativeButton(R.string.CANCEL) { _, _ -> dialog?.cancel() }
                 .create()
