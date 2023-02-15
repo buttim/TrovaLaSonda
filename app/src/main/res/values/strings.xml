@@ -25,7 +25,7 @@
     <string name="CENTER_SONDE_ON_MAP">Center sonde on map (if receiving location data)</string>
     <string name="NO_SONDE_TO_NAVIGATE_TO">No sonde to navigate to</string>
     <string name="ROUTE_TO_PREDICTED_LANDING_SITE">Route to predicted landing site</string>
-    <string name="CONNECTED_TO">Connected to </string>
+    <string name="CONNECTED_TO">Connected to</string>
     <string name="BATTERY_">Battery </string>
     <string name="BY_CAR">By car: </string>
     <string name="MAP_STYLE_SELECTED"> map style selected</string>

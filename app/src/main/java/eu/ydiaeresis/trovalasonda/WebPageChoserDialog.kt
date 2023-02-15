@@ -11,36 +11,41 @@ import eu.ydiaeresis.trovalasonda.databinding.WebpageChoserBinding
 import java.util.*
 
 class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
-    private lateinit var binding: WebpageChoserBinding
-    var sondeId:String?= null
+    private lateinit var binding:WebpageChoserBinding
+    var sondeId:String?=null
     var sondeType:String?=null
     var lat:Double?=null
     var lon:Double?=null
 
-    private fun getAprsId():String =
-        when (sondeType) {
-        "M20" -> {
-            val leftAsInt=sondeId!!.substring(0,3).toInt()
-            val right=sondeId!!.substring(sondeId!!.length-5)
-            String.format("ME%02X%s",leftAsInt-49,right)
-        }
-        "M10" -> {
-            val leftAsInt=sondeId!!.substring(0,1).toInt()
-            val secondAsInt=sondeId!!.substring(1,3).toInt()
-            val middle=sondeId!!.substring(3,4)
-            val rightAsInt=sondeId!!.substring((4)).toInt()
-            String.format("ME%1X%1X%s%04X",leftAsInt,secondAsInt,middle,rightAsInt-1808)
-        }
-        "DFM" -> "D"+sondeId!!.split('-').last().trimStart('0')//TODO: not tested
-        else -> sondeId!!
-        }
-
-    private fun getSondehubId():String =
-        when (sondeType) {
-            "M10","M20" -> sondeId!!.substring(0,3)+"-"+sondeId!!.substring(3,4)+"-"+sondeId!!.substring(4)
+    private fun getAprsId():String {
+        val id=sondeId!!.replace("-","")
+        return when (sondeType) {
+            "M20" -> {
+                val leftAsInt=id.substring(0,3).toInt()
+                val right=id.substring(sondeId!!.length-5)
+                String.format("ME%02X%s",leftAsInt-49,right)
+            }
+            "M10" -> {
+                val leftAsInt=id.substring(0,1).toInt()
+                val secondAsInt=id.substring(1,3).toInt()
+                val middle=id.substring(3,4)
+                val rightAsInt=id.substring((4)).toInt()
+                String.format("ME%1X%1X%s%04X",leftAsInt,secondAsInt,middle,rightAsInt-1808)
+            }
+            "DFM" -> "D"+id.split('-').last().trimStart('0')//TODO: not tested
             else -> sondeId!!
         }
+    }
 
+    private fun getSondehubId():String {
+        val id=sondeId!!.replace("-","")
+
+        return when (sondeType) {
+            "M10" -> sondeId!!.substring(0,8)+sondeId!!.substring(9)
+            "M20" -> id.substring(0,3)+"-"+id.substring(3,4)+"-"+id.substring(4)
+            else -> sondeId!!
+        }
+    }
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let { it ->
             val inflater = requireActivity().layoutInflater

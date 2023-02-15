@@ -310,8 +310,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="0"
+                        android:entries="@array/bandwidth"
                         android:textAlignment="textEnd"
-                        android:entries="@array/bandwidth" />
+                        tools:ignore="DuplicateSpeakableTextCheck" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -363,7 +364,6 @@
                 </TableRow>
 
                 <TableRow>
-
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -405,33 +405,39 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
                 android:orientation="horizontal">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="0"
-                    android:labelFor="@id/offset"
-                    android:text="@string/offset" />
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:labelFor="@id/offset"
+                        android:text="@string/offset" />
 
-                <EditText
-                    android:id="@+id/offset"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:maxLength="4"
-                    android:minEms="4"
-                    android:gravity="end"
-                    android:selectAllOnFocus="true"
-                    android:text="0"
-                    tools:ignore="HardcodedText"
-                    android:autofillHints="offset" />
+                    <EditText
+                        android:id="@+id/offset"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:maxLength="4"
+                        android:minEms="4"
+                        android:gravity="end"
+                        android:selectAllOnFocus="true"
+                        android:text="0"
+                        tools:ignore="HardcodedText"
+                        android:autofillHints="offset" />
+                </LinearLayout>
 
                 <Button
                     android:id="@+id/tune"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="20sp"
+                    android:layout_marginStart="10sp"
+                    android:layout_marginEnd="5sp"
                     android:enabled="false"
                     android:text="@string/tune" />
 
@@ -440,7 +446,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
-                    android:text="" />
+                    android:text="-"
+                    tools:ignore="HardcodedText,InefficientWeight" />
             </LinearLayout>
 
             <Button

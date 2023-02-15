@@ -35,7 +35,7 @@
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <include layout="@layout/content_donation"
+    <include layout="@layout/content_help"
         android:id="@+id/content"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

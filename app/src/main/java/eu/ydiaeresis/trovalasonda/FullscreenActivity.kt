@@ -232,15 +232,15 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             addSequenceItem(applicationContext,binding.distance,R.string.DISTANCE,R.string.BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING,R.string.GOT_IT)
             addSequenceItem(applicationContext,binding.buzzer,R.string.BUZZER,R.string.MUTE_YOUR_TTGO_TAPPING_THIS,R.string.GOT_IT)
             addSequenceItem(applicationContext,binding.batteryMeter,R.string.BATTERY,R.string.KEEP_AN_EYE_ON_YOUR_TTGOS_BATTERY_LEVEL,R.string.GOT_IT)
-            addSequenceItem(applicationContext,binding.rssi,R.string.RSSI,R.string.SIGNAL_STRENGTH_IS_SHOWN_HERE,R.string.GOT_IT)
+            //addSequenceItem(applicationContext,binding.rssi,R.string.RSSI,R.string.SIGNAL_STRENGTH_IS_SHOWN_HERE,R.string.GOT_IT)
             addSequenceItem(applicationContext,binding.menuLayer,R.string.MAP_LAYERS,R.string.CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS,R.string.GOT_IT)
             addSequenceItem(applicationContext,binding.menuMaps,R.string.NAVIGATION,R.string.LAUNCH_GOOGLE_MAPS,R.string.GOT_IT)
             addSequenceItem(applicationContext,binding.menuSettings,R.string.TTGOS_PARAMETERS,R.string.SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_TTGO,R.string.GOT_IT)
             setOnItemShownListener {_, i ->
-                if (i==6) openMenu()
+                if (i==5) openMenu()
             }
             setOnItemDismissedListener { _, i ->
-                if (i==8) closeMenu()
+                if (i==7) closeMenu()
             }
             start()
         }
@@ -352,7 +352,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         try {
             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
             val name = btAdapter.getRemoteDevice(btMacAddress).name
-            Snackbar.make(binding.root,applicationContext.getString(R.string.CONNECTED_TO)+name, Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root,applicationContext.getString(R.string.CONNECTED_TO)+" "+name, Snackbar.LENGTH_LONG).show()
         }
         catch (ex:SecurityException) {
             Snackbar.make(binding.root,R.string.CANNOT_CONNECT, Snackbar.LENGTH_LONG).show()
@@ -410,7 +410,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
-    //@Suppress("SameParameterValue")
     private fun sendCommand(cmd: String, value: Any) {
         sendCommand("$cmd=$value")
     }
@@ -524,7 +523,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun newSonde(id:String) {
         sondeId = id
-        binding.id.text =id.ifEmpty {"??????"}
+        binding.id.text=normalizeSondeId()
         bk = null
         burst=false
         binding.bk.visibility=View.GONE
@@ -533,7 +532,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         mkSondehub?.setVisible(false)
         sondehubPath.actualPoints.clear()
         sondehubPath.isVisible=false
-        mkSonde?.setVisible(true)
+        //mkSonde?.setVisible(true)
         sondePath.actualPoints.clear()
         mkBurst?.setVisible(false)
         trajectory.actualPoints.clear()
@@ -571,6 +570,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             playSound()
         }
 
+        mkSonde?.setVisible(true)
         mkSonde?.position = GeoPoint(lat, lon, alt)
         sondePath.addPoint(mkSonde?.position)
         sondeLevelListDrawable.level = 1
@@ -603,7 +603,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             actualPoints.clear()
             addPoint(GeoPoint(currentLocation))
             addPoint(mkSonde?.position)
-            isVisible = true
+            isVisible = sondePosition!=null && sondePosition?.latitude!=.0
         }
     }
 
@@ -755,7 +755,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     ) {
         updateMute(mute)
         updateTypeAndFreq(type, freq)
-        binding.id.text = name
         sondeLevelListDrawable.level = 0
         updateRSSI(sign)
         updateBattery(bat,batV)
@@ -872,11 +871,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     private fun maybeShowDonation() {
         val prefs=getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE)
-        if (Instant.now().epochSecond-prefs.getLong(LAST_TIME_DONATION_SHOWN,0)>3600*24*8) {
+        val last:Long=prefs.getLong(LAST_TIME_DONATION_SHOWN,0)
+        if (Instant.now().epochSecond-last>3600*24*8) {
             startActivity(Intent(this,DonationActivity::class.java))
             prefs.edit {
                 putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond)
-                apply()
+                commit()
             }
         }
     }
@@ -949,14 +949,18 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.lon.setOnLongClickListener(copyCoordinates)
         binding.id.setOnClickListener {
             if (sondeId!=null) {
-                val dlg = WebPageChoserDialog()
-                dlg.sondeId = sondeId
-                dlg.sondeType=sondeTypes!![sondeType-1]
-                if (sondePosition!=null) {
-                    dlg.lat=sondePosition!!.latitude
-                    dlg.lon=sondePosition!!.longitude
+                WebPageChoserDialog().apply {
+                    sondeId=this@FullscreenActivity.sondeId
+                    sondeType=sondeTypes!![this@FullscreenActivity.sondeType-1]
+                    if (sondePosition==null) {
+                        lat=currentLocation?.latitude
+                        lon=currentLocation?.longitude
+                    } else {
+                        lat=sondePosition!!.latitude
+                        lon=sondePosition!!.longitude
+                    }
+                    show(supportFragmentManager,"")
                 }
-                dlg.show(supportFragmentManager, "")
             }
             else
                 Snackbar.make(binding.root,R.string.NO_SONDE_TO_OPEN_A_WEBPAGE_FOR, Snackbar.LENGTH_SHORT).show()
@@ -1092,17 +1096,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             Snackbar.make(binding.root,"Trova la sonda v. ${BuildConfig.VERSION_NAME}", Snackbar.LENGTH_LONG).show()
             //////////////////////////
             if(Debug.isDebuggerConnected()) {
-                showcase(Instant.now().toString())
-                /*getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE).edit {
-                    clear()
-                    apply()
+                //showcase(Instant.now().toString())
+                getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE).edit {
+                    putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond-8*3600*24)
+                    commit()
                 }
-                startActivity(Intent(this,DonationActivity::class.java))*/
+                //startActivity(Intent(this,DonationActivity::class.java))
             }
             true
         }
-
-        binding.help.setOnClickListener {
+        binding.menuHelp.setOnClickListener {
             startActivity(Intent(this,ScrollingActivity::class.java))
             closeMenu()
         }
@@ -1349,6 +1352,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             color=Color.rgb(0,0,192)
                             strokeWidth=10F
                             strokeCap=Paint.Cap.ROUND
+                            pathEffect=DashPathEffect(floatArrayOf(10f,20f),0f)
                         }
                         val duration=road.mDuration
                             .toDuration(DurationUnit.SECONDS)
@@ -1450,6 +1454,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Suppress("DEPRECATION")
     private fun Bundle.getLocation(key:String) = get(key) as Location
 
+    fun normalizeSondeId():String =
+        sondeId?.trim()?.replace("-","")?.ifEmpty {"????????"}?:"[NO SONDE]"
+
     override fun onRestoreInstanceState(savedInstanceState:Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         Log.i(TAG,"onRestoreInstanceState")
@@ -1477,7 +1484,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             binding.direction.text=getString(DIRECTION)
             reportAlreadyShown=getBoolean(REPORT_ALREADY_SHOWN)
         }
-        binding.id.text=sondeId
+        binding.id.text=normalizeSondeId()
         binding.height.text=height.toString()
     }
 

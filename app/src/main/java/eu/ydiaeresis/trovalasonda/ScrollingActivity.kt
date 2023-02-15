@@ -17,7 +17,7 @@ class ScrollingActivity : AppCompatActivity() {
             setSupportActionBar(toolbar)
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
             toolbarLayout.title="$title ${BuildConfig.VERSION_NAME}"
-            content.text?.movementMethod=LinkMovementMethod.getInstance()
+            content.text.movementMethod=LinkMovementMethod.getInstance()
         }
     }
 
