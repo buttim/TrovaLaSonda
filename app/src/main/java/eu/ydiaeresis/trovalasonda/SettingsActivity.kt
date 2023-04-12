@@ -218,7 +218,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                     if (t != dfmBW) putExtra(DFM_RXBW, t)
                     t = content.nam.selectedItemPosition
                     if (t != nam) putExtra(APRSNAME, t)
-                    t = content.offset.text.toString().toInt()
+                    t = content.offset.text.toString().toIntOrNull()?:0;
                     if (t != offset) putExtra(FREQOFS, t)
                 }
             }
