@@ -15,8 +15,8 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 sealed class DownloadStatus {
-    object Success : DownloadStatus()
-    object NoContentLength : DownloadStatus()
+    data object Success : DownloadStatus()
+    data object NoContentLength : DownloadStatus()
     data class Error(val message: String) : DownloadStatus()
     data class Progress(val progress: Int): DownloadStatus()
 }

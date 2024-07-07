@@ -41,8 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-//import kotlinx.coroutines.withContext
-//import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
@@ -127,6 +125,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var versionInfo:VersionInfo?=null
     private var versionChecked=false
     private var isRdzTrovaLaSonda=false
+    private var isCiapaSonde=false
     private var otaRunning=false
     private val mutexOta=Mutex()
     private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
@@ -154,11 +153,13 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         Log.i(TAG, "BT device found: $deviceName")
                         if (deviceInterface == null && deviceName != null &&
                             (deviceName.startsWith(MYSONDYGOPREFIX) ||
-                                    deviceName.startsWith(TROVALASONDAPREFIX))
+                                    deviceName.startsWith(TROVALASONDAPREFIX) ||
+                                    deviceName.startsWith(CIAPASONDEPREFIX))
                         ) {
                             val btAdapter=(applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
                             btAdapter.cancelDiscovery()
                             isRdzTrovaLaSonda=deviceName.startsWith(TROVALASONDAPREFIX)
+                            isCiapaSonde=deviceName.startsWith(CIAPASONDEPREFIX)
                             connectDevice(device.address)
                         }
                     }
@@ -527,7 +528,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         bk = null
         burst=false
         binding.bk.visibility=View.GONE
-        sondePosition=null
+        //sondePosition=null
         nPositionsReceived=0
         mkSondehub?.setVisible(false)
         sondehubPath.actualPoints.clear()
@@ -587,7 +588,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun setDistance(distance:Double) {
-        if (distance > 10000F) {
+        if (distance >= 10000F) {
             @SuppressLint("SetTextI18n")
             binding.unit.text = "km"
             binding.distance.text = String.format(Locale.US,"%.1f", distance / 1000)
@@ -692,7 +693,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         updateBattery(bat,batV)
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOStatus(
             type: String, freq: Double, sign: Double, bat: Int, batV: Int,
             mute: Int, ver: String
@@ -894,6 +894,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             versionInfo=FirmwareUpdater().getVersion()
         }
 
+
         mapbox.retrieveAccessToken(this)
         mapbox.retrieveMapBoxMapId(this)
         TileSourceFactory.addTileSource(mapbox)
@@ -949,7 +950,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.lon.setOnLongClickListener(copyCoordinates)
         binding.id.setOnClickListener {
             if (sondeId!=null) {
-                WebPageChoserDialog().apply {
+                WebPageChooserDialog().apply {
                     sondeId=this@FullscreenActivity.sondeId
                     sondeType=sondeTypes!![this@FullscreenActivity.sondeType-1]
                     if (sondePosition==null) {
@@ -977,6 +978,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             SondeTypeDialog().apply {
                 freq=this@FullscreenActivity.freq
                 type=sondeType
+                isCiapaSonde=this@FullscreenActivity.isCiapaSonde
                 dialogCloseListener=object:DialogCloseListener {
                     override fun handleDialogClose() {
                         sendCommands(listOf<Pair<String,Any>>(Pair("f",freq),
@@ -1002,7 +1004,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 Snackbar.make(binding.root,R.string.NO_CURRENT_LOCATION, Snackbar.LENGTH_SHORT).show()
             //////////////////////////////////////////////////////////////////////////////////
             if(Debug.isDebuggerConnected()) {
-                predict(45.0,7.0,1000.0)
+                //predict(45.0,7.0,1000.0)
                 val msgs = arrayOf(
                     "1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
                     "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
@@ -1046,7 +1048,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.menuLayer.setOnClickListener {
             mapStyle = (mapStyle+1)%3
             Snackbar.make(binding.root,
-                arrayOf("Mapnik","CyclOSM","Mapbox satellite")[mapStyle]+applicationContext.getString(R.string.MAP_STYLE_SELECTED),
+                arrayOf("Mapnik","CyclOSM","Mapbox satellite")[mapStyle]+" "+applicationContext.getString(R.string.MAP_STYLE_SELECTED),
                 Snackbar.LENGTH_SHORT).show()
             with (binding.map) {
                 setTileSource(
@@ -1170,6 +1172,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     setVisible(false)
                     setOnMarkerClickListener { marker, _ -> if (sondeId != null) navigate(marker.position); true }
                     setOnLongPressListener { _, _ -> if (sondeId != null) navigateGeneric(mkSonde!!.position); true }
+                    if (sondePosition!=null) {
+                        position=sondePosition
+                        setVisible(true)
+                    }
                 }
                 mkSondehub = MyMarker(binding.map).apply {
                     icon = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_sonde_blue)
@@ -1237,8 +1243,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         updateBk(Instant.now().until(bk, ChronoUnit.SECONDS).toInt())
                 }
 
-                if (sondeId?.length?:0>0 && timeLastSeen!=null && timeLastSeen?.until(Instant.now(),ChronoUnit.MINUTES)!!>=2 &&
-                    (timeLastSondehub==null || timeLastSondehub?.until(Instant.now(),ChronoUnit.SECONDS)!!>=30)) {
+                if ((sondeId?.length
+                        ?: 0)>0 && timeLastSeen!=null && timeLastSeen?.until(Instant.now(),
+                        ChronoUnit.MINUTES)!!>=2 && (timeLastSondehub==null || timeLastSondehub?.until(
+                        Instant.now(),
+                        ChronoUnit.SECONDS)!!>=30)
+                ) {
                     getFromSondeHub(sondeTypes!![sondeType-1],sondeId!!,timeLastSeen!!)
                     timeLastSondehub=Instant.now()
                 }
@@ -1445,44 +1455,54 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             UNITS to binding.unit.text,
             HORIZONTAL_SPEED to binding.horizontalSpeed.text,
             DIRECTION to binding.direction.text,
-            REPORT_ALREADY_SHOWN to reportAlreadyShown
+            REPORT_ALREADY_SHOWN to reportAlreadyShown,
+            SONDE_POSITION to sondePosition
         ))
     }
 
     @Suppress("DEPRECATION")
-    private fun Bundle.getInstant(key:String) = get(key) as Instant
+    private fun Bundle.getInstant(key:String) = get(key) as Instant?
     @Suppress("DEPRECATION")
-    private fun Bundle.getLocation(key:String) = get(key) as Location
+    private fun Bundle.getLocation(key:String) = get(key) as Location?
+    @Suppress("DEPRECATION")
+    private fun Bundle.getPosition(key:String) = get(key) as GeoPoint?
 
-    fun normalizeSondeId():String =
+    private fun normalizeSondeId():String =
         sondeId?.trim()?.replace("-","")?.ifEmpty {"????????"}?:"[NO SONDE]"
 
     override fun onRestoreInstanceState(savedInstanceState:Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         Log.i(TAG,"onRestoreInstanceState")
         with(savedInstanceState) {
-            expandedMenu = getBoolean(EXPANDED_MENU)
-            mapStyle = getInt(MAP_STYLE)
-            mute = getInt(MUTE)
-            muteChanged = getBoolean(MUTE_CHANGE)
-            sondeType = getInt(SONDE_TYPE)
-            heightDelta = getDouble(HEIGHT_DELTA)
-            height = getDouble(HEIGHT)
-            freq = getDouble(FREQ)
-            bk = getInstant(BK)
-            timeLastSeen = getInstant(TIME_LAST_SEEN)
-            timeLastMessage = getInstant(TIME_LAST_MESSAGE)
-            currentLocation = getLocation(CURRENT_LOCATION)
-            btMacAddress = getString(BT_MAC_ADDRESS)
-            sondeId = getString(SONDE_ID)
-            binding.lat.text=getString(LAT)
-            binding.lon.text=getString(LON)
-            distance=getDouble(DISTANCE)
-            setDistance(distance)
-            binding.unit.text=getString(UNITS)
-            binding.horizontalSpeed.text=getString(HORIZONTAL_SPEED)
-            binding.direction.text=getString(DIRECTION)
-            reportAlreadyShown=getBoolean(REPORT_ALREADY_SHOWN)
+            try {
+                //TODO: ristrutturare memorizzando modello, non UI
+                expandedMenu=getBoolean(EXPANDED_MENU)
+                mapStyle=getInt(MAP_STYLE)
+                mute=getInt(MUTE)
+                muteChanged=getBoolean(MUTE_CHANGE)
+                sondeType=getInt(SONDE_TYPE)
+                heightDelta=getDouble(HEIGHT_DELTA)
+                height=getDouble(HEIGHT)
+                freq=getDouble(FREQ)
+                bk=getInstant(BK)
+                timeLastSeen=getInstant(TIME_LAST_SEEN)
+                timeLastMessage=getInstant(TIME_LAST_MESSAGE)
+                currentLocation=getLocation(CURRENT_LOCATION)
+                btMacAddress=getString(BT_MAC_ADDRESS)
+                sondeId=getString(SONDE_ID)
+                binding.lat.text=getString(LAT)
+                binding.lon.text=getString(LON)
+                distance=getDouble(DISTANCE)
+                setDistance(distance)
+                binding.unit.text=getString(UNITS)
+                binding.horizontalSpeed.text=getString(HORIZONTAL_SPEED)
+                binding.direction.text=getString(DIRECTION)
+                reportAlreadyShown=getBoolean(REPORT_ALREADY_SHOWN)
+                sondePosition=getPosition(SONDE_POSITION)
+            }
+            catch (ex:Exception) {
+                Log.e(TAG,"eccezione in onRestoreInstanceState $ex")
+            }
         }
         binding.id.text=normalizeSondeId()
         binding.height.text=height.toString()
@@ -1523,9 +1543,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         private const val HORIZONTAL_SPEED = "horizontalSpeed"
         private const val DIRECTION = "direction"
         private const val REPORT_ALREADY_SHOWN = "reportAlreadyShown"
+        private const val SONDE_POSITION = "sondePosition"
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val MYSONDYGOPREFIX = "MySondyGO-"
         private const val TROVALASONDAPREFIX = "TrovaLaSonda"
+        private const val CIAPASONDEPREFIX = "CiapaSonde"
         private const val LAST_TIME_DONATION_SHOWN="lastTimeDonationShown"
         private var freqOffsetReceiver: FreqOffsetReceiver?=null
         fun registerFreqOffsetReceiver(r: FreqOffsetReceiver) {
@@ -1554,7 +1576,7 @@ class MyMarker(mapView: MapView?) : Marker(mapView) {
 }
 
 class MultipleViewsTarget(views:List<View>) : ViewTarget(views.first()) {
-    var boundingBox=views.fold(Rect()) {result,element->
+    private var boundingBox=views.fold(Rect()) {result,element->
         val l=IntArray(2)
         element.getLocationInWindow(l)
         val r=Rect(l[0],l[1],l[0]+element.measuredWidth,l[1]+element.measuredHeight)
@@ -1566,7 +1588,7 @@ class MultipleViewsTarget(views:List<View>) : ViewTarget(views.first()) {
     override fun getBounds():Rect = boundingBox
 }
 
-class GeoPointTarget(private val map:MapView,private val geoPoint:GeoPoint) : uk.co.deanwild.materialshowcaseview.target.Target {
+/*class GeoPointTarget(private val map:MapView,private val geoPoint:GeoPoint) : uk.co.deanwild.materialshowcaseview.target.Target {
     override fun getPoint():Point {
         val pt=Point()
         val origin=IntArray(2)
@@ -1579,4 +1601,4 @@ class GeoPointTarget(private val map:MapView,private val geoPoint:GeoPoint) : uk
         val size=200
         return Rect(point.x-size/2,point.y-size/2,point.x+size/2,point.y+size/2)
     }
-}
+}*/

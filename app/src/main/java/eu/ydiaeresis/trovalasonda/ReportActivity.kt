@@ -55,7 +55,7 @@ class ReportActivity:AppCompatActivity() {
                                     document.getElementsByName('llongitude')[0].value=$lng
                                     document.getElementsByName('found_by')[0].focus()
                                 }
-                            """,{})
+                            """) {}
                         }
                     }
                     Log.i("MAURI",url?:"")
@@ -67,8 +67,8 @@ class ReportActivity:AppCompatActivity() {
                 ) {
                     super.onReceivedHttpError(view, request, errorResponse)
                     Log.d("MAURI","Risposta: ${request?.url} ${errorResponse.statusCode}")
-                    if (errorResponse.statusCode==404) {
-                    }
+                    //if (errorResponse.statusCode==404) {
+                    //}
                 }
             }
             setPadding(0, 0, 0, 0)

@@ -10,7 +10,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.WebpageChoserBinding
 import java.util.*
 
-class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
+class WebPageChooserDialog  : DialogFragment(), View.OnClickListener {
     private lateinit var binding:WebpageChoserBinding
     var sondeId:String?=null
     var sondeType:String?=null
@@ -47,7 +47,7 @@ class WebPageChoserDialog  : DialogFragment(), View.OnClickListener {
         }
     }
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return activity?.let { it ->
+        return activity?.let {
             val inflater = requireActivity().layoutInflater
             binding= WebpageChoserBinding.inflate(inflater).apply {
                 tracker.setOnClickListener {

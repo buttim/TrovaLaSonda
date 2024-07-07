@@ -16,7 +16,7 @@ class DonationActivity:AppCompatActivity() {
             setContentView(root)
             setSupportActionBar(toolbar)
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            contentDonation.text?.movementMethod=LinkMovementMethod.getInstance()
+            contentDonation.text.movementMethod=LinkMovementMethod.getInstance()
         }
     }
 

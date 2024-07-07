@@ -1,3 +1,5 @@
+@file:Suppress("PropertyName")
+
 package eu.ydiaeresis.trovalasonda
 
 import android.net.Uri
@@ -42,9 +44,7 @@ data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
         other as Stage
 
         if (stage != other.stage) return false
-        if (!trajectory.contentEquals(other.trajectory)) return false
-
-        return true
+        return trajectory.contentEquals(other.trajectory)
     }
 
     override fun hashCode(): Int {
@@ -65,9 +65,7 @@ private data class Response(val metadata:Metadata,val prediction:Array<Stage>,va
 
         if (metadata != other.metadata) return false
         if (!prediction.contentEquals(other.prediction)) return false
-        if (request != other.request) return false
-
-        return true
+        return request==other.request
     }
 
     override fun hashCode(): Int {

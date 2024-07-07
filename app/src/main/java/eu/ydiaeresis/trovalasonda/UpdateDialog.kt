@@ -12,11 +12,12 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
 
-class UpdateDialog(val fullscreenActivity:FullscreenActivity, val mutex:Mutex,val versionInfo:VersionInfo)  : DialogFragment(), View.OnClickListener {
+class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val mutex:Mutex,
+                   private val versionInfo:VersionInfo)  : DialogFragment(), View.OnClickListener {
     private lateinit var binding:UpdateDialogBinding
 
     override fun onCreateDialog(savedInstanceState:Bundle?):Dialog {
-        return activity?.let {it ->
+        return activity?.let {
             val inflater=requireActivity().layoutInflater
             binding=UpdateDialogBinding.inflate(inflater).apply {}
             val dlg=MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)

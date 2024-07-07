@@ -67,10 +67,9 @@
 
         <meta-data
             android:name="MAPBOX_MAPID"
-            android:value="satellite-streets-v11" />
+            android:value="mapbox.satellite" />
         <meta-data
             android:name="MAPBOX_ACCESS_TOKEN"
             android:value="sk.eyJ1IjoiYnV0dGltIiwiYSI6ImNsOG9ydTRsajBhd2kzcXJ1dTZwazI0YXQifQ.2zwAGXykU272aRDBHHshtg" />
     </application>
-
 </manifest>
