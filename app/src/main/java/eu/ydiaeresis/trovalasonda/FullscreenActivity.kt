@@ -1,5 +1,10 @@
 package eu.ydiaeresis.trovalasonda
 
+import io.nacular.measured.units.Length.Companion.meters
+import io.nacular.measured.units.Length.Companion.kilometers
+import io.nacular.measured.units.Length.Companion.miles
+import io.nacular.measured.units.Length.Companion.feet
+import io.nacular.measured.units.times
 import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
@@ -10,6 +15,8 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.graphics.drawable.LevelListDrawable
+import android.icu.util.LocaleData
+import android.icu.util.ULocale
 import android.location.Location
 import android.location.LocationListener
 import android.media.MediaPlayer
@@ -587,14 +594,31 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
-    private fun setDistance(distance:Double) {
-        if (distance >= 10000F) {
-            @SuppressLint("SetTextI18n")
-            binding.unit.text = "km"
-            binding.distance.text = String.format(Locale.US,"%.1f", distance / 1000)
-        } else {
-            binding.unit.text = "m"
-            binding.distance.text = String.format(Locale.US,"%.1f", distance)
+    private fun useImperialUnits():Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+        val ms=LocaleData.getMeasurementSystem(ULocale.getDefault())
+        return ms.equals(LocaleData.MeasurementSystem.US)
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun setDistance(dist:Double) {
+        with (binding) {
+            if (useImperialUnits()) {
+                val d=dist*meters
+                if (d>.25*miles) {
+                    unit.text="mi"
+                    distance.text=String.format(Locale.US,"%.1f",d `in` miles)
+                } else {
+                    unit.text="ft"
+                    distance.text=String.format(Locale.US,"%.1f",d `in` feet)
+                }
+            } else if (dist>=10000F) {
+                unit.text="km"
+                distance.text=String.format(Locale.US,"%.1f",dist/1000)
+            } else {
+                unit.text="m"
+                distance.text=String.format(Locale.US,"%.1f",dist)
+            }
         }
     }
 
@@ -617,6 +641,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         }
     }
 
+    @SuppressLint("DefaultLocale")
     private fun updateBk(bk: Int) {
         binding.bk.apply {
             visibility = View.VISIBLE
@@ -662,15 +687,24 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             if (delta!=0L) {
                 val verticalSpeed =
                     (height - this.height) / delta
+                val vs = verticalSpeed * meters
                 @Suppress("SetTextI18n")
-                binding.verticalSpeed.text = String.format(Locale.US, "Vs: %.1fm/s", verticalSpeed)
+                if (useImperialUnits())
+                    binding.verticalSpeed.text = String.format(Locale.US, "Vs: %.1fft/s", vs `in` feet)
+                else
+                    binding.verticalSpeed.text = String.format(Locale.US, "Vs: %.1fm/s", verticalSpeed)
             }
         }
 
         updateSondeLocation(name, lat, lon, height)
 
         @Suppress("SetTextI18n")
-        binding.height.text = "H: ${height}m"
+        if (useImperialUnits()) {
+            val h = String.format(Locale.US, "%.1f",height * meters `in` feet)
+            binding.height.text="H: ${h}ft"
+        }
+        else
+            binding.height.text = "H: ${height}m"
         binding.direction.text = if (abs(this.height - height) < 2) "=" else if (this.height < height) "▲" else "▼"
         val newHeightDelta = height - this.height
         if (!burst && heightDelta > 0 && newHeightDelta < 0) {
@@ -684,7 +718,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
         }
         @Suppress("SetTextI18n")
-        binding.horizontalSpeed.text = String.format(Locale.US, "V: %.1fkm/h",vel)
+        if (useImperialUnits()) {
+            val v = vel * kilometers
+            binding.horizontalSpeed.text=String.format(Locale.US,"V: %.1fmph",v `in` miles)
+        }
+        else
+            binding.horizontalSpeed.text = String.format(Locale.US, "V: %.1fkm/h",vel)
         heightDelta = newHeightDelta
         this.height = height
 
@@ -920,6 +959,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        @SuppressLint("SetTextI18n")
+        if (useImperialUnits())
+            with (binding) {
+                unit.text="mi"
+                height.text="H: -ft"
+                horizontalSpeed.text="V: -mph"
+                verticalSpeed.text="Vs: -ft/s"
+            }
+
         binding.buzzer.setOnClickListener { toggleBuzzer() }
         binding.batteryMeter.setOnClickListener {
             if (deviceInterface == null)
@@ -1413,6 +1462,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         unregisterReceiver(receiver)
     }
 
+    @SuppressLint("MissingSuperCall")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (expandedMenu)
@@ -1505,7 +1555,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }
         }
         binding.id.text=normalizeSondeId()
-        binding.height.text=height.toString()
+        if (useImperialUnits()) {
+            val h = height * meters
+            binding.height.text=(h `in` feet).toString()
+        }
+        else
+            binding.height.text=height.toString()
     }
 
     override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
