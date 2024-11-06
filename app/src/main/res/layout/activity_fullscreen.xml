@@ -46,19 +46,12 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
-        <eo.view.batterymeter.BatteryMeterView
+        <eu.ydiaeresis.trovalasonda.BatteryIndicator
             android:id="@+id/battery_meter"
             android:layout_width="40dp"
             android:layout_height="60dp"
             android:layout_weight="1"
             android:orientation="horizontal"
-            app:batteryMeterColor="#FFFF00"
-            app:batteryMeterCriticalChargeLevel="15"
-            app:batteryMeterCriticalColor="#FF2020"
-            app:batteryMeterIndicatorColor="#000000"
-            app:batteryMeterIsCharging="false"
-            app:batteryMeterTheme="rounded"
-            app:batteryMeterUnknownColor="#FFFF00"
             android:contentDescription="@string/battery_level"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/buzzer"

@@ -90,6 +90,19 @@
     <string name="GOT_IT">GOT IT</string>
     <string name="SONDE_DATA">Sonde data</string>
     <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Tap here to change sonde type &amp; frequency</string>
+    <string name="NOTIFY_RECOVERY">Notify recovery</string>
+    <string name="SEND_REPORT">Send report</string>
+    <string name="RECOVERY_REPORT">Recovery report</string>
+    <string name="USER">user</string>
+    <string name="coord_closed">coord▲</string>
+    <string name="coord_open">coords▼</string>
+    <string name="latitude">latitude</string>
+    <string name="longitude">longitude</string>
+    <string name="altitude">altitude</string>
+    <string name="description">description</string>
+    <string name="INVALID_LATITUDE">Invalid latitude</string>
+    <string name="INVALID_LONGITUDE">Invalid longitude</string>
+    <string name="INVALID_ALTITUDE">Invalid altitude</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

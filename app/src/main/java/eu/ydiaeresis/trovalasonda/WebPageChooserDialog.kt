@@ -6,16 +6,20 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.WebpageChoserBinding
 import java.util.*
 
-class WebPageChooserDialog  : DialogFragment(), View.OnClickListener {
+class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
     private lateinit var binding:WebpageChoserBinding
-    var sondeId:String?=null
-    var sondeType:String?=null
-    var lat:Double?=null
-    var lon:Double?=null
+    private var sondeId:String?=null
+    private var sondeType:String?=null
+    private var lat:Double?=null
+    private var lon:Double?=null
+    private var alt:Double?=null
+    private var isNotification=false
+    private var supportFragmentManager:FragmentManager?=null
 
     private fun getAprsId():String {
         val id=sondeId!!.replace("-","")
@@ -46,26 +50,72 @@ class WebPageChooserDialog  : DialogFragment(), View.OnClickListener {
             else -> sondeId!!
         }
     }
+
+    private fun launchPage(uri:Uri) {
+        Intent(Intent.ACTION_VIEW).apply {
+            data = uri
+            startActivity(this)
+        }
+    }
+
+    private fun showRadiosondyReport() {
+        val intent=Intent(activity,ReportActivity::class.java)
+        intent.putExtras(Bundle().apply {
+            putString("sondeId",sondeId)
+            putDouble("lat",lat!!)
+            putDouble("lng",lon!!)
+        })
+        startActivity(intent)    }
+
+    fun showForRecovery(supportFragmentManager:FragmentManager,sondeId:String,lat:Double,lon:Double,alt:Double) {
+        this.sondeId=sondeId
+        this.lat=lat
+        this.lon=lon
+        this.alt=alt
+        this.supportFragmentManager=supportFragmentManager
+        isNotification=true
+        show(supportFragmentManager,"")
+    }
+
+    fun showForInfo(supportFragmentManager:FragmentManager,sondeId:String,lat:Double,lon:Double) {
+        this.sondeId=sondeId
+        this.lat=lat
+        this.lon=lon
+        show(supportFragmentManager,"")
+    }
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let {
             val inflater = requireActivity().layoutInflater
             binding= WebpageChoserBinding.inflate(inflater).apply {
+                if (isNotification)
+                    title.text=getString(R.string.NOTIFY_RECOVERY)
                 tracker.setOnClickListener {
-                    Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("https://radiosondy.info/sonde.php?sondenumber=${getAprsId()}")
-                        startActivity(this)
-                    }
+                    if (isNotification)
+                        showRadiosondyReport()
+                    else
+                        launchPage(Uri.parse("https://radiosondy.info/sonde.php?sondenumber=${getAprsId()}"))
                     dialog?.cancel()
                 }
                 sondehub.setOnClickListener {
-                    Intent(Intent.ACTION_VIEW).apply {
+                    dialog?.cancel()
+                    if (isNotification) {
+                        val dlg=SondehubReport()
+                        dlg.sondeId=sondeId
+                        dlg.lat=lat
+                        dlg.lon=lon
+                        dlg.alt=alt
+                        dlg.show(supportFragmentManager!!,"")
+                    }
+                    else {
                         val url=String.format(Locale.US,
                             "https://tracker.sondehub.org/#!mt=Mapnik&mz=10&qm=0&mc=%f,%f&f=%s&q=%s",
-                            lat,lon,getSondehubId(),getSondehubId())
-                        data = Uri.parse(url)
-                        startActivity(this)
+                            lat,
+                            lon,
+                            getSondehubId(),
+                            getSondehubId())
+                        launchPage(Uri.parse(url))
                     }
-                    dialog?.cancel()
                 }
             }
             return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
@@ -75,4 +125,8 @@ class WebPageChooserDialog  : DialogFragment(), View.OnClickListener {
           } ?: throw IllegalStateException("Activity cannot be null")
         }
     override fun onClick(v: View?) {}
+
+    companion object {
+
+    }
 }
