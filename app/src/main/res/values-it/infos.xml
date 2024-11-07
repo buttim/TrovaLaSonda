@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="large_text">
+<b><big>Suggerimenti</big></b>\n
+Puoi premere su:\n
+･ l\'icona dell\'<u>altoparlante</u> per attivare e disattivare il cicalino del TTGO\n
+･ l\'icona della <u>batteria</u> per avere una precisa indicazione del livello di carica\n
+･ le icone della <u>sonda</u> o <u>bersaglio</u> per lanciare Google Maps in modalità navigazione\n
+･ il <u>seriale della sonda</u> per mostrare la pagina <a href='https://www.radiosondy.info'>radiosondy.info</a>
+o <a href='https://tracker.sondehub.org/'>Sondehub</a> per la sonda\n
+･ il <u>punto di atterraggio</u> (cerchio arancio) per avere indicazioni di navigazione da Google maps al punto previsto di atterraggio\n
+･ l\'icona <u>scoppio</u> per  sapere l\'ora di scoppio (previsto o passato)\n
+･ l\'icona <u>menu</u> per mostrare menù <b>e</b> coordinate della sonda\n
+･ la <u>latitudine</u> (o longitudine) della sonda per copiare il dato negli appunti\n\n
+Premi al lungo su:\n
+･ la voce del menù <u>auto</u> per scegliere l\'app di navigazione per raggiungere la posizione attuale della sonda\n
+･ le iconde della <u>sonda</u> o <u>bersaglio</u> per scegliere un\'app di navigazione per andare lì\n
+･ qualunque altra voce del menù per ottenere una spiegazione della sua funzione\n
+･ la <u>latitudine</u> o la <u>longitudine</u> della sonda per copiare entrambe le coordinate negli appunti\n\n
+<b><big>Grazie</big></b>\n
+A <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> per la stesura del firmware
+<a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a> per TTGO Lora32 firmware e il rilascio
+della <a href='https://download.farenight.it/MySondyGoAPI.pdf'>documentazione delle API</a>\n\n
+<b><big>Testing e suggerimenti</big></b>\n
+Molti amici del gruppo Facebook
+<a href='https://www.facebook.com/groups/919693011428093'>RADIOSONDE Italia</a>\n\n
+<b><big>Suoni da freesound.org</big></b>\n
+<a href='https://freesound.org/people/EminYILDIRIM/sounds/541192/'>Balloon explosion pop</a>\n
+<a href='https://freesound.org/people/se2001/sounds/541506'>Cartoon Quick Zip</a>\n
+<a href='https://freesound.org/people/ammaro/sounds/573381'>Ding</a>\n\n
+<b><big>Mappe</big></b>\n
+©<a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> (<a href='https://opendatacommons.org/licenses/odbl/'>ODbl</a>)\n
+©<a href='https://www.cyclosm.org/'>CyclOSM</a> (<a href='https://creativecommons.org/licenses/by-sa/2.0/'>CC-BY-SA 2.0</a>)\n
+©<a href='https://www.mapbox.com/about/maps/'>MapBox</a> (<a href='https://www.mapbox.com/map-feedback/'>Migliora questa mappa</a>)\n\n
+<b><big>Librerie</big></b>\n
+<a href='https://github.com/harry1453/android-bluetooth-serial'>android-bluetooth-serial</a> (<a href='https://github.com/harry1453/android-bluetooth-serial/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/MKergall/osmbonuspack'>osmbonuspack</a> (<a href='https://github.com/MKergall/osmbonuspack/blob/master/LICENSE.md'>GNU Lesser 3.0</a>)\n
+<a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/eo/battery-meter-view'>battery-meter-view</a> (<a href='https://github.com/eo/battery-meter-view/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n\n
+<b><big>Predizioni</big></b>\n
+Le predizioni usano il servizio <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
+    </string>
+</resources>

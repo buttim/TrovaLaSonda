@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string name="donation_text">
+Questa app è e sempre sarà <b>gratuita</b> e priva di <b>pubblicità</b>.\n\n
+Spero ti piaccia e che la userai per trovare molte sonde e divertirti.\n\n
+Ma. Non posso dimenticare che ci sono paesi dove non si può vagare per la campagna come facciamo noi per prendere le sonde.
+Per via delle <b>mine</b> e delle <b>bombe inesplose</b>.
+Se usi questa app spero tu voglia contribuire allo sminamento della Cambogia.\n
+E magari quando trovi una sonda donare ancora qualcosa.\n\n
+Grazie\n\n
+<a href="https://www.landmine-relief-fund.com/">Maggiori informazioni</a>\n\n
+<a href="https://www.landmine-relief-fund.com/donate/">Dona adesso</a>
+        </string>
+</resources>
