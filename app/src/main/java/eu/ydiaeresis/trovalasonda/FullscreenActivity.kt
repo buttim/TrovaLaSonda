@@ -243,6 +243,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
         }
 
+    @Suppress("SameParameterValue")
     private fun showcase(id:String) {
         MaterialShowcaseSequence(this,id).apply {
             setConfig(ShowcaseConfig().apply {
@@ -710,7 +711,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     private fun updateTypeAndFreq(type:String,freq:Double) {
         if (this.freq!=freq || sondeType<1 || type!=sondeTypes!![sondeType-1]) {
-            @Suppress("SetTextI18n") binding.type.text="$type ${freq}MHz"
+            @Suppress("SetTextI18n")
+            binding.type.text="$type ${freq}MHz"
             sondeType=sondeTypes?.indexOf(type)!!+1
             this.freq=freq
         }
@@ -726,7 +728,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     private fun updateRSSI(rssi:Double) {
-        @Suppress("SetTextI18n") binding.dbm.text="-${rssi}dBm"
+        @Suppress("SetTextI18n")
+        binding.dbm.text="-${rssi}dBm"
         binding.rssi.progress=(binding.rssi.max-rssi).toInt()
     }
 
@@ -1016,7 +1019,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setTaskDescription(if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU) {
+        @Suppress("DEPRECATION") setTaskDescription(if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU) {
             ActivityManager.TaskDescription.Builder().setIcon(R.drawable.ic_launcher_foreground)
                 .build()
         } else ActivityManager.TaskDescription(null,
@@ -1054,6 +1057,28 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ///////////////////////////////////////
+        /*CoroutineScope(Dispatchers.IO).launch {
+            with (binding) {
+                recovered(binding.root,
+                    "yyy",
+                    "string",
+                    45.0,
+                    7.0,
+                    1.0,
+                    "YYY")
+            }
+        }*/
+        ///////////////////////////////////////
+        /*SondehubReport() .apply {
+            sondeId="A1234567"//"string"
+            lat=45.0
+            lon=7.3
+            alt=500.0
+            show(supportFragmentManager,"")
+        }*/
+        ///////////////////////////////////////
 
         @SuppressLint("SetTextI18n") if (useImperialUnits()) with(binding) {
             unit.text="mi"
@@ -1611,6 +1636,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun normalizeSondeId():String=
         sondeId?.trim()?.replace("-","")?.ifEmpty {"????????"} ?: "[NO SONDE]"
 
+    @SuppressLint("SetTextI18n")
     override fun onRestoreInstanceState(savedInstanceState:Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         Log.i(TAG,"onRestoreInstanceState")

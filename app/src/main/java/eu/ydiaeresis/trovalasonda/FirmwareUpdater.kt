@@ -41,7 +41,7 @@ class FirmwareUpdater {
         }
     }
 
-    suspend fun getUpdate(file:File):Flow<DownloadStatus> {
+    fun getUpdate(file:File):Flow<DownloadStatus> {
         return flow {
             val uri=Uri.parse(BASE_URI+FIRMWARE)
             try {
@@ -67,7 +67,7 @@ class FirmwareUpdater {
         }
     }
 
-    suspend fun update(fullscreenActivity:FullscreenActivity,mutex:Mutex,file:File):Flow<DownloadStatus> {
+    fun update(fullscreenActivity:FullscreenActivity,mutex:Mutex,file:File):Flow<DownloadStatus> {
         return flow {
             try {
                 if (mutex.isLocked) mutex.unlock()

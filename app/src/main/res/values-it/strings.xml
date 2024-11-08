@@ -83,7 +83,7 @@
     <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Tocca qui per cambiare tipo sonda e frequenza</string>
     <string name="NOTIFY_RECOVERY">Notifica recupero</string>
     <string name="SEND_REPORT">Invia rapporto</string>
-    <string name="RECOVERY_REPORT">Rapporto recupero</string>
+    <string name="SONDEHUB_REPORT">Rapporto Sondehub</string>
     <string name="USER">utente</string>
     <string name="coord_closed">coord▲</string>
     <string name="coord_open">coords▼</string>
@@ -94,4 +94,9 @@
     <string name="INVALID_LATITUDE">Latitudine non valida</string>
     <string name="INVALID_LONGITUDE">Longitudine non valida</string>
     <string name="INVALID_ALTITUDE">Altitudine non valida</string>
+    <string name="failed_try_again">Fallito, riprovo?</string>
+    <string name="reporting_result">Risultato:\n\n\"%1$s\"</string>
+    <string name="failed_to_send_report">Impossibile inviare rapporto! (%1$s)</string>
+    <string name="error_sending_report_status">Errore invio rapporto (stato: %1$s)</string>
+    <string name="unknown_error">Errore sconosciuto %1$s</string>
 </resources>

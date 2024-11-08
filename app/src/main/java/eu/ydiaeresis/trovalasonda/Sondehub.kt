@@ -1,5 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import io.ktor.client.*
@@ -8,13 +9,15 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.client.plugins.compression.*
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import kotlinx.serialization.json.*
+import org.json.JSONObject
 import org.osmdroid.util.GeoPoint
 import java.time.Instant
 
 
-suspend fun recovered(user:String,serial:String,lat:Double,lon:Double,alt:Double,description:String) {
+suspend fun recovered(context:Context,user:String,serial:String,lat:Double,lon:Double,alt:Double,description:String):String? {
     val data=buildJsonObject {
         put("serial",serial)
         put("recovered",true)
@@ -32,12 +35,26 @@ suspend fun recovered(user:String,serial:String,lat:Double,lon:Double,alt:Double
             val response=it.put {
                 setBody(data.toString())
                 contentType(ContentType.Application.Json)
-                url(/*"http://192.168.1.39:3000/"*/Sondehub.URI+"recovered")
+                url(Sondehub.URI+"recovered")
             }
-            Log.i(FullscreenActivity.TAG,"RESPONSE: ${response.bodyAsText()}")
+            Log.i(FullscreenActivity.TAG,"RESPONSE: (${response.status}) ${response.bodyAsText()}")
+            return when (response.status) {
+                HttpStatusCode.OK -> null
+                HttpStatusCode.BadRequest -> {
+                    try {
+                        val json=JSONObject(response.bodyAsText())
+                        json.getString("message")
+                    }
+                    catch (ex:Exception) {
+                        context.getString(R.string.unknown_error,response.bodyAsText())
+                    }
+                }
+                else -> context.getString(R.string.error_sending_report_status,response.status)
+            }
         }
     } catch (ex:Exception) {
         Log.i(FullscreenActivity.TAG,ex.toString())
+        return context.getString(R.string.failed_to_send_report,ex)
     }
 }
 

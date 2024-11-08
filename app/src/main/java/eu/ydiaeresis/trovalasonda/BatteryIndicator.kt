@@ -55,6 +55,7 @@ class BatteryIndicator:AppCompatImageView {
         }
     }
 
+    @Suppress("SameParameterValue")
     private fun getTextPoint(string: String) :PointF {
         val r=Rect()
         paintBlack.getTextBounds(string, 0, string.length, r)

@@ -125,8 +125,4 @@ class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
           } ?: throw IllegalStateException("Activity cannot be null")
         }
     override fun onClick(v: View?) {}
-
-    companion object {
-
-    }
 }
