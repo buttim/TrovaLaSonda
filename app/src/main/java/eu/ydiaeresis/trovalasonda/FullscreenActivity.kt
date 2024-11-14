@@ -1058,27 +1058,27 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        ///////////////////////////////////////
-        /*CoroutineScope(Dispatchers.IO).launch {
+        /*//////////////////////////////////////
+        CoroutineScope(Dispatchers.IO).launch {
             with (binding) {
-                recovered(binding.root,
-                    "yyy",
+                recovered(applicationContext,
+                    "test",
                     "string",
                     45.0,
                     7.0,
                     1.0,
-                    "YYY")
+                    "this is a test")
             }
-        }*/
-        ///////////////////////////////////////
-        /*SondehubReport() .apply {
-            sondeId="A1234567"//"string"
-            lat=45.0
-            lon=7.3
+        }
+        *///////////////////////////////////////
+        /*SondehubReport().apply {
+            sondeId="string"
+            lat=45.069122825913084
+            lon=7.693258448936513
             alt=500.0
             show(supportFragmentManager,"")
-        }*/
-        ///////////////////////////////////////
+        }
+        *///////////////////////////////////////
 
         @SuppressLint("SetTextI18n") if (useImperialUnits()) with(binding) {
             unit.text="mi"

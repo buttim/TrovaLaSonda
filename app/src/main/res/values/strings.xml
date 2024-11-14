@@ -108,6 +108,9 @@
     <string name="failed_to_send_report">Failed to send report! (%1$s)</string>
     <string name="error_sending_report_status">Error sending report (status: %1$s)</string>
     <string name="unknown_error">Unknown error %1$s</string>
+    <string name="user_name_must_specified">User name must specified</string>
+    <string name="please_add_a_description">Please add a description</string>
+    <string name="report_sent_successfully">Report sent successfully</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

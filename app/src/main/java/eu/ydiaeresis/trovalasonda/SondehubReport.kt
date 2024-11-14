@@ -36,12 +36,18 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
         dialog?.setCanceledOnTouchOutside(false)
         dialog?.setOnShowListener(object:DialogInterface.OnShowListener {
             override fun onShow(dialog:DialogInterface?) {
-                val btn=
+                val btnSendReport=
                     (dialog as androidx.appcompat.app.AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
-                btn.setOnClickListener(object:View.OnClickListener {
+                btnSendReport.setOnClickListener(object:View.OnClickListener {
                     override fun onClick(v:View?) {
                         with(binding) {
-                            waitProgress.visibility=View.VISIBLE
+                            if (user.text.toString().isEmpty()) {
+                                Snackbar.make(binding.root,
+                                    getString(R.string.user_name_must_specified),
+                                    Snackbar.LENGTH_LONG).show()
+                                user.requestFocus()
+                                return
+                            }
                             val prefs=context?.getSharedPreferences(BuildConfig.APPLICATION_ID,
                                 MODE_PRIVATE)
                             prefs?.edit {
@@ -75,8 +81,16 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                                 altitude.requestFocus()
                                 return
                             }
+                            if (description.text.toString().isEmpty()) {
+                                Snackbar.make(binding.root,
+                                    getString(R.string.please_add_a_description),
+                                    Snackbar.LENGTH_LONG).show()
+                                description.requestFocus()
+                                return
+                            }
+                            waitProgress.visibility=View.VISIBLE
                         }
-                        btn.isEnabled=false
+                        btnSendReport.isEnabled=false
                         var result:String?=null
                         CoroutineScope(Dispatchers.IO).launch {
                             with(binding) {
@@ -90,7 +104,18 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                             }
                         }.invokeOnCompletion {
                             try {
-                                if (result!=null) {
+                                if (result==null) {
+                                    Snackbar.make(binding.root,
+                                        getString(R.string.report_sent_successfully),Snackbar.LENGTH_LONG)
+                                        .addCallback(object:Snackbar.Callback() {
+                                            override fun onDismissed(transientBottomBar:Snackbar?,
+                                                                     event:Int) {
+                                                super.onDismissed(transientBottomBar,event)
+                                                dialog.dismiss()
+                                            }
+                                        }).show()
+                                }
+                                else {
                                     Handler(Looper.getMainLooper()).postDelayed({
                                         binding.waitProgress.visibility=View.GONE
                                         MaterialAlertDialogBuilder(this@SondehubReport.requireContext(),
@@ -99,7 +124,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                                             .setTitle(getString(R.string.failed_try_again))
                                             .setMessage(getString(R.string.reporting_result,result))
                                             .setPositiveButton(R.string.YES) {_,_ ->
-                                                btn.isEnabled=true
+                                                btnSendReport.isEnabled=true
                                             }.setNegativeButton("No") {_,_ ->
                                                 dialog.dismiss()
                                             }.show()
@@ -129,10 +154,16 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                 altitude.setText(alt.toString())
                 description.requestFocus()
                 showCoords.setOnClickListener {
-                    showCoords.text=
-                        resources.getString(if (coordsLayout.visibility==View.VISIBLE) R.string.coord_closed else R.string.coord_open)
-                    coordsLayout.visibility=
-                        if (coordsLayout.visibility==View.VISIBLE) View.GONE else View.VISIBLE
+                    if (coordsLayout.visibility==View.VISIBLE) {
+                        showCoords.text=resources.getString(R.string.coord_closed)
+                        coordsLayout.visibility=View.GONE
+                        description.requestFocus()
+                    }
+                    else {
+                        showCoords.text=resources.getString(R.string.coord_open)
+                        coordsLayout.visibility=View.VISIBLE
+                        latitude.requestFocus()
+                    }
                 }
                 Handler(Looper.getMainLooper()).postDelayed({
                     val inputMethodManager=

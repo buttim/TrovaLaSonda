@@ -99,4 +99,7 @@
     <string name="failed_to_send_report">Impossibile inviare rapporto! (%1$s)</string>
     <string name="error_sending_report_status">Errore invio rapporto (stato: %1$s)</string>
     <string name="unknown_error">Errore sconosciuto %1$s</string>
+    <string name="user_name_must_specified">Nome utente obbligatorio</string>
+    <string name="please_add_a_description">Aggiungi una descrizione per favore</string>
+    <string name="report_sent_successfully">Rapporto inviato con successo</string>
 </resources>
