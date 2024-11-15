@@ -7,6 +7,14 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -93,14 +101,18 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
 import uk.co.deanwild.materialshowcaseview.ShowcaseConfig
 import uk.co.deanwild.materialshowcaseview.target.ViewTarget
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
@@ -378,7 +390,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
             try {
                 if (!isDiscovering && !startDiscovery()) Log.e(TAG,"Failed to start BT discovery")
-                Unit
             } catch (ex:SecurityException) {
                 Snackbar.make(binding.root,"Cannot start Bluetooth discovery",Snackbar.LENGTH_LONG)
                     .show()
@@ -403,13 +414,28 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             bluetoothManager?.closeDevice(connectedDevice.mac)
             return
         }
-        timeLastMessage=null
         btMacAddress=connectedDevice.mac
         deviceInterface=connectedDevice.toSimpleDeviceInterface()
+        connected=true
         deviceInterface?.setListeners(this,
             this,
             this)//this::onMessageReceived, this::onMessageSent, this::onError)
 
+        try {
+            val btAdapter=
+                (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+            val name=btAdapter.getRemoteDevice(btMacAddress).name
+            onConnectedCommon(name)
+        } catch (ex:SecurityException) {
+            Snackbar.make(binding.root,R.string.CANNOT_CONNECT,Snackbar.LENGTH_LONG).show()
+        }
+    }
+
+    private fun onConnectedCommon(name:String) {
+        Snackbar.make(binding.root,
+            applicationContext.getString(R.string.CONNECTED_TO)+" "+name,
+            Snackbar.LENGTH_LONG).show()
+        timeLastMessage=null
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_yellow)
         locationOverlay?.apply {
             setPersonIcon(bmp)
@@ -421,21 +447,18 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         muteChanged=false
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
-        try {
-            val btAdapter=
-                (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-            val name=btAdapter.getRemoteDevice(btMacAddress).name
-            Snackbar.make(binding.root,
-                applicationContext.getString(R.string.CONNECTED_TO)+" "+name,
-                Snackbar.LENGTH_LONG).show()
-        } catch (ex:SecurityException) {
-            Snackbar.make(binding.root,R.string.CANNOT_CONNECT,Snackbar.LENGTH_LONG).show()
-        }
         maybeShowDonation()
     }
 
     private fun onDisconnected() {
         Log.i(TAG,"onDisconnected")
+        bluetoothManager?.closeDevice(btMacAddress!!)
+        btMacAddress=null
+        deviceInterface=null
+        onDisconnectedCommon()
+    }
+
+    private fun onDisconnectedCommon() {
         playSound(R.raw._541506__se2001__cartoon_quick_zip_reverse)
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_red)
         locationOverlay?.setPersonIcon(bmp)
@@ -443,13 +466,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         locationOverlay?.setDirectionAnchor(.5f,.5f)
         sondeLevelListDrawable.level=0
         muteChanged=true
-        bluetoothManager?.closeDevice(btMacAddress!!)
-        btMacAddress=null
-        deviceInterface=null
+        connected=false
         showProgress(false)
         Snackbar.make(binding.root,R.string.CONNECTION_LOST,Snackbar.LENGTH_LONG).show()
         Handler(Looper.getMainLooper()).postDelayed({
-            connect()
+            askForScanning()//connect()
         },1000)
         binding.batteryMeter.chargeLevel=null
         versionChecked=false
@@ -709,13 +730,32 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
+    private fun updateType(type:String) {
+        if (sondeType<1 || type!=sondeTypes!![sondeType-1]) {
+            @Suppress("SetTextI18n")
+            binding.type.text="$type ${freq}MHz"
+            sondeType=sondeTypes?.indexOf(type)!!+1
+        }
+    }
+
+    private fun updateFreq(freq:Double) {
+        if (this.freq!=freq) {
+            val type=if (sondeType<0) "" else sondeTypes!![sondeType-1]
+            @Suppress("SetTextI18n")
+            binding.type.text="${type} ${freq}MHz"
+            this.freq=freq
+        }
+    }
+
     private fun updateTypeAndFreq(type:String,freq:Double) {
-        if (this.freq!=freq || sondeType<1 || type!=sondeTypes!![sondeType-1]) {
+        updateType(type)
+        updateFreq(freq)
+        /*if (this.freq!=freq || sondeType<1 || type!=sondeTypes!![sondeType-1]) {
             @Suppress("SetTextI18n")
             binding.type.text="$type ${freq}MHz"
             sondeType=sondeTypes?.indexOf(type)!!+1
             this.freq=freq
-        }
+        }*/
     }
 
     @SuppressLint("DefaultLocale")
@@ -956,17 +996,26 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     private fun ttgoNotConnectedWarning() {
-        Snackbar.make(binding.root,R.string.TTGO_NOT_CONNECTED,Snackbar.LENGTH_LONG).show()
+        Snackbar.make(binding.root,R.string.TTGO_NOT_CONNECTED,Snackbar.LENGTH_LONG)
+            .setAction("connect") { askForScanning(true) }
+            .show()
     }
 
     private fun toggleBuzzer() {
-        if (deviceInterface==null) ttgoNotConnectedWarning()
-        else {
+        if (!connected) ttgoNotConnectedWarning()
+        else if (deviceInterface!=null) { //BT classic?
             if (muteChanged) return
             mute=if (mute==1) 0 else 1
             sendCommand("mute",mute)
             binding.buzzer.imageAlpha=64
             muteChanged=true
+        }
+        else {
+            mute=if (mute==1) 0 else 1
+            muteCharacteristic!!.value=ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(mute).array()
+            bluetoothGatt!!.writeCharacteristic(muteCharacteristic)
+            updateMute(mute)
         }
     }
 
@@ -1012,6 +1061,21 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond)
                 commit()
             }
+        }
+    }
+
+    private fun setFreqAndType(freq:Double,type:Int) {
+        if (deviceInterface!=null)  //BT classic?
+            sendCommands(listOf<Pair<String,Any>>(Pair("f",freq),Pair("tipo",type)))
+        else {
+            freqCharacteristic!!.value=
+                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt((freq*1000).toInt()).array()
+            typeCharacteristic!!.value=ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(type-1).array()
+
+            var a:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
+            a.addAll(arrayOf<BluetoothGattCharacteristic>(freqCharacteristic!!,typeCharacteristic!!))
+            bluetoothGattCallback.writeMultipleCharacteristics(a)
+            updateTypeAndFreq(sondeTypes!![type-1],freq)
         }
     }
 
@@ -1089,7 +1153,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
         binding.buzzer.setOnClickListener {toggleBuzzer()}
         binding.batteryMeter.setOnClickListener {
-            if (deviceInterface==null) ttgoNotConnectedWarning()
+            if (!connected) ttgoNotConnectedWarning()
             else if (batteryLevel!=null) Snackbar.make(binding.root,
                 applicationContext.getString(R.string.BATTERY_)+" %.1fV".format(batteryLevel!!/1000f),
                 Snackbar.LENGTH_SHORT).show()
@@ -1138,7 +1202,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             true
         }
         binding.panel.setOnClickListener {
-            if (deviceInterface==null) {
+            if (!connected) {
                 ttgoNotConnectedWarning()
                 return@setOnClickListener
             }
@@ -1148,7 +1212,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 isCiapaSonde=this@FullscreenActivity.isCiapaSonde
                 dialogCloseListener=object:DialogCloseListener {
                     override fun handleDialogClose() {
-                        sendCommands(listOf<Pair<String,Any>>(Pair("f",freq),Pair("tipo",type)))
+                        setFreqAndType(freq,type)
                     }
                 }
                 show(supportFragmentManager,"")
@@ -1197,7 +1261,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             true
         }
         binding.menuSettings.setOnClickListener {
-            if (deviceInterface==null) ttgoNotConnectedWarning()
+            if (!connected) ttgoNotConnectedWarning()
             else {
                 sendCommand("?")
                 showProgress(true)
@@ -1434,7 +1498,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
         })
         registerReceiver(receiver,IntentFilter(BluetoothDevice.ACTION_FOUND))
-        if (deviceInterface==null) connect()
+        if (!connected)
+            askForScanning(true)//connect()
         Handler(Looper.getMainLooper()).postDelayed({
             showcase("info")
         },2000)
@@ -1689,8 +1754,392 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         return false
     }
 
+    private fun askForScanning(firstTime:Boolean=false) {
+        var choice:Int=0
+        MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
+            .setCancelable(false)
+            .setTitle(if (firstTime) "Chose connection" else "No device found")
+            .setSingleChoiceItems(arrayOf<CharSequence>("Bluetooth Classic (TTGO)",
+                "Bluetooth Low Energy (Heltec)",
+                "No device"),0) {_,x -> choice=x}.setPositiveButton("OK") {_,_ ->
+                when (choice) {
+                    0 -> connect()
+                    1 -> connectLE()
+                }
+            }.setNegativeButton("Exit") {_,_ ->
+                exitProcess(-1)
+            }.show()
+    }
+
+    private var bluetoothGatt:BluetoothGatt?=null
+    private var bluetoothAdapter:BluetoothAdapter?=null
+    private var bluetoothLeScanner:BluetoothLeScanner?=null
+    private var connected=false
+    private var scanning=false
+    private var freqCharacteristic:BluetoothGattCharacteristic?=null
+    private var typeCharacteristic:BluetoothGattCharacteristic?=null
+    private var muteCharacteristic:BluetoothGattCharacteristic?=null
+    private var batteryCharacteristic:BluetoothGattCharacteristic?=null
+    private var latitudeCharacteristic:BluetoothGattCharacteristic?=null
+    private var longitudeCharacteristic:BluetoothGattCharacteristic?=null
+    private var altitudeCharacteristic:BluetoothGattCharacteristic?=null
+    private var serialCharacteristic:BluetoothGattCharacteristic?=null
+    private val leScanCallback:ScanCallback=object:ScanCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onScanResult(callbackType:Int,result:ScanResult) {
+            super.onScanResult(callbackType,result)
+
+            if (!scanning) return
+            if (result.device.name!=null) Log.i(FullscreenActivity.TAG,result.device.name)
+            if (result.device.name!=null && result.device.name.startsWith(FullscreenActivity.TROVALASONDAPREFIX)) {
+                Log.i(FullscreenActivity.TAG,"TROVATO------------------------")
+                stopScanLE()
+                doConnectLE(result.device.address)
+            }
+        }
+
+        override fun onScanFailed(errorCode:Int) {
+            super.onScanFailed(errorCode)
+            Log.i(TAG,"onScanFailed: $errorCode")
+        }
+    }
+
+    private val bluetoothGattCallback=object:BluetoothGattCallback() {
+        var characteristicsToRegister:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
+        val characteristicsToRead:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
+        val characteristicsToWrite:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
+
+        fun writeMultipleCharacteristics(chs:ArrayDeque<BluetoothGattCharacteristic>) {
+            if (!chs.isEmpty()) {
+                val ch=chs.removeFirst()
+                characteristicsToWrite.addAll(chs)
+                bluetoothGatt!!.writeCharacteristic(ch)
+            }
+        }
+
+        @SuppressLint("MissingPermission") //TODO:
+        private fun registerCharacteristic(gatt:BluetoothGatt?) {
+            if (characteristicsToRegister.isEmpty()) {
+                onConnectedCommon(gatt!!.device!!.name)
+                characteristicsToRead.addAll(arrayOf<BluetoothGattCharacteristic>(typeCharacteristic!!,batteryCharacteristic!!,muteCharacteristic!!,serialCharacteristic!!,latitudeCharacteristic!!,longitudeCharacteristic!!,altitudeCharacteristic!!))
+                bluetoothGatt?.readCharacteristic(freqCharacteristic)
+                return
+            }
+            val ch=characteristicsToRegister.removeFirst()
+            gatt?.setCharacteristicNotification(ch,true)
+            val descriptor=ch.getDescriptor(CLIENT_CONFIG_DESCRIPTOR)
+            Log.i(TAG,"registrazione notifiche per caratteristica ${ch.uuid}, descriptor $descriptor")
+            if (descriptor!=null) {
+                descriptor.value=BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                if (!(gatt?.writeDescriptor(descriptor))!!)
+                    Log.e(TAG,"registrazione non avvenuta!!!")
+            }
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun onCharacteristicRead(gatt:BluetoothGatt?,
+                                          characteristic:BluetoothGattCharacteristic?,
+                                          status:Int) {
+            super.onCharacteristicRead(gatt,characteristic,status)
+            val value=characteristic!!.value
+            Log.i(TAG,"onCharacteristicRead "+characteristic.uuid.toString()+"/"+value.toString())
+            when (characteristic.uuid) {
+                FREQ_UUID -> {
+                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post { updateFreq(v/1000.0) }
+                    bluetoothGatt?.readCharacteristic(typeCharacteristic)
+                }
+                TYPE_UUID -> {
+                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post { updateType(sondeTypes!![v]) }
+                }
+                SERIAL_UUID -> {
+                    val v=characteristic.value.toString(Charsets.UTF_8)
+                    if (sondePosition!=null)
+                        handler.post{updateSondeLocation(v,sondePosition!!.latitude,sondePosition!!.longitude,sondePosition!!.altitude)}
+                }
+                BAT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post { updateBattery(v,3100+v*(4200-3100)/100) }
+                }
+                MUTE_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getChar().toInt()
+                    handler.post { updateMute(v) }
+                }
+                LAT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lon=sondePosition?.longitude?:0.0
+                    val alt=sondePosition?.altitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",v,lon,alt)}
+                }
+                LON_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lat=sondePosition?.latitude?:0.0
+                    val alt=sondePosition?.altitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",lat,v,alt)}
+                }
+                ALT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lat=sondePosition?.latitude?:0.0
+                    val lon=sondePosition?.latitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",lat,lon,v)}
+                }
+            }
+            if (!characteristicsToRead.isEmpty()) {
+                val ch=characteristicsToRead.removeFirst()
+                bluetoothGatt?.readCharacteristic(ch)
+            }
+
+        }
+
+        override fun onCharacteristicWrite(gatt:BluetoothGatt?,
+                                           characteristic:BluetoothGattCharacteristic?,
+                                           status:Int) {
+            super.onCharacteristicWrite(gatt,characteristic,status)
+            if (!characteristicsToWrite.isEmpty()) {
+                val ch=characteristicsToWrite.removeFirst()
+                bluetoothGatt!!.writeCharacteristic(ch)
+            }
+        }
+        /*override fun onCharacteristicRead(gatt:BluetoothGatt,
+                                          characteristic:BluetoothGattCharacteristic,
+                                          value:ByteArray,
+                                          status:Int) {
+            Log.i(TAG,"onCharacteristicRead "+characteristic.uuid.toString()+"/"+value.toString())
+            super.onCharacteristicRead(gatt,characteristic,value,status)
+            when (characteristic) {
+                freqCharacteristic -> {
+                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post() {
+                        updateFreq(v/1000.0)
+                    }
+                }
+                typeCharacteristic -> {
+                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post() {
+                        updateType(sondeTypes!![v])
+                    }
+                }
+            }
+        }*/
+
+        override fun onDescriptorWrite(gatt:BluetoothGatt?,
+                                       descriptor:BluetoothGattDescriptor?,
+                                       status:Int) {
+            super.onDescriptorWrite(gatt,descriptor,status)
+            if (connected) {
+                if (descriptor!=null)
+                    Log.i(TAG,"onDescriptorWrite ${descriptor.uuid}")
+
+                registerCharacteristic(gatt)
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(gatt:BluetoothGatt?,status:Int,newState:Int) {
+            if (newState==BluetoothProfile.STATE_CONNECTED) {
+                connected=true
+                bluetoothGatt?.discoverServices()
+            } else if (newState==BluetoothProfile.STATE_DISCONNECTED) {
+                connected=false
+                handler.post { onDisconnectedCommon() }
+                gatt?.disconnect()
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onServicesDiscovered(gatt:BluetoothGatt?,status:Int) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
+                if (bluetoothGatt?.services!=null) for (svc in bluetoothGatt?.services!!) {
+                    Log.i(TAG,"SVC: "+svc.uuid.toString()) //TODO
+                    if (svc.uuid.equals(SERVICE_UUID)) {
+                        characteristicsToRegister.addAll(svc.characteristics)
+                        registerCharacteristic(gatt)
+                        for (ch in svc.characteristics) {
+                            //Log.i(MainActivity.TAG,"\tCHR: "+ch.uuid.toString())
+                            when (ch.uuid) {
+                                FREQ_UUID -> freqCharacteristic=ch
+                                TYPE_UUID -> typeCharacteristic=ch
+                                MUTE_UUID -> muteCharacteristic=ch
+                                BAT_UUID -> batteryCharacteristic=ch
+                                LAT_UUID->latitudeCharacteristic=ch
+                                LON_UUID->longitudeCharacteristic=ch
+                                ALT_UUID->altitudeCharacteristic=ch
+                                SERIAL_UUID->serialCharacteristic=ch
+                            }
+                        }
+                    }
+                }
+            } else {
+                Log.w(TAG,"onServicesDiscovered received: $status")
+            }
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun onCharacteristicChanged(gatt:BluetoothGatt,
+                                             characteristic:BluetoothGattCharacteristic) {
+            when (characteristic.uuid) {
+                LAT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lon=sondePosition?.longitude?:0.0
+                    val alt=sondePosition?.altitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",v,lon,alt)}
+                }
+
+                LON_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lat=sondePosition?.latitude?:0.0
+                    val alt=sondePosition?.altitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",lat,v,alt)}
+                }
+
+                ALT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getFloat().toDouble()
+                    val lat=sondePosition?.latitude?:0.0
+                    val lon=sondePosition?.latitude?:0.0
+                    handler.post{updateSondeLocation(sondeId?:"???",lat,lon,v)}
+                }
+
+                RSSI_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post {updateRSSI(-v.toDouble())}
+                }
+
+                BAT_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    handler.post { updateBattery(v,3100+v*(4200-3100)/100) }
+                }
+
+                FRAME_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    //TODO:
+                }
+
+                SERIAL_UUID -> {
+                    val v=characteristic.value.toString(Charsets.UTF_8)
+                    if (sondePosition!=null)
+                        handler.post{updateSondeLocation(v,sondePosition!!.latitude,sondePosition!!.longitude,sondePosition!!.altitude)}
+                }
+
+                /*FREQ_UUID -> {
+                    //TODO: eliminare?
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    updateFreq(v/1000.0)
+                }
+
+                TYPE_UUID -> {
+                    //TODO: eliminare?
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    updateType(sondeTypes!![v])
+                }
+
+                MUTE_UUID -> {
+                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
+                        .getChar()
+                    //TODO: eliminare?
+                }*/
+            }
+        }
+    }
+
+    fun doConnectLE(address:String):Boolean {
+        bluetoothAdapter?.let {adapter ->
+            try {
+                val device=adapter.getRemoteDevice(address)
+                // connect to the GATT server on the device
+                if (ActivityCompat.checkSelfPermission(this,
+                        Manifest.permission.BLUETOOTH)!=PackageManager.PERMISSION_GRANTED
+                ) {
+                    Snackbar.make(binding.root,
+                        "autorizzazione scansione BLE negata",
+                        Snackbar.LENGTH_LONG).show()
+                    Log.i(TAG,"autorizzazione scansione BLE negata")
+                    return false
+                }
+                bluetoothGatt=device.connectGatt(applicationContext,false,bluetoothGattCallback)
+                return true
+            } catch (exception:IllegalArgumentException) {
+                Log.w(TAG,"Device not found with provided address.  Unable to connect.")
+                return false
+            }
+        } ?: run {
+            Log.w(TAG,"BluetoothAdapter not initialized")
+            return false
+        }
+    }
+
+    private fun connectLE():Boolean {
+        Log.i(TAG,"Inizio scan")
+        bluetoothAdapter=
+            (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+        bluetoothLeScanner=bluetoothAdapter!!.bluetoothLeScanner
+
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH)!=PackageManager.PERMISSION_GRANTED
+        ) {
+            Snackbar.make(binding.root,
+                "autorizzazione scansione BLE negata",
+                Snackbar.LENGTH_LONG).show()
+            Log.i(TAG,"autorizzazione scansione BLE negata")
+            return false
+        }
+        if (!bluetoothAdapter!!.isEnabled) {
+            Snackbar.make(binding.root,"bluetooth is OFF",Snackbar.LENGTH_LONG).show()
+            bluetoothAdapter!!.enable()
+            handler.postDelayed({connectLE()},1000)
+            return false
+        }
+        if (connected) {
+            bluetoothGatt?.disconnect()
+        } else if (!scanning) { // Stops scanning after a pre-defined scan period.
+            handler.postDelayed({
+                stopScanLE()
+            },SCAN_PERIOD)
+            scanning=true
+            bluetoothLeScanner!!.startScan(leScanCallback)
+        }
+        return true
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopScanLE() {
+        if (!scanning) return
+        scanning=false
+        bluetoothLeScanner!!.stopScan(leScanCallback)
+    }
+
     companion object {
         const val TAG="MAURI"
+        private const val SCAN_PERIOD:Long=10000
+        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
+        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
+        private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
+        private val ALT_UUID=UUID.fromString("1bfdccfe-80f4-46d0-844f-ad8410001989")
+        private val FRAME_UUID=UUID.fromString("343b7b66-8208-4e48-949f-e62739147f92")
+        private val BAT_UUID=UUID.fromString("4578ee77-f50f-4584-b59c-46264c56d949")
+        private val RSSI_UUID=UUID.fromString("e482dfeb-774f-4f8b-8eea-87a752326fbd")
+        private val TYPE_UUID=UUID.fromString("66bf4d7f-2b21-468d-8dce-b241c7447cc6")
+        private val FREQ_UUID=UUID.fromString("b4da41fe-3194-42e7-8bbb-2e11d3ff6f6d")
+        private val SERIAL_UUID=UUID.fromString("539fd1f8-f427-4ddc-99d2-80f51616baab")
+        private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
         private const val EXPANDED_MENU="expandedMenu"
         private const val MAP_STYLE="mapStyle"
         private const val MUTE="mute"
