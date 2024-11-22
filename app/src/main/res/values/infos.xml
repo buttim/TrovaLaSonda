@@ -3,7 +3,7 @@
     <string name="large_text">
 <b><big>Some hints</big></b>\n
 You can tap on:\n
-･ the <u>loudspeaker</u> icon to toggle the TTGO beep\n
+･ the <u>loudspeaker</u> icon to toggle the receiver beep\n
 ･ the <u>battery</u> icon to get precise charge level indication\n
 ･ the <u>sonde</u> or <u>target</u> icons to launch Google Maps in navigation mode\n
 ･ the <u>sonde ID</u> to show the <a href='https://www.radiosondy.info'>radiosondy.info</a>
@@ -18,7 +18,7 @@ Long tap on:\n
 ･ any other menu item to get an explanation of what it does\n
 ･ the <u>latitude</u> or <u>longitude</u> of the sonde to copy both coordinates to the clipboard\n\n
 <b><big>Thanks</big></b>\n
-To <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> for writing
+To <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> and partners for writing
 the <a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a>TTGO Lora32 firmware and
 releasing <a href='https://download.farenight.it/MySondyGoAPI.pdf'>the APIs documentation</a>\n\n
 <b><big>Testing and suggestions</big></b>\n
@@ -36,7 +36,6 @@ Many friendly people from the
 <a href='https://github.com/harry1453/android-bluetooth-serial'>android-bluetooth-serial</a> (<a href='https://github.com/harry1453/android-bluetooth-serial/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/MKergall/osmbonuspack'>osmbonuspack</a> (<a href='https://github.com/MKergall/osmbonuspack/blob/master/LICENSE.md'>GNU Lesser 3.0</a>)\n
 <a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
-<a href='https://github.com/eo/battery-meter-view'>battery-meter-view</a> (<a href='https://github.com/eo/battery-meter-view/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n\n
 <b><big>Predictions</big></b>\n
 Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n

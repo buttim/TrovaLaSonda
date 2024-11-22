@@ -10,9 +10,9 @@
     <string name="title_activity_scrolling" translatable="false">Trova la sonda</string>
     <string name="CLOSE">Close</string>
     <string name="CONNECTED">Connected</string>
-    <string name="CONNECTION_LOST">Connection to TTGO lost</string>
+    <string name="CONNECTION_LOST">Connection to receiver lost</string>
     <string name="CANNOT_CONNECT">Cannot connect !</string>
-    <string name="TTGO_NOT_CONNECTED">TTGO not connected</string>
+    <string name="RECEIVER_NOT_CONNECTED">Receiver not connected</string>
     <string name="LATITUDE_COPIED">Latitude copied to clipboard</string>
     <string name="LONGITUDE_COPIED">Longitude copied to clipboard</string>
     <string name="COORDINATES_COPIED">Coordinates copied to clipboard</string>
@@ -44,7 +44,7 @@
     <string name="YES">Yes</string>
     <string name="ALERT">Alert</string>
     <string name="CANCEL">Cancel</string>
-    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">New settings require to restart the TTGO, do you want to apply them anyway?</string>
+    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">New settings require to restart the receiver, do you want to apply them anyway?</string>
     <string name="tune">Tune</string>
     <string name="offset">Offset</string>
     <string name="radio">Radio</string>
@@ -76,17 +76,17 @@
     <string name="DISTANCE">Distance</string>
     <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Between you and the sonde you are receiving</string>
     <string name="BUZZER">Buzzer</string>
-    <string name="MUTE_YOUR_TTGO_TAPPING_THIS">Mute your TTGO tapping this</string>
+    <string name="MUTE_YOUR_RECEIVER_TAPPING_THIS">Mute your receiver tapping this</string>
     <string name="BATTERY">Battery</string>
-    <string name="KEEP_AN_EYE_ON_YOUR_TTGOS_BATTERY_LEVEL">Keep an eye on your TTGO\'s battery level</string>
+    <string name="KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL">Keep an eye on your receiver\'s battery level</string>
     <string name="RSSI" translatable="false">RSSI</string>
     <string name="SIGNAL_STRENGTH_IS_SHOWN_HERE">Signal strength is shown here</string>
     <string name="MAP_LAYERS">Map layers</string>
     <string name="CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS">Choose between three different map layers</string>
     <string name="NAVIGATION">Navigation</string>
     <string name="LAUNCH_GOOGLE_MAPS">Launch Google maps for driving directions to the sonde current position\nLong tap fo selecting a different app for navigation</string>
-    <string name="TTGOS_PARAMETERS">TTGO\'s parameters</string>
-    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_TTGO">Set pins, bandwidth and calibration for your TTGO</string>
+    <string name="RECEIVER_PARAMETERS">Receiver parameters</string>
+    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER">Set pins, bandwidth and calibration for your receiver</string>
     <string name="GOT_IT">GOT IT</string>
     <string name="SONDE_DATA">Sonde data</string>
     <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Tap here to change sonde type &amp; frequency</string>
@@ -111,6 +111,8 @@
     <string name="user_name_must_specified">User name must specified</string>
     <string name="please_add_a_description">Please add a description</string>
     <string name="report_sent_successfully">Report sent successfully</string>
+    <string name="settings_not_available_for_this_receiver">Settings not available for this receiver</string>
+    <string name="skip_tutorial">Skip tutorial</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

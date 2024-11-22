@@ -279,14 +279,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             })
             res=hasFired()
 
-            /*val mcsv1=MaterialShowcaseView.Builder(this@FullscreenActivity)
-                .setTarget(binding.type)
-                .setTitleText("Your location")
-                .setContentText("Red when no TTGO connected, yellow when connected")
-                .setDismissText(R.string.GOT_IT)
-                .build()
-            mcsv1.setTarget(GeoPointTarget(binding.map,GeoPoint(currentLocation!!)))
-            addSequenceItem(mcsv1)*/
+
             addShowcaseItem(this,binding.type,R.string.SONDE_DATA,R.string.TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY)
                 .setTarget(MultipleViewsTarget(listOf(binding.verticalSpeed,
                     binding.horizontalSpeed,
@@ -296,7 +289,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             addShowcaseItem(this,binding.distance,R.string.DISTANCE,R.string.BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING)
             addShowcaseItem(this,binding.buzzer,R.string.BUZZER,R.string.MUTE_YOUR_RECEIVER_TAPPING_THIS)
             addShowcaseItem(this,binding.batteryMeter,R.string.BATTERY,R.string.KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL)
-            //addShowcaseItem(this,binding.rssi,R.string.RSSI,R.string.SIGNAL_STRENGTH_IS_SHOWN_HERE)
             addShowcaseItem(this,binding.menuLayer,R.string.MAP_LAYERS,R.string.CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS)
             addShowcaseItem(this,binding.menuMaps,R.string.NAVIGATION,R.string.LAUNCH_GOOGLE_MAPS)
             addShowcaseItem(this,binding.menuSettings,R.string.RECEIVER_PARAMETERS,R.string.SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER)
@@ -360,6 +352,96 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 if (deviceInterface==null) connect()
             },2000)
         }
+    /*private val turnOnBTContract=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
+        if (result.resultCode!=Activity.RESULT_OK) finish()
+        else Handler(Looper.getMainLooper()).postDelayed({
+            if (deviceInterface==null) createReceiver()
+        },2000)
+    }
+
+    private val receiverCallback=object:ReceiverCallback() {
+        override fun onDisconnected() {
+            Log.i(TAG,"onDisconnected")
+        }
+
+        override fun onBattery(mv:Int) {
+            Log.i(TAG,"onBattery $mv")
+        }
+
+        override fun onMute(mute:Boolean) {
+            Log.i(TAG,"onMute $mute")
+        }
+
+        override fun onType(type:SondeType) {
+            Log.i(TAG,"onType $type")
+        }
+
+        override fun onFrequency(freq:Float) {
+            Log.i(TAG,"onFrequency $freq")
+        }
+
+        override fun onRSSI(rssi:Float) {
+            Log.i(TAG,"onRSSI $rssi")
+        }
+
+        override fun onSerial(serial:String) {
+            Log.i(TAG,"onSerial $serial")
+        }
+
+        override fun onLatitude(lat:Double) {
+            Log.i(TAG,"onLatitude $lat")
+        }
+
+        override fun onLongitude(lon:Double) {
+            Log.i(TAG,"onLongitude $lon")
+        }
+
+        override fun onAltitude(alt:Double) {
+            Log.i(TAG,"onAltitude $alt")
+        }
+
+        override fun onVelocity(vel:Float) {
+            Log.i(TAG,"onVelocity $vel")
+        }
+
+        override fun onAFC(afc:Int) {
+            Log.i(TAG,"onAFC $afc")
+        }
+
+        override fun onBkTime(bkTime:Int) {
+            Log.i(TAG,"onBkTime $bkTime")
+        }
+
+        override fun onVersion(version:String) {
+            Log.i(TAG,"onVersion $version")
+        }
+
+        override fun onSettings(
+            sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,
+            PILOTbw:Int,DFMbw:Int,call:String,offset:Int,bat:Int,batMin:Int,
+            batMax:Int,batType:Int,lcd:Int,nam:Int,buz:Int,ver:String
+        ) {
+            Log.i(TAG,"onSettings")
+        }
+    }
+
+    private fun createReceiver() {
+        try {
+            BLEReceiverBuilder(object:ReceiverBuilderCallback() {
+                override fun onReceiverConnected(receiver:Receiver) {
+                    rec=receiver
+                    Log.i(TAG,"oggetto receiver ricevuto")
+                }
+            },receiverCallback,applicationContext,this@FullscreenActivity).connect()
+        }
+        catch (ex:BluetoothNotEnabledException) {
+            val intent=Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            activityResultContract.launch(intent)
+        }
+        catch (ex1:ReceiverException) {
+            Log.e(TAG,"Impossibile connettersi al ricevitore: $ex1")
+        }
+    }*/
 
     private fun connect() {
         val btAdapter=
@@ -377,7 +459,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
 
             try {
-                if (!isDiscovering && !startDiscovery()) Log.e(TAG,"Failed to start BT discovery")
+                if (!isDiscovering)
+                    if (startDiscovery()) {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            cancelDiscovery()
+                        },SCAN_PERIOD)
+                    } else {
+                        Log.e(TAG,"Failed to start BT discovery")
+                    }
             } catch (ex:SecurityException) {
                 Snackbar.make(binding.root,"Cannot start Bluetooth discovery",Snackbar.LENGTH_LONG)
                     .show()
@@ -1318,8 +1407,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 Snackbar.LENGTH_LONG).show()
             //////////////////////////
             if (Debug.isDebuggerConnected()) {
-                val res=showcase(Instant.now().toString())////////////////////////////////
-                Log.i(TAG,"Showcase ritorna $res")
+                //val res=showcase(Instant.now().toString())////////////////////////////////
                 getSharedPreferences(BuildConfig.APPLICATION_ID,MODE_PRIVATE).edit {
                     putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond-8*3600*24)
                     commit()
@@ -1494,6 +1582,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 handler.postDelayed(this,1000)
             }
         })
+        ////////////////////////////////////////Snackbar.make(binding.root,"BT disabilitato!!!",Snackbar.LENGTH_LONG).show()///////////////////////
         registerReceiver(receiver,IntentFilter(BluetoothDevice.ACTION_FOUND))
         handler.postDelayed({
             val hasFired=showcase("info")
@@ -1750,6 +1839,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         return false
     }
 
+    private var rec:Receiver?=null
     private fun askForScanning(firstTime:Boolean=false) {
         var choice:Int=0
         MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
@@ -1761,6 +1851,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 when (choice) {
                     0 -> connect()
                     1 -> connectLE()
+                    //2 -> createReceiver() ////////////////////////////
                 }
             }.setNegativeButton("Exit") {_,_ ->
                 exitProcess(-1)
@@ -2106,7 +2197,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     companion object {
-        const val TAG="MAURI"
+        const val TAG="TrovaLaSonda"
         private const val SCAN_PERIOD:Long=15000
         private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
         private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")

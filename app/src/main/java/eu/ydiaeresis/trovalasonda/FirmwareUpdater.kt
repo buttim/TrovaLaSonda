@@ -28,7 +28,7 @@ class FirmwareUpdater {
     private val json = Json { ignoreUnknownKeys = true }
     suspend fun getVersion():VersionInfo? {
         val uri=Uri.parse(BASE_URI+JSON)
-        Log.i("MAURI",uri.toString())
+        Log.i(FullscreenActivity.TAG,uri.toString())
         try {
             HttpClient(CIO).use {
                 val response:HttpResponse=it.get(uri.toString())
@@ -36,7 +36,7 @@ class FirmwareUpdater {
             }
         }
         catch (ex:Exception) {
-            Log.i("MAURI",ex.toString())
+            Log.i(FullscreenActivity.TAG,ex.toString())
             return null
         }
     }
@@ -86,7 +86,7 @@ class FirmwareUpdater {
                     emit(DownloadStatus.Success)
                 }
             } catch (ex:Exception) {
-                Log.i("MAURI",ex.toString())
+                Log.i(FullscreenActivity.TAG,ex.toString())
                 emit(DownloadStatus.Error(ex.toString()))
             }
         }
@@ -94,7 +94,7 @@ class FirmwareUpdater {
 
     companion object {
         const val CHUNK_SIZE=4096
-        const val BASE_URI="https://www.ydiaeresis.eu/public/"//"http://buttim.asuscomm.com/"//
+        const val BASE_URI="https://www.ydiaeresis.eu/public/"
         const val JSON="rdzTrovaLaSonda.json"
         const val FIRMWARE="rdzTrovaLaSonda.ino.bin"
     }

@@ -1,9 +1,9 @@
 <resources>
     <string name="CLOSE">Chiudi</string>
     <string name="CONNECTED">Connesso</string>
-    <string name="CONNECTION_LOST">Connessione al TTGO persa</string>
+    <string name="CONNECTION_LOST">Connessione al ricevitore persa</string>
     <string name="CANNOT_CONNECT">Non riesco a connettermi</string>
-    <string name="TTGO_NOT_CONNECTED">TTGO non connesso</string>
+    <string name="RECEIVER_NOT_CONNECTED">Ricevitore non connesso</string>
     <string name="LATITUDE_COPIED">Latitudine copiata negli appunti</string>
     <string name="LONGITUDE_COPIED">Longitudine copiata negli appunti</string>
     <string name="COORDINATES_COPIED">Coordinate copiate negli appunti</string>
@@ -35,7 +35,7 @@
     <string name="YES">Si</string>
     <string name="CANCEL">Annulla</string>
     <string name="ALERT">Attenzione</string>
-    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">Le nuove impostazioni richiedono di riavviare il TTGO, le vuoi applicare comunque?</string>
+    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">Le nuove impostazioni richiedono di riavviare il ricevitore, le vuoi applicare comunque?</string>
     <string name="tune">Sint.</string>
     <string name="offset">Differenza</string>
     <string name="radio">Radio</string>
@@ -68,16 +68,16 @@
     <string name="DISTANCE">Distanza</string>
     <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Tra te e la sonda che stai ricevendo</string>
     <string name="BUZZER">Cicalino</string>
-    <string name="MUTE_YOUR_TTGO_TAPPING_THIS">Zittisci il TTGO toccando qui</string>
+    <string name="MUTE_YOUR_RECEIVER_TAPPING_THIS">Zittisci il ricevitore toccando qui</string>
     <string name="BATTERY">Batteria</string>
-    <string name="KEEP_AN_EYE_ON_YOUR_TTGOS_BATTERY_LEVEL">Tieni d\'occhio il livello della batteria del tuo TTGO</string>
+    <string name="KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL">Tieni d\'occhio il livello della batteria del tuo ricevitore</string>
     <string name="SIGNAL_STRENGTH_IS_SHOWN_HERE">Qui viene indicato il livello del segnale</string>
     <string name="MAP_LAYERS">Livelli mappa</string>
     <string name="CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS">Scegli tra tre differenti livelli della mappa</string>
     <string name="NAVIGATION">Navigazione</string>
     <string name="LAUNCH_GOOGLE_MAPS">Lancia Google Maps per indicazioni di guida verso la posizione corrente della sonda\nPremi a lungo per selezionare un\'altra app di navigazione</string>
-    <string name="TTGOS_PARAMETERS">Parametri del TTGO</string>
-    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_TTGO">Imposta pin, banda e calibrazione del tuo TTGO</string>
+    <string name="RECEIVER_PARAMETERS">Parametri del ricevitore</string>
+    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER">Imposta pin, banda e calibrazione del tuo ricevitore</string>
     <string name="GOT_IT">CAPITO</string>
     <string name="SONDE_DATA">Dati sonda</string>
     <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Tocca qui per cambiare tipo sonda e frequenza</string>
@@ -102,4 +102,6 @@
     <string name="user_name_must_specified">Nome utente obbligatorio</string>
     <string name="please_add_a_description">Aggiungi una descrizione per favore</string>
     <string name="report_sent_successfully">Rapporto inviato con successo</string>
+    <string name="settings_not_available_for_this_receiver">Impostazioni non disponibili per questo ricevitore</string>
+    <string name="skip_tutorial">Salta presentazione</string>
 </resources>

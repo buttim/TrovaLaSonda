@@ -3,7 +3,7 @@
     <string name="large_text">
 <b><big>Suggerimenti</big></b>\n
 Puoi premere su:\n
-･ l\'icona dell\'<u>altoparlante</u> per attivare e disattivare il cicalino del TTGO\n
+･ l\'icona dell\'<u>altoparlante</u> per attivare e disattivare il cicalino del ricevitore\n
 ･ l\'icona della <u>batteria</u> per avere una precisa indicazione del livello di carica\n
 ･ le icone della <u>sonda</u> o <u>bersaglio</u> per lanciare Google Maps in modalità navigazione\n
 ･ il <u>seriale della sonda</u> per mostrare la pagina <a href='https://www.radiosondy.info'>radiosondy.info</a>
@@ -18,7 +18,7 @@ Premi al lungo su:\n
 ･ qualunque altra voce del menù per ottenere una spiegazione della sua funzione\n
 ･ la <u>latitudine</u> o la <u>longitudine</u> della sonda per copiare entrambe le coordinate negli appunti\n\n
 <b><big>Grazie</big></b>\n
-A <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> per la stesura del firmware
+A <a href='https://www.facebook.com/Dalmonte.Mirko'>Mirko Dalmonte (IZ4PNN)</a> e collaboratori per la stesura del firmware
 <a href='https://mysondy.altervista.org/mysondygo.php'>MySondyGO</a> per TTGO Lora32 firmware e il rilascio
 della <a href='https://download.farenight.it/MySondyGoAPI.pdf'>documentazione delle API</a>\n\n
 <b><big>Testing e suggerimenti</big></b>\n
@@ -36,7 +36,6 @@ Molti amici del gruppo Facebook
 <a href='https://github.com/harry1453/android-bluetooth-serial'>android-bluetooth-serial</a> (<a href='https://github.com/harry1453/android-bluetooth-serial/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/MKergall/osmbonuspack'>osmbonuspack</a> (<a href='https://github.com/MKergall/osmbonuspack/blob/master/LICENSE.md'>GNU Lesser 3.0</a>)\n
 <a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
-<a href='https://github.com/eo/battery-meter-view'>battery-meter-view</a> (<a href='https://github.com/eo/battery-meter-view/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n\n
 <b><big>Predizioni</big></b>\n
 Le predizioni usano il servizio <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
