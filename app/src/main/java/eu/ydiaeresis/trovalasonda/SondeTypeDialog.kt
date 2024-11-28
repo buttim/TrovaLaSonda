@@ -21,7 +21,7 @@ interface DialogCloseListener {
 class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
     private lateinit var binding: SondetypeBinding
     var type=0
-    var freq=403.0
+    var freq=403F
     var isCiapaSonde=false
     var dialogCloseListener: DialogCloseListener?=null
 
@@ -31,10 +31,9 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
 
             binding=SondetypeBinding.inflate(inflater).apply {
                 type.adapter = object : BaseAdapter() {
-                    val adapter = ArrayAdapter.createFromResource(
-                        this@SondeTypeDialog.requireContext(),
-                        R.array.sonde_types,
-                        R.layout.sonde_spinner_entry
+                    val adapter=ArrayAdapter(this@SondeTypeDialog.requireContext(),
+                        R.layout.sonde_spinner_entry,
+                        SondeType.entries
                     )
                     override fun getDropDownView(position:Int,
                                                  convertView:View?,
@@ -50,11 +49,6 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                     override fun getItemId(position:Int):Long = adapter.getItemId(position)
                     override fun getView(position:Int,convertView:View?,parent:ViewGroup?):View = adapter.getView(position,convertView,parent!!)
                 }
-                /*type.adapter = ArrayAdapter.createFromResource(
-                    this@SondeTypeDialog.requireContext(),
-                    R.array.sonde_types,
-                    R.layout.sonde_spinner_entry
-                )*/
                 f100.apply { minValue = 4; maxValue = 4 }
                 f10.apply { minValue = 0; maxValue = 0 }
                 f1.apply { minValue = 0; maxValue = 5; value = freq.toInt() % 10 }
@@ -65,18 +59,18 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 }
                 root.invalidate()
             }
-            binding.type.setSelection(type-1)
+            binding.type.setSelection(type)
             return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setPositiveButton("OK") { _, _ ->
                     binding.apply {
                         freq = 400 +
                                 f1.value +
-                                f01.value / 10.0 +
-                                f001.value / 100.0 +
-                                f0001.value / 1000.0
+                                f01.value / 10F +
+                                f001.value / 100F +
+                                f0001.value / 1000F
                     }
-                    type=binding.type.selectedItemPosition+1
+                    type=binding.type.selectedItemPosition
                     dialogCloseListener?.handleDialogClose()
                 }
                 .setNegativeButton("Cancel") { _, _ -> dialog?.cancel() }

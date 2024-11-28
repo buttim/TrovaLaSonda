@@ -32,7 +32,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:entries="@array/sonde_types"
             tools:ignore="TouchTargetSizeCheck" />
     </LinearLayout>
 

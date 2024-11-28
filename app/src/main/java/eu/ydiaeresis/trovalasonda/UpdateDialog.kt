@@ -1,6 +1,7 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.app.Dialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AlertDialog
@@ -12,9 +13,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
 
-class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val mutex:Mutex,
+class UpdateDialog(private val receiver:Receiver,
                    private val versionInfo:VersionInfo)  : DialogFragment(), View.OnClickListener {
     private lateinit var binding:UpdateDialogBinding
+    private var canceled=false
 
     override fun onCreateDialog(savedInstanceState:Bundle?):Dialog {
         return activity?.let {
@@ -49,9 +51,8 @@ class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val
                 val file=File.createTempFile("firmware",".bin",context.cacheDir).apply {
                     deleteOnExit()
                 }
-                fullscreenActivity.startOta()
                 CoroutineScope(Dispatchers.IO).launch {
-                    FirmwareUpdater().getUpdate(file).collect {
+                    FirmwareUpdater().getUpdate(versionInfo.file!!,file,receiver.getOtaChunkSize()).collect {
                         withContext(Dispatchers.Main) {
                             when (it) {
                                 is DownloadStatus.Progress ->
@@ -59,22 +60,24 @@ class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val
                                 is DownloadStatus.Error -> dlg.apply {
                                     setTitle(R.string.FIRMWARE_DOWNLOAD_FAILED)
                                     setMessage(it.message)
-                                    fullscreenActivity.stopOta()
+                                    receiver.stopOTA()
                                 }
                                 is DownloadStatus.Success -> {
                                     dlg.setTitle(R.string.UPDATING_FIRMWARE)
                                     dlg.setMessage(context.getString(R.string.THE_FIRMWARE_HAS_BEEN_DOWNLOADED))
                                     binding.progressBar.progress=0
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        FirmwareUpdater().update(fullscreenActivity,mutex,file).collect {
+                                        FirmwareUpdater().update(receiver,file).collect {
                                             withContext(Dispatchers.Main) {
                                                 when (it) {
-                                                    is DownloadStatus.Progress ->
+                                                    is DownloadStatus.Progress -> {
+                                                        if (canceled) cancel()
                                                         binding.progressBar.progress=it.progress
+                                                    }
                                                     is DownloadStatus.Error -> dlg.apply {
                                                         setTitle(R.string.FIRMWARE_DOWNLOAD_FAILED)
                                                         setMessage(it.message)
-                                                        fullscreenActivity.stopOta()
+                                                        receiver.stopOTA()
                                                     }
                                                     is DownloadStatus.Success -> dlg.apply {
                                                         setTitle(R.string.FIRMWARE_UPDATE_FINISHED)
@@ -82,7 +85,7 @@ class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val
                                                         getButton(AlertDialog.BUTTON_POSITIVE).isVisible = false
                                                         getButton(AlertDialog.BUTTON_NEGATIVE).text=context.getString(R.string.CLOSE)
                                                         invalidate()
-                                                        fullscreenActivity.stopOta()
+                                                        receiver.stopOTA()
                                                     }
                                                     is DownloadStatus.NoContentLength -> {}
                                                 }
@@ -98,6 +101,11 @@ class UpdateDialog(private val fullscreenActivity:FullscreenActivity,private val
                 }
             }
         }
+    }
+
+    override fun onCancel(dialog:DialogInterface) {
+        super.onCancel(dialog)
+        canceled=true
     }
     override fun onClick(v: View?) {}
 }

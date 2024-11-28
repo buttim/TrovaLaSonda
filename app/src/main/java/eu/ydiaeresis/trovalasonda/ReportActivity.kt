@@ -58,7 +58,7 @@ class ReportActivity:AppCompatActivity() {
                             """) {}
                         }
                     }
-                    Log.i("MAURI",url?:"")
+                    Log.i(FullscreenActivity.TAG,url?:"")
                 }
                 override fun onReceivedHttpError(
                     view: WebView?,
@@ -66,7 +66,7 @@ class ReportActivity:AppCompatActivity() {
                     errorResponse:WebResourceResponse
                 ) {
                     super.onReceivedHttpError(view, request, errorResponse)
-                    Log.d("MAURI","Risposta: ${request?.url} ${errorResponse.statusCode}")
+                    Log.d(FullscreenActivity.TAG,"Risposta: ${request?.url} ${errorResponse.statusCode}")
                     //if (errorResponse.statusCode==404) {
                     //}
                 }

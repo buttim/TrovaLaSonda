@@ -6,22 +6,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothProfile
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
-import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -57,24 +46,18 @@ import androidx.core.content.edit
 import androidx.core.graphics.plus
 import androidx.core.os.bundleOf
 import androidx.core.view.children
+import androidx.core.view.doOnDetach
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import com.harrysoft.androidbluetoothserial.BluetoothManager
-import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
-import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import eu.ydiaeresis.trovalasonda.databinding.ActivityFullscreenBinding
 import io.nacular.measured.units.Length.Companion.feet
 import io.nacular.measured.units.Length.Companion.kilometers
 import io.nacular.measured.units.Length.Companion.meters
 import io.nacular.measured.units.Length.Companion.miles
 import io.nacular.measured.units.times
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
@@ -101,9 +84,6 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
 import uk.co.deanwild.materialshowcaseview.ShowcaseConfig
 import uk.co.deanwild.materialshowcaseview.target.ViewTarget
-import java.nio.BufferUnderflowException
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -118,7 +98,6 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
-
 fun MaterialShowcaseSequence.addSequenceItem(ctx:Context,
                                              targetView:View,
                                              title:Int,
@@ -131,15 +110,11 @@ fun MaterialShowcaseSequence.addSequenceItem(ctx:Context,
 }
 
 class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
-    SimpleBluetoothDeviceInterface.OnMessageReceivedListener,
-    SimpleBluetoothDeviceInterface.OnErrorListener,
-    SimpleBluetoothDeviceInterface.OnMessageSentListener {
+    ReceiverBuilderCallback,ReceiverCallback {
     private var reportAlreadyShown=false
     private var distance=999999.9
     private lateinit var binding:ActivityFullscreenBinding
-    private var bluetoothManager=BluetoothManager.instance
-    private var btSerialDevice:Disposable?=null
-    private var sondeTypes:Array<String>?=null
+    private var receiver:Receiver?=null
     private val path=Polyline()
     private val sondePath=Polyline()
     private val sondehubPath=Polyline()
@@ -159,14 +134,12 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private var sondeLon:Double?=null
     private var sondeAlt:Double?=null
     private var mapStyle=0
-    private var btMacAddress:String?=null
-    private var deviceInterface:SimpleBluetoothDeviceInterface?=null
     private var mute=-1
     private var muteChanged=true
     private var sondeId:String?=null
     private var sondeType=-1
     private var heightDelta=0.0
-    private var freq=0.0
+    private var freq=0F
     private var height=0.0
     private var bk:Instant?=null
     private var timeLastSeen:Instant?=null
@@ -177,14 +150,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private var burst=false
     private var batteryLevel:Int?=null
     private val mapbox=MapBoxTileSource()
-    private var versionInfo:VersionInfo?=null
+    private var versionDB:VersionDB?=null
     private var versionChecked=false
     private var isRdzTrovaLaSonda=false
     private var isCiapaSonde=false
     private var otaRunning=false
-    private val mutexOta=Mutex()
     private var roadManager:RoadManager=OSRMRoadManager(this,BuildConfig.APPLICATION_ID)
     private var roadOverlay:Polyline?=null
+    private var lastConnectionChoice=0
     private val cyclOSM=XYTileSource("CyclOSM",
         0,
         18,
@@ -192,58 +165,20 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         ".png",
         arrayOf("https://a.tile-cyclosm.openstreetmap.fr/cyclosm/"))
 
-    private var receiver=object:BroadcastReceiver() {
-        override fun onReceive(context:Context,intent:Intent) {
-            when (intent.action!!) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    val device:BluetoothDevice?=
-                        if (Build.VERSION.SDK_INT>=33) intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE,
-                            BluetoothDevice::class.java)
-                        else {
-                            @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                        }
-                    try {
-                        val deviceName=device?.name
-                        Log.i(TAG,"BT device found: $deviceName")
-                        if (deviceInterface==null && deviceName!=null && (deviceName.startsWith(
-                                MYSONDYGOPREFIX) || deviceName.startsWith(TROVALASONDAPREFIX) || deviceName.startsWith(
-                                CIAPASONDEPREFIX))
-                        ) {
-                            val btAdapter=
-                                (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-                            btAdapter.cancelDiscovery()
-                            isRdzTrovaLaSonda=deviceName.startsWith(TROVALASONDAPREFIX)
-                            isCiapaSonde=deviceName.startsWith(CIAPASONDEPREFIX)
-                            connectDevice(device.address)
-                        }
-                    } catch (ex:SecurityException) {
-                        Snackbar.make(binding.root,
-                            "Failed Bluetooth discovery",
-                            Snackbar.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
-    }
     private val resultLauncher=
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
             if (result.resultCode!=Activity.RESULT_OK) return@registerForActivityResult
             val data:Intent?=result.data
             var reset=false
-            val cmds=mutableListOf<Pair<String,Any>>()
-            val resetCmds=listOf(SettingsActivity.LCD,
-                SettingsActivity.OLED_SDA,
-                SettingsActivity.OLED_SCL,
-                SettingsActivity.OLED_RST,
-                SettingsActivity.LED_POUT,
-                SettingsActivity.BUZ_PIN,
-                SettingsActivity.BATTERY)
+            val settings=mutableListOf<Pair<String,Any>>()
+            val resetCmds=listOf(TTGO.LCD,TTGO.OLED_SCL,TTGO.OLED_RST,TTGO.LED_POUT,TTGO.OLED_SDA,
+                TTGO.BUZ_PIN,TTGO.BATTERY)
             if (data!=null && data.extras!=null) {
                 for (k in data.extras?.keySet()!!) {
                     reset=resetCmds.indexOf(k)>=0
-                    if (k==SettingsActivity.MYCALL) cmds.add(Pair<String,Any>("myCall",
+                    if (k==TTGO.MYCALL) settings.add(Pair<String,Any>("myCall",
                         data.extras?.getString(k)!!))
-                    else cmds.add(Pair<String,Any>(k,data.extras?.getInt(k)!!))
+                    else settings.add(Pair<String,Any>(k,data.extras?.getInt(k)!!))
                 }
                 if (reset) MaterialAlertDialogBuilder(this,
                     R.style.MaterialAlertDialog_rounded).setTitle(R.string.ALERT)
@@ -251,10 +186,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     .setNegativeButton(R.string.CANCEL) {dialog,_ -> dialog.dismiss()}
                     .setPositiveButton("OK") {dialog,_ ->
                         dialog.dismiss()
-                        sendCommands(cmds)
+                        receiver?.sendSettings(settings)
                         showProgress(true)
                     }.show()
-                else sendCommands(cmds)
+                else receiver?.sendSettings(settings)
             }
         }
 
@@ -265,6 +200,9 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             .setSkipText(getString(R.string.skip_tutorial))
             .setContentText(applicationContext.getString(content))
             .setDismissText(R.string.GOT_IT).build()
+        mcsv.doOnDetach {
+            Log.i(TAG,"onDetach----")
+        }
         seq.addSequenceItem(mcsv)
         return mcsv
     }
@@ -278,7 +216,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 dismissTextColor=Color.GREEN
             })
             res=hasFired()
-
 
             addShowcaseItem(this,binding.type,R.string.SONDE_DATA,R.string.TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY)
                 .setTarget(MultipleViewsTarget(listOf(binding.verticalSpeed,
@@ -301,6 +238,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     askForScanning(true)
                 }
             }
+
             start()
         }
         return res
@@ -345,173 +283,32 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onStatusChanged(provider:String,status:Int,extras:Bundle) {
     }
 
-    private val activityResultContract=
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
-            if (result.resultCode!=Activity.RESULT_OK) finish()
-            else Handler(Looper.getMainLooper()).postDelayed({
-                if (deviceInterface==null) connect()
-            },2000)
-        }
-    /*private val turnOnBTContract=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
+    private val turnOnBTContract=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
         if (result.resultCode!=Activity.RESULT_OK) finish()
-        else Handler(Looper.getMainLooper()).postDelayed({
-            if (deviceInterface==null) createReceiver()
+        else handler.postDelayed({
+            askForScanning()
         },2000)
     }
 
-    private val receiverCallback=object:ReceiverCallback() {
-        override fun onDisconnected() {
-            Log.i(TAG,"onDisconnected")
-        }
-
-        override fun onBattery(mv:Int) {
-            Log.i(TAG,"onBattery $mv")
-        }
-
-        override fun onMute(mute:Boolean) {
-            Log.i(TAG,"onMute $mute")
-        }
-
-        override fun onType(type:SondeType) {
-            Log.i(TAG,"onType $type")
-        }
-
-        override fun onFrequency(freq:Float) {
-            Log.i(TAG,"onFrequency $freq")
-        }
-
-        override fun onRSSI(rssi:Float) {
-            Log.i(TAG,"onRSSI $rssi")
-        }
-
-        override fun onSerial(serial:String) {
-            Log.i(TAG,"onSerial $serial")
-        }
-
-        override fun onLatitude(lat:Double) {
-            Log.i(TAG,"onLatitude $lat")
-        }
-
-        override fun onLongitude(lon:Double) {
-            Log.i(TAG,"onLongitude $lon")
-        }
-
-        override fun onAltitude(alt:Double) {
-            Log.i(TAG,"onAltitude $alt")
-        }
-
-        override fun onVelocity(vel:Float) {
-            Log.i(TAG,"onVelocity $vel")
-        }
-
-        override fun onAFC(afc:Int) {
-            Log.i(TAG,"onAFC $afc")
-        }
-
-        override fun onBkTime(bkTime:Int) {
-            Log.i(TAG,"onBkTime $bkTime")
-        }
-
-        override fun onVersion(version:String) {
-            Log.i(TAG,"onVersion $version")
-        }
-
-        override fun onSettings(
-            sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,
-            PILOTbw:Int,DFMbw:Int,call:String,offset:Int,bat:Int,batMin:Int,
-            batMax:Int,batType:Int,lcd:Int,nam:Int,buz:Int,ver:String
-        ) {
-            Log.i(TAG,"onSettings")
-        }
-    }
-
-    private fun createReceiver() {
+    private fun createReceiver(builder:ReceiverBuilder) {
         try {
-            BLEReceiverBuilder(object:ReceiverBuilderCallback() {
-                override fun onReceiverConnected(receiver:Receiver) {
-                    rec=receiver
-                    Log.i(TAG,"oggetto receiver ricevuto")
-                }
-            },receiverCallback,applicationContext,this@FullscreenActivity).connect()
+            builder.connect()
         }
         catch (ex:BluetoothNotEnabledException) {
             val intent=Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            activityResultContract.launch(intent)
+            turnOnBTContract.launch(intent)
         }
         catch (ex1:ReceiverException) {
             Log.e(TAG,"Impossibile connettersi al ricevitore: $ex1")
         }
-    }*/
-
-    private fun connect() {
-        val btAdapter=
-            (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-                ?: return
-        with(btAdapter) {
-            if (isEnabled) Handler(Looper.getMainLooper()).postDelayed({
-                if (deviceInterface==null) connect()
-            },2000)
-            else {
-                val intent=Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-
-                //TODO: al termine può causare IllegalStateException
-                activityResultContract.launch(intent)
-            }
-
-            try {
-                if (!isDiscovering)
-                    if (startDiscovery()) {
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            cancelDiscovery()
-                        },SCAN_PERIOD)
-                    } else {
-                        Log.e(TAG,"Failed to start BT discovery")
-                    }
-            } catch (ex:SecurityException) {
-                Snackbar.make(binding.root,"Cannot start Bluetooth discovery",Snackbar.LENGTH_LONG)
-                    .show()
-            }
-        }
     }
 
-    @SuppressLint("CheckResult")
-    private fun connectDevice(mac:String) {
-        btSerialDevice=bluetoothManager?.openSerialDevice(mac)!!.subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread()).subscribe(this::onConnected) {error ->
-                Log.e(TAG,error.toString())
-                bluetoothManager?.closeDevice(mac)/*Handler(Looper.getMainLooper()).postDelayed({
-                    connect()
-                }, 1000)*/
-            }
-    }
-
-    private fun onConnected(connectedDevice:BluetoothSerialDevice) {
-        Log.i(TAG,"------------------------CONNECTED "+connectedDevice.mac)
-        if (btMacAddress!=null) {
-            bluetoothManager?.closeDevice(connectedDevice.mac)
-            return
-        }
-        btMacAddress=connectedDevice.mac
-        deviceInterface=connectedDevice.toSimpleDeviceInterface()
-        connected=true
-        deviceInterface?.setListeners(this,
-            this,
-            this)//this::onMessageReceived, this::onMessageSent, this::onError)
-
-        try {
-            val btAdapter=
-                (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-            val name=btAdapter.getRemoteDevice(btMacAddress).name
-            onConnectedCommon(name)
-        } catch (ex:SecurityException) {
-            Snackbar.make(binding.root,R.string.CANNOT_CONNECT,Snackbar.LENGTH_LONG).show()
-        }
-    }
-
-    private fun onConnectedCommon(name:String) {
+    private fun onConnectedCommon() {
         Snackbar.make(binding.root,
-            applicationContext.getString(R.string.CONNECTED_TO)+" "+name,
+            applicationContext.getString(R.string.CONNECTED_TO)+" "+receiver?.name,
             Snackbar.LENGTH_LONG).show()
+        isCiapaSonde=receiver?.name?.startsWith(CIAPASONDEPREFIX)?:false
+        isRdzTrovaLaSonda=receiver?.name?.startsWith(TROVALASONDAPREFIX)?:false
         timeLastMessage=null
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_yellow)
         locationOverlay?.apply {
@@ -527,15 +324,9 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         maybeShowDonation()
     }
 
-    private fun onDisconnected() {
-        Log.i(TAG,"onDisconnected")
-        bluetoothManager?.closeDevice(btMacAddress!!)
-        btMacAddress=null
-        deviceInterface=null
-        onDisconnectedCommon()
-    }
-
     private fun onDisconnectedCommon() {
+        Log.i(TAG,"----------- disconnected")
+        receiver=null
         playSound(R.raw._541506__se2001__cartoon_quick_zip_reverse)
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_red)
         locationOverlay?.setPersonIcon(bmp)
@@ -543,156 +334,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         locationOverlay?.setDirectionAnchor(.5f,.5f)
         sondeLevelListDrawable.level=0
         muteChanged=true
-        connected=false
         showProgress(false)
         Snackbar.make(binding.root,R.string.CONNECTION_LOST,Snackbar.LENGTH_LONG).show()
-        Handler(Looper.getMainLooper()).postDelayed({
+        handler.postDelayed({
             askForScanning()//connect()
         },1000)
         binding.batteryMeter.chargeLevel=null
         versionChecked=false
-    }
-
-    override fun onError(error:Throwable) {
-        Log.d(TAG,error.toString())
-        onDisconnected()
-    }
-
-    override fun onMessageSent(message:ByteArray) {
-        //Log.i(TAG, "SENT: $message")
-        if (otaRunning && mutexOta.isLocked) mutexOta.unlock()
-    }
-
-    fun sendOTA(length:Int) {
-        sendCommand("ota",length)
-    }
-
-    fun sendBytes(bytes:ByteArray) {
-        deviceInterface?.sendMessage(bytes)
-    }
-
-    private fun sendCommand(cmd:String) {
-        try {
-            deviceInterface?.sendMessage("o{$cmd}o\r\n".toByteArray())
-        } catch (e:Exception) {
-            Log.e(TAG,e.toString())
-            btSerialDevice?.dispose()
-            btSerialDevice=null
-            //connect()
-        }
-    }
-
-    private fun sendCommand(cmd:String,value:Any) {
-        sendCommand("$cmd=$value")
-    }
-
-    private fun sendCommands(commands:List<Pair<String,Any>>) {
-        if (commands.isEmpty()) return
-        val sb=StringBuilder()
-        commands.forEach {cmd ->
-            if (sb.isNotEmpty()) sb.append("/")
-            sb.append("${cmd.first}=${cmd.second}")
-        }
-        sendCommand(sb.toString())
-    }
-
-    private fun process(msg:String) {
-        timeLastMessage=Instant.now()
-        val campi=msg.split("/")
-        if (campi[campi.size-1]!="o") {
-            Log.e(TAG,"manca terminatore messaggio")
-            return
-        }
-        when (campi[0]) {
-            "0" -> if (campi.size==9) mySondyGOStatus(campi[1],
-                campi[2].toDouble(),
-                campi[3].toDouble(),
-                campi[4].toInt(),
-                campi[5].toInt(),
-                campi[6].toInt(),
-                campi[7])
-            else {
-                Log.e(TAG,"numero campi errato in messaggio tipo 0 (${campi.size} invece di 9)")
-                return
-            }
-
-            "1" -> if (campi.size==20) {
-                mySondyGOSondePos(campi[1],
-                    campi[2].toDouble(),
-                    campi[3],
-                    campi[4].toDouble(),
-                    campi[5].toDouble(),
-                    campi[6].toDouble(),
-                    campi[7].toDouble(),
-                    campi[8].toDouble(),
-                    campi[9].toInt(),
-                    campi[10].toInt(),
-                    campi[11]=="1",
-                    campi[12].toInt(),
-                    campi[13].toInt(),
-                    campi[14].toInt(),
-                    campi[18])
-                freqOffsetReceiver?.freqOffset(campi[10].toInt())
-            } else {
-                Log.e(TAG,"numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
-                return
-            }
-
-            "2" -> if (campi.size==11) {
-                mySondyGOSonde(campi[1],
-                    campi[2].toDouble(),
-                    campi[3],
-                    campi[4].toDouble(),
-                    campi[5].toInt(),
-                    campi[6].toInt(),
-                    campi[7].toInt(),
-                    campi[8].toInt(),
-                    campi[9])
-                freqOffsetReceiver?.freqOffset(campi[6].toInt())
-            } else {
-                Log.e(TAG,"numero campi errato in messaggio tipo 2 (${campi.size} invece di 11)")
-                return
-            }
-
-            "3" -> if (campi.size==23) mySondyGOSettings(campi[1],
-                campi[2].toDouble(),
-                campi[3].toInt(),
-                campi[4].toInt(),
-                campi[5].toInt(),
-                campi[6].toInt(),
-                campi[7].toInt(),
-                campi[8].toInt(),
-                campi[9].toInt(),
-                campi[10].toInt(),
-                campi[11].toInt(),
-                campi[12],
-                campi[13].toInt(),
-                campi[14].toInt(),
-                campi[15].toInt(),
-                campi[16].toInt(),
-                campi[17].toInt(),
-                campi[18].toInt(),
-                campi[19].toInt(),
-                campi[20].toInt(),
-                campi[21])
-            else {
-                Log.e(TAG,"numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
-                return
-            }
-
-            else -> Log.e(TAG,"Tipo messaggio sconosciuto")
-        }
-    }
-
-    override fun onMessageReceived(message:String) {
-        Log.i(TAG,"RECEIVED: $message")
-        try {
-            process(message)
-        } catch (e:Exception) {
-            Log.e(TAG,e.toString())
-            btSerialDevice?.dispose()
-            btSerialDevice=null
-        }
     }
 
     private fun updateMute(mute:Int) {
@@ -771,6 +419,16 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             updateSondeDirection()
         }
         if (alt==null) return
+        if (timeLastSeen!=null) {
+            val delta=Instant.now().epochSecond-timeLastSeen!!.epochSecond
+            if (delta!=0L) {
+                val verticalSpeed=(height-this.height)/delta
+                val vs=verticalSpeed*meters
+                @Suppress("SetTextI18n") if (useImperialUnits()) binding.verticalSpeed.text=
+                    String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
+                else binding.verticalSpeed.text=String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
+            }
+        }
         timeLastSeen=Instant.now()
         if (nPositionsReceived>10 && (lastPrediction==null || lastPrediction?.until(Instant.now(),
                 ChronoUnit.SECONDS)!!>60)
@@ -778,7 +436,26 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             lastPrediction=Instant.now()
             predict(lat,lon,alt)
         }
-    }
+        @Suppress("SetTextI18n") if (useImperialUnits()) {
+            val h=String.format(Locale.US,"%.1f",height*meters `in` feet)
+            binding.height.text="H: ${h}ft"
+        } else binding.height.text="H: ${height}m"
+        binding.direction.text=
+            if (abs(this.height-height)<2) "=" else if (this.height<height) "▲" else "▼"
+        val newHeightDelta=height-this.height
+        if (!burst && heightDelta>0 && newHeightDelta<0) {
+            burst=true
+            mkBurst?.apply {
+                position=GeoPoint(lat,lon)
+                setVisible(true)
+                val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                title=LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
+            }
+            playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
+        }
+        heightDelta=newHeightDelta
+        this.height=height
+}
 
     private fun useImperialUnits():Boolean {
         if (Build.VERSION.SDK_INT<Build.VERSION_CODES.P) return false
@@ -818,26 +495,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
-    private fun updateType(type:String) {
-        if (sondeType<1 || type!=sondeTypes!![sondeType-1]) {
-            @Suppress("SetTextI18n")
-            binding.type.text="$type ${freq}MHz"
-            sondeType=sondeTypes?.indexOf(type)!!+1
+    private fun updateTypeAndFreq(type:Int,freq:Float) {
+        if (sondeType<0 || type!=sondeType) {
+            val name=if (type<0) "?" else SondeType.fromInt(type).name
+            binding.type.text="%s %.3fMHz".format(Locale.US,name,freq)
         }
-    }
-
-    private fun updateFreq(freq:Double) {
-        if (this.freq!=freq) {
-            val type=if (sondeType<0) "" else sondeTypes!![sondeType-1]
-            @Suppress("SetTextI18n")
-            binding.type.text="${type} ${freq}MHz"
-            this.freq=freq
-        }
-    }
-
-    private fun updateTypeAndFreq(type:String,freq:Double) {
-        updateType(type)
-        updateFreq(freq)
+        sondeType=type
+        this.freq=freq
     }
 
     @SuppressLint("DefaultLocale")
@@ -849,7 +513,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         this.bk=Instant.now().plusSeconds(bk.toLong())
     }
 
-    private fun updateRSSI(rssi:Double) {
+    private fun updateRSSI(rssi:Float) {
         @Suppress("SetTextI18n")
         binding.dbm.text="-${rssi}dBm"
         binding.rssi.progress=(binding.rssi.max-rssi).toInt()
@@ -860,100 +524,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding.batteryMeter.chargeLevel=percent
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    private fun mySondyGOSondePos(type:String,
-                                  freq:Double,
-                                  name:String,
-                                  lat:Double,
-                                  lon:Double,
-                                  height:Double,
-                                  _vel:Double,
-                                  sign:Double,
-                                  bat:Int,
-                                  afc:Int,
-                                  bk:Boolean,
-                                  bktime:Int,
-                                  batV:Int,
-                                  mute:Int,
-                                  ver:String) {
-        updateMute(mute)
-        updateTypeAndFreq(type,freq)
-
-        if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
-
-        mkSondehub?.setVisible(false)
-        sondehubPath.isVisible=false
-
-        //HACKHACK: MySondyGO 2.30 incorrectly reports horizontal speed in m/s for meteomodem sondes
-        var vel=_vel
-        if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20")) vel*=3.6
-
-        nPositionsReceived++
-
-        if (timeLastSeen!=null) {
-            val delta=Instant.now().epochSecond-timeLastSeen!!.epochSecond
-            if (delta!=0L) {
-                val verticalSpeed=(height-this.height)/delta
-                val vs=verticalSpeed*meters
-                @Suppress("SetTextI18n") if (useImperialUnits()) binding.verticalSpeed.text=
-                    String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
-                else binding.verticalSpeed.text=String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
-            }
-        }
-
-        updateSondeLocation(name,lat,lon,height)
-
-        @Suppress("SetTextI18n") if (useImperialUnits()) {
-            val h=String.format(Locale.US,"%.1f",height*meters `in` feet)
-            binding.height.text="H: ${h}ft"
-        } else binding.height.text="H: ${height}m"
-        binding.direction.text=
-            if (abs(this.height-height)<2) "=" else if (this.height<height) "▲" else "▼"
-        val newHeightDelta=height-this.height
-        if (!burst && heightDelta>0 && newHeightDelta<0) {
-            burst=true
-            mkBurst?.apply {
-                position=GeoPoint(lat,lon)
-                setVisible(true)
-                val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                title=LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
-            }
-            playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
-        }
-        @Suppress("SetTextI18n") if (useImperialUnits()) {
-            val v=vel*kilometers
-            binding.horizontalSpeed.text=String.format(Locale.US,"V: %.1fmph",v `in` miles)
-        } else binding.horizontalSpeed.text=String.format(Locale.US,"V: %.1fkm/h",vel)
-        heightDelta=newHeightDelta
-        this.height=height
-
-        if (bk && bktime>0 && bktime!=8*3600+30*60) updateBk(bktime)
-        updateRSSI(sign)
-        updateBattery(bat,batV)
-    }
-
-    private fun mySondyGOStatus(type:String,
-                                freq:Double,
-                                sign:Double,
-                                bat:Int,
-                                batV:Int,
-                                mute:Int,
-                                ver:String) {
-        if (isRdzTrovaLaSonda && !versionChecked && versionInfo!=null) {
-            versionChecked=true
-            if (versionInfo?.version!=ver) UpdateDialog(this,mutexOta,versionInfo!!).show(
-                supportFragmentManager,
-                "")
-        }
-        updateTypeAndFreq(type,freq)
-        updateMute(mute)
-        sondeLevelListDrawable.level=0
-        updateRSSI(sign)
-        updateBattery(bat,batV)
-
-        if (sondeLat!=null && sondeLon!=null && !reportAlreadyShown && distance<30) showReport()
-    }
-
+    //TODO: invocazione showReport su timeout senza ricezione pacchetti
     private fun showReport() {
         if (sondeLat==null || sondeLon==null) return
         reportAlreadyShown=true
@@ -986,74 +557,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    private fun mySondyGOSonde(type:String,
-                               freq:Double,
-                               name:String,
-                               sign:Double,
-                               bat:Int,
-                               afc:Int,
-                               batV:Int,
-                               mute:Int,
-                               ver:String) {
-        updateMute(mute)
-        updateTypeAndFreq(type,freq)
-        sondeLevelListDrawable.level=0
-        updateRSSI(sign)
-        updateBattery(bat,batV)
-        if (sondeId!=name) newSonde(name)
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    private fun mySondyGOSettings(type:String,
-                                  freq:Double,
-                                  sda:Int,
-                                  scl:Int,
-                                  rst:Int,
-                                  led:Int,
-                                  RS41bw:Int,
-                                  M20bw:Int,
-                                  M10bw:Int,
-                                  PILOTbw:Int,
-                                  DFMbw:Int,
-                                  call:String,
-                                  offset:Int,
-                                  bat:Int,
-                                  batMin:Int,
-                                  batMax:Int,
-                                  batType:Int,
-                                  lcd:Int,
-                                  nam:Int,
-                                  buz:Int,
-                                  ver:String) {
-        showProgress(false)
-        updateMute(mute)
-        val intent=Intent(this,SettingsActivity::class.java)
-        val extras=Bundle().apply {
-            putInt("oled_sda",sda)
-            putInt("oled_scl",scl)
-            putInt("oled_rst",rst)
-            putInt("led_pout",led)
-            putInt("rs41.rxbw",RS41bw)
-            putInt("m20.rxbw",M20bw)
-            putInt("m10.rxbw",M10bw)
-            putInt("pilot.rxbw",PILOTbw)
-            putInt("dfm.rxbw",DFMbw)
-            putString("myCall",call)
-            putInt("freqofs",offset)
-            putInt("battery",bat)
-            putInt("vBatMin",batMin)
-            putInt("vBatMax",batMax)
-            putInt("vBatType",batType)
-            putInt("lcd",lcd)
-            putInt("aprsName",nam)
-            putInt("buz_pin",buz)
-            putString("ver",ver)
-        }
-        intent.putExtras(extras)
-        resultLauncher.launch(intent)
-    }
-
     override fun onRequestPermissionsResult(requestCode:Int,
                                             permissions:Array<String>,
                                             grantResults:IntArray) {
@@ -1084,21 +587,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     private fun toggleBuzzer() {
-        if (!connected) receiverNotConnectedWarning()
-        else if (deviceInterface!=null) { //BT classic?
-            if (muteChanged) return
-            mute=if (mute==1) 0 else 1
-            sendCommand("mute",mute)
-            binding.buzzer.imageAlpha=64
-            muteChanged=true
-        }
-        else {
-            mute=if (mute==1) 0 else 1
-            muteCharacteristic!!.value=ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN)
-                .putInt(mute).array()
-            bluetoothGatt!!.writeCharacteristic(muteCharacteristic)
-            updateMute(mute)
-        }
+        receiver?.setMute(mute==0)
     }
 
     private fun playSound(id:Int=R.raw._573381__ammaro__ding) {
@@ -1110,7 +599,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/${id}"))
                 prepareAsync()
             } catch (e:Exception) {
-                Log.e(TAG,e.toString())
+                Log.e(TAG,"Eccezione playsound: $e")
             }
         }
     }
@@ -1146,21 +635,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
-    private fun setFreqAndType(freq:Double,type:Int) {
-        if (deviceInterface!=null)  //BT classic?
-            sendCommands(listOf<Pair<String,Any>>(Pair("f",freq),Pair("tipo",type)))
-        else {
-            freqCharacteristic!!.value=
-                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt((freq*1000).toInt()).array()
-            typeCharacteristic!!.value=ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(type-1).array()
-
-            var a:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
-            a.addAll(arrayOf<BluetoothGattCharacteristic>(freqCharacteristic!!,typeCharacteristic!!))
-            bluetoothGattCallback.writeMultipleCharacteristics(a)
-            updateTypeAndFreq(sondeTypes!![type-1],freq)
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -1177,14 +651,18 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-            versionInfo=FirmwareUpdater().getVersion()
+            versionDB=FirmwareUpdater().getVersion()
+            if (versionDB!=null)
+                receiver?.requestVersion()
+            else runOnUiThread {
+                Snackbar.make(binding.root,"Cannot access remote firmware updates database",Snackbar.LENGTH_SHORT).show()
+            }
         }
 
         mapbox.retrieveAccessToken(this)
         mapbox.retrieveMapBoxMapId(this)
         TileSourceFactory.addTileSource(mapbox)
 
-        sondeTypes=resources.getStringArray(R.array.sonde_types)
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
         //TODO: screen on solo se connesso ?
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -1235,7 +713,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
         binding.buzzer.setOnClickListener {toggleBuzzer()}
         binding.batteryMeter.setOnClickListener {
-            if (!connected) receiverNotConnectedWarning()
+            if (receiver==null) receiverNotConnectedWarning()
             else if (batteryLevel!=null) Snackbar.make(binding.root,
                 applicationContext.getString(R.string.BATTERY_)+" %.1fV".format(batteryLevel!!/1000f),
                 Snackbar.LENGTH_SHORT).show()
@@ -1263,13 +741,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding.lat.setOnLongClickListener(copyCoordinates)
         binding.lon.setOnLongClickListener(copyCoordinates)
         binding.id.setOnClickListener {
-            /*//////////////////////////////////////////
-            if (sondeId==null) {
-                sondeType=1
-                sondeId="string"
-            }
-            WebPageChooserDialog().showForRecovery(supportFragmentManager,sondeId!!,currentLocation!!.latitude,currentLocation!!.longitude,1000.0)
-            *///////////////////////////////////////////
             if (sondeId!=null) {
                 if (sondeLat==null || sondeLon==null)
                     WebPageChooserDialog().showForInfo(supportFragmentManager,sondeId!!,currentLocation!!.latitude,currentLocation!!.longitude)
@@ -1284,7 +755,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             true
         }
         binding.panel.setOnClickListener {
-            if (!connected) {
+            if (receiver==null) {
                 receiverNotConnectedWarning()
                 return@setOnClickListener
             }
@@ -1294,7 +765,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 isCiapaSonde=this@FullscreenActivity.isCiapaSonde
                 dialogCloseListener=object:DialogCloseListener {
                     override fun handleDialogClose() {
-                        setFreqAndType(freq,type)
+                        receiver?.setTypeAndFrequency(type,freq)
                     }
                 }
                 show(supportFragmentManager,"")
@@ -1316,24 +787,24 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             //////////////////////////////////////////////////////////////////////////////////
             if (Debug.isDebuggerConnected()) {
                 //predict(45.0,7.0,1000.0)
-                val msgs=
-                    arrayOf("1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o")
-                n++
-                n%=msgs.size
-                process(msgs[n])
+//                val msgs=
+//                    arrayOf("1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
+//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o")
+//                n++
+//                n%=msgs.size
+//                process(msgs[n])
             }
             //////////////////////////////////////////////////////////////////////////////////
             closeMenu()
@@ -1343,13 +814,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             true
         }
         binding.menuSettings.setOnClickListener {
-            if (!connected) receiverNotConnectedWarning()
-            else if (deviceInterface==null)
-                Snackbar.make(binding.root,
-                    getString(R.string.settings_not_available_for_this_receiver),Snackbar.LENGTH_LONG).show()
-            else{
-                sendCommand("?")
-                showProgress(true)
+            if (receiver==null)
+                receiverNotConnectedWarning()
+            else {
+                if (receiver?.requestSettings()==true)
+                    showProgress(true)
+                else
+                    Snackbar.make(binding.root,
+                        getString(R.string.settings_not_available_for_this_receiver),Snackbar.LENGTH_LONG).show()
             }
             closeMenu()
         }
@@ -1412,7 +884,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     putLong(LAST_TIME_DONATION_SHOWN,Instant.now().epochSecond-8*3600*24)
                     commit()
                 }
-                //startActivity(Intent(this,DonationActivity::class.java))
             }
             true
         }
@@ -1567,26 +1038,17 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                         Instant.now(),
                         ChronoUnit.SECONDS)!!>=30)
                 ) {
-                    getFromSondeHub(sondeTypes!![sondeType-1],sondeId!!,timeLastSeen!!)
+                    getFromSondeHub(SondeType.fromInt(sondeType).name,sondeId!!,timeLastSeen!!)
                     timeLastSondehub=Instant.now()
                 }
 
-                if (!otaRunning && timeLastMessage!=null && timeLastMessage?.until(Instant.now(),
-                        ChronoUnit.SECONDS)!!>10L
-                ) {
-                    if (deviceInterface!=null) {
-                        bluetoothManager?.closeDevice(btMacAddress!!)
-                        onDisconnected()
-                    }
-                }
                 handler.postDelayed(this,1000)
             }
         })
-        ////////////////////////////////////////Snackbar.make(binding.root,"BT disabilitato!!!",Snackbar.LENGTH_LONG).show()///////////////////////
-        registerReceiver(receiver,IntentFilter(BluetoothDevice.ACTION_FOUND))
+
         handler.postDelayed({
             val hasFired=showcase("info")
-            if (!connected && hasFired)
+            if (hasFired)
                 askForScanning(true)
         },2000)
     }
@@ -1635,32 +1097,32 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     try {
                         cacheManager.downloadAreaAsyncNoUI(this@FullscreenActivity,bb,0,9, object: CacheManager.CacheManagerCallback {
                             override fun onTaskComplete() {
-                                Log.i("MAURI","cache download completed")
+                                Log.i(TAG,"cache download completed")
                             }
 
                             override fun updateProgress(progress:Int,
                                                         currentZoomLevel:Int,
                                                         zoomMin:Int,
                                                         zoomMax:Int) {
-                                Log.i("MAURI","downloading cache ($currentZoomLevel): $progress")
+                                Log.i(TAG,"downloading cache ($currentZoomLevel): $progress")
                             }
 
                             override fun downloadStarted() {
-                                Log.i("MAURI","cache download started")
+                                Log.i(TAG,"cache download started")
                             }
 
                             override fun setPossibleTilesInArea(total:Int) {
-                                Log.i("MAURI","$total tiles to download")
+                                Log.i(TAG,"$total tiles to download")
                             }
 
                             override fun onTaskFailed(errors:Int) {
-                                Log.e("MAURI","Cache download error $errors")
+                                Log.e(TAG,"Cache download error $errors")
                             }
 
                         })
                     }
                     catch (ex:Exception) {
-                        Log.e("MAURI",ex.toString())
+                        Log.e(TAG,ex.toString())
                     }
                 }*/
 
@@ -1674,7 +1136,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
                 val road=roadManager.getRoad(waypoints)
                 if (road.mStatus!=Road.STATUS_OK) {
-                    Log.e("MAURI","getRoad fallita")
+                    Log.e(TAG,"getRoad fallita")
                 } else {
                     if (roadOverlay!=null) binding.map.overlays.remove(roadOverlay)
                     roadOverlay=RoadManager.buildRoadOverlay(road).apply {
@@ -1696,7 +1158,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     binding.map.invalidate()
                 }
             } catch (e:Exception) {
-                Log.e(TAG,e.toString())
+                Log.e(TAG,"Eccezione predict: $e")
                 trajectory.isVisible=false
                 mkTarget?.setVisible(false)
             }
@@ -1729,11 +1191,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding.map.onPause()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(receiver)
-    }
-
     @SuppressLint("MissingSuperCall")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
@@ -1742,8 +1199,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             android.R.attr.alertDialogIcon).setTitle("TrovaLaSonda")
             .setMessage(R.string.ARE_YOU_SURE_YOU_WANT_TO_EXIT)
             .setPositiveButton(R.string.YES) {_,_ ->
-                if (bluetoothManager!=null && btMacAddress!=null) bluetoothManager?.closeDevice(
-                    btMacAddress!!)
                 finish()
             }.setNegativeButton("No",null).show()
     }
@@ -1757,7 +1212,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             SONDE_ID to sondeId,
             MUTE to mute,
             MUTE_CHANGE to muteChanged,
-            BT_MAC_ADDRESS to btMacAddress,
             SONDE_TYPE to sondeType,
             HEIGHT_DELTA to heightDelta,
             HEIGHT to height,
@@ -1799,12 +1253,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 sondeType=getInt(SONDE_TYPE)
                 heightDelta=getDouble(HEIGHT_DELTA)
                 height=getDouble(HEIGHT)
-                freq=getDouble(FREQ)
+                freq=getFloat(FREQ)
                 bk=getInstant(BK)
                 timeLastSeen=getInstant(TIME_LAST_SEEN)
                 timeLastMessage=getInstant(TIME_LAST_MESSAGE)
                 currentLocation=getLocation(CURRENT_LOCATION)
-                btMacAddress=getString(BT_MAC_ADDRESS)
                 sondeId=getString(SONDE_ID)
                 binding.lat.text=getString(LAT)
                 binding.lon.text=getString(LON)
@@ -1841,360 +1294,141 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     private var rec:Receiver?=null
     private fun askForScanning(firstTime:Boolean=false) {
-        var choice:Int=0
+        var choice:Int=lastConnectionChoice
+
         MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
             .setCancelable(false)
-            .setTitle(if (firstTime) "Chose connection" else "No device found")
+            .setTitle(if (firstTime) "Chose connection" else "No receiver found")//TODO: stringhe in risorse
             .setSingleChoiceItems(arrayOf<CharSequence>("Bluetooth Classic (TTGO)",
                 "Bluetooth Low Energy (Heltec)",
-                "No device"),0) {_,x -> choice=x}.setPositiveButton("OK") {_,_ ->
+                "No receiver"),lastConnectionChoice) {_,x -> choice=x}
+            .setPositiveButton("OK") {_,_ ->
+                lastConnectionChoice=choice
                 when (choice) {
-                    0 -> connect()
-                    1 -> connectLE()
-                    //2 -> createReceiver() ////////////////////////////
+                    0 -> createReceiver(BTReceiverBuilder(this,this,applicationContext,this@FullscreenActivity))
+                    1 -> createReceiver(BLEReceiverBuilder(this,this,applicationContext,this@FullscreenActivity))
                 }
             }.setNegativeButton("Exit") {_,_ ->
                 exitProcess(-1)
             }.show()
     }
 
-    private var bluetoothGatt:BluetoothGatt?=null
-    private var bluetoothAdapter:BluetoothAdapter?=null
-    private var bluetoothLeScanner:BluetoothLeScanner?=null
-    private var connected=false
-    private var scanning=false
-    private var freqCharacteristic:BluetoothGattCharacteristic?=null
-    private var typeCharacteristic:BluetoothGattCharacteristic?=null
-    private var muteCharacteristic:BluetoothGattCharacteristic?=null
-    private var batteryCharacteristic:BluetoothGattCharacteristic?=null
-    private var latitudeCharacteristic:BluetoothGattCharacteristic?=null
-    private var longitudeCharacteristic:BluetoothGattCharacteristic?=null
-    private var altitudeCharacteristic:BluetoothGattCharacteristic?=null
-    private var serialCharacteristic:BluetoothGattCharacteristic?=null
-    private val leScanCallback:ScanCallback=object:ScanCallback() {
-        @SuppressLint("MissingPermission")
-        override fun onScanResult(callbackType:Int,result:ScanResult) {
-            super.onScanResult(callbackType,result)
-
-            if (!scanning) return
-            if (result.device.name!=null) Log.i(FullscreenActivity.TAG,result.device.name)
-            if (result.device.name!=null && result.device.name.startsWith(FullscreenActivity.TROVALASONDAPREFIX)) {
-                Log.i(FullscreenActivity.TAG,"TROVATO------------------------")
-                stopScanLE()
-                doConnectLE(result.device.address)
-            }
+    override fun onReceiverConnected(receiver:Receiver,builder:ReceiverBuilder) {
+        this.receiver=receiver
+        runOnUiThread {
+            onConnectedCommon()
         }
+        builder.dispose()
+    }
 
-        override fun onScanFailed(errorCode:Int) {
-            super.onScanFailed(errorCode)
-            Log.i(TAG,"onScanFailed: $errorCode")
+    override fun onTimeout() {
+        runOnUiThread {askForScanning(true)}
+    }
+
+    override fun onDisconnected() {
+        runOnUiThread {onDisconnectedCommon()}
+    }
+
+    override fun onBattery(mv:Int,percentage:Int) {
+        runOnUiThread {updateBattery(percentage,mv)}
+    }
+
+    override fun onMute(mute:Boolean) {
+        this.mute=if (mute) 1 else 0
+        runOnUiThread {updateMute(this.mute)}
+    }
+
+    override fun onTypeAndFreq(type:Int,freq:Float) {
+        runOnUiThread {updateTypeAndFreq(type,freq)}
+    }
+
+    override fun onRSSI(rssi:Float) {
+        runOnUiThread {updateRSSI(rssi)}
+    }
+
+    override fun onSerial(serial:String) {
+        runOnUiThread {updateSondeLocation(serial,sondeLat,sondeLon,sondeAlt)}
+    }
+
+    override fun onLatitude(lat:Double) {
+        nPositionsReceived++
+        runOnUiThread {
+            updateSondeLocation(sondeId,lat,sondeLon,sondeAlt)
+            mkSondehub?.setVisible(false)
+            sondehubPath.isVisible=false
         }
     }
 
-    private val bluetoothGattCallback=object:BluetoothGattCallback() {
-        var characteristicsToRegister:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
-        val characteristicsToRead:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
-        val characteristicsToWrite:ArrayDeque<BluetoothGattCharacteristic> = ArrayDeque()
+    override fun onLongitude(lon:Double) {
+        runOnUiThread {updateSondeLocation(sondeId,sondeLat,lon,sondeAlt)}
+    }
 
-        fun writeMultipleCharacteristics(chs:ArrayDeque<BluetoothGattCharacteristic>) {
-            if (!chs.isEmpty()) {
-                val ch=chs.removeFirst()
-                characteristicsToWrite.addAll(chs)
-                bluetoothGatt!!.writeCharacteristic(ch)
-            }
-        }
+    override fun onAltitude(alt:Double) {
+        runOnUiThread {updateSondeLocation(sondeId,sondeLat,sondeLon,alt)}
+    }
 
-        @SuppressLint("MissingPermission") //TODO:
-        private fun registerCharacteristic(gatt:BluetoothGatt?) {
-            if (characteristicsToRegister.isEmpty()) {
-                onConnectedCommon(gatt!!.device!!.name)
-                characteristicsToRead.addAll(arrayOf<BluetoothGattCharacteristic>(typeCharacteristic!!,batteryCharacteristic!!,muteCharacteristic!!,serialCharacteristic!!,latitudeCharacteristic!!,longitudeCharacteristic!!,altitudeCharacteristic!!))
-                bluetoothGatt?.readCharacteristic(freqCharacteristic)
-                return
-            }
-            val ch=characteristicsToRegister.removeFirst()
-            gatt?.setCharacteristicNotification(ch,true)
-            val descriptor=ch.getDescriptor(CLIENT_CONFIG_DESCRIPTOR)
-            Log.i(TAG,"registrazione notifiche per caratteristica ${ch.uuid}, descriptor $descriptor")
-            if (descriptor!=null) {
-                descriptor.value=BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                if (!(gatt?.writeDescriptor(descriptor))!!)
-                    Log.e(TAG,"registrazione non avvenuta!!!")
-            }
-        }
-
-        @Deprecated("Deprecated in Java")
-        override fun onCharacteristicRead(gatt:BluetoothGatt?,
-                                          characteristic:BluetoothGattCharacteristic?,
-                                          status:Int) {
-            super.onCharacteristicRead(gatt,characteristic,status)
-            val value=characteristic!!.value
-            Log.i(TAG,"onCharacteristicRead "+characteristic.uuid.toString()+"/"+value.toString())
-            when (characteristic.uuid) {
-                FREQ_UUID -> {
-                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    runOnUiThread { updateFreq(v/1000.0) }
-                    bluetoothGatt?.readCharacteristic(typeCharacteristic)
-                }
-                TYPE_UUID -> {
-                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    runOnUiThread { updateType(sondeTypes!![v]) }
-                }
-                SERIAL_UUID -> {
-                    val v=characteristic.value.toString(Charsets.UTF_8)
-                    if (v.isNotEmpty())
-                        runOnUiThread{updateSondeLocation(v,sondeLat,sondeLon,sondeAlt)}
-                }
-                BAT_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    runOnUiThread { updateBattery(v,3100+v*(4200-3100)/100) }
-                }
-                MUTE_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getChar().toInt()
-                    runOnUiThread { updateMute(v) }
-                }
-                LAT_UUID -> {
-                    try {
-                        val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                            .getFloat().toDouble()
-                        runOnUiThread {updateSondeLocation(sondeId,v,sondeLon,sondeAlt)}
-                    }
-                    catch (ex:BufferUnderflowException) {
-                        Log.i(TAG,"Latitude not available")
-                    }
-                }
-                LON_UUID -> {
-                    try {
-                        val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                            .getFloat().toDouble()
-                        runOnUiThread{updateSondeLocation(sondeId,sondeLat,v,sondeAlt)}
-                    }
-                    catch (ex:BufferUnderflowException) {
-                        Log.i(TAG,"Longitude not available")
-                    }
-                }
-                ALT_UUID -> {
-                    try {
-                        val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                            .getFloat().toDouble()
-                        runOnUiThread {updateSondeLocation(sondeId,sondeLat,sondeLon,v)}
-                    }
-                    catch (ex:BufferUnderflowException) {
-                        Log.i(TAG,"Altitude not available")
-                    }
-                }
-            }
-            if (!characteristicsToRead.isEmpty()) {
-                val ch=characteristicsToRead.removeFirst()
-                bluetoothGatt?.readCharacteristic(ch)
-            }
-        }
-
-        override fun onCharacteristicWrite(gatt:BluetoothGatt?,
-                                           characteristic:BluetoothGattCharacteristic?,
-                                           status:Int) {
-            super.onCharacteristicWrite(gatt,characteristic,status)
-            if (!characteristicsToWrite.isEmpty()) {
-                val ch=characteristicsToWrite.removeFirst()
-                bluetoothGatt!!.writeCharacteristic(ch)
-            }
-        }
-
-        override fun onDescriptorWrite(gatt:BluetoothGatt?,
-                                       descriptor:BluetoothGattDescriptor?,
-                                       status:Int) {
-            super.onDescriptorWrite(gatt,descriptor,status)
-            if (connected) {
-                if (descriptor!=null)
-                    Log.i(TAG,"onDescriptorWrite ${descriptor.uuid}")
-
-                registerCharacteristic(gatt)
-            }
-        }
-
-        @SuppressLint("MissingPermission")
-        override fun onConnectionStateChange(gatt:BluetoothGatt?,status:Int,newState:Int) {
-            if (newState==BluetoothProfile.STATE_CONNECTED) {
-                connected=true
-                bluetoothGatt?.discoverServices()
-                bluetoothGatt?.requestMtu(512)////////////////
-            } else if (newState==BluetoothProfile.STATE_DISCONNECTED) {
-                connected=false
-                runOnUiThread { onDisconnectedCommon() }
-                gatt?.disconnect()
-            }
-        }
-
-        override fun onMtuChanged(gatt:BluetoothGatt?,mtu:Int,status:Int) {
-            super.onMtuChanged(gatt,mtu,status)
-            Log.i(TAG,"MTU:$mtu")
-        }
-
-        @SuppressLint("MissingPermission")
-        override fun onServicesDiscovered(gatt:BluetoothGatt?,status:Int) {
-            if (status==BluetoothGatt.GATT_SUCCESS) {
-                if (bluetoothGatt?.services!=null) for (svc in bluetoothGatt?.services!!) {
-                    Log.i(TAG,"SVC: "+svc.uuid.toString()) //TODO
-                    if (svc.uuid.equals(SERVICE_UUID)) {
-                        characteristicsToRegister.addAll(svc.characteristics)
-                        registerCharacteristic(gatt)
-                        for (ch in svc.characteristics) {
-                            //Log.i(MainActivity.TAG,"\tCHR: "+ch.uuid.toString())
-                            when (ch.uuid) {
-                                FREQ_UUID -> freqCharacteristic=ch
-                                TYPE_UUID -> typeCharacteristic=ch
-                                MUTE_UUID -> muteCharacteristic=ch
-                                BAT_UUID -> batteryCharacteristic=ch
-                                LAT_UUID->latitudeCharacteristic=ch
-                                LON_UUID->longitudeCharacteristic=ch
-                                ALT_UUID->altitudeCharacteristic=ch
-                                SERIAL_UUID->serialCharacteristic=ch
-                            }
-                        }
-                    }
-                }
-            } else {
-                Log.w(TAG,"onServicesDiscovered received: $status")
-            }
-        }
-
-        @Deprecated("Deprecated in Java")
-        override fun onCharacteristicChanged(gatt:BluetoothGatt,
-                                             characteristic:BluetoothGattCharacteristic) {
-            when (characteristic.uuid) {
-                LAT_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getFloat().toDouble()
-                    runOnUiThread{updateSondeLocation(sondeId,v,sondeLon,sondeAlt)}
-                }
-
-                LON_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getFloat().toDouble()
-                    runOnUiThread {updateSondeLocation(sondeId,sondeLat,v,sondeAlt)}
-                }
-
-                ALT_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getFloat().toDouble()
-                    runOnUiThread {updateSondeLocation(sondeId,sondeLat,sondeLon,v)}
-                }
-
-                RSSI_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    runOnUiThread {updateRSSI(-v.toDouble())}
-                }
-
-                BAT_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    runOnUiThread { updateBattery(v,3100+v*(4200-3100)/100) }
-                }
-
-                FRAME_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    //TODO:
-                }
-
-                SERIAL_UUID -> {
-                    val v=characteristic.value.toString(Charsets.UTF_8)
-                    runOnUiThread {updateSondeLocation(v,sondeLat,sondeLon,sondeAlt)}
-                }
-
-                /*FREQ_UUID -> {
-                    //TODO: eliminare?
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    updateFreq(v/1000.0)
-                }
-
-                TYPE_UUID -> {
-                    //TODO: eliminare?
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt()
-                    updateType(sondeTypes!![v])
-                }
-
-                MUTE_UUID -> {
-                    val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
-                        .getChar()
-                    //TODO: eliminare?
-                }*/
-            }
+    override fun onVelocity(vel:Float) {
+        val v=vel*kilometers
+        runOnUiThread {
+            @Suppress("SetTextI18n") if (useImperialUnits()) {
+                binding.horizontalSpeed.text=String.format(Locale.US,"V: %.1fmph",v `in` miles)
+            } else binding.horizontalSpeed.text=String.format(Locale.US,"V: %.1fkm/h",vel)
         }
     }
 
-    fun doConnectLE(address:String):Boolean {
-        bluetoothAdapter?.let {adapter ->
-            try {
-                val device=adapter.getRemoteDevice(address)
-                // connect to the GATT server on the device
-                if (ActivityCompat.checkSelfPermission(this,
-                        Manifest.permission.BLUETOOTH)!=PackageManager.PERMISSION_GRANTED
-                ) {
-                    Snackbar.make(binding.root,
-                        "autorizzazione scansione BLE negata",
-                        Snackbar.LENGTH_LONG).show()
-                    Log.i(TAG,"autorizzazione scansione BLE negata")
-                    return false
+    override fun onAFC(afc:Int) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onBurstKill(status:Byte,time:Int) {
+        runOnUiThread {
+            if (time>0 && time!=8*3600+30*60) updateBk(time)
+        }
+    }
+
+    override fun onVersion(version:String) {
+        if (!versionChecked && versionDB!=null && receiver!=null) {
+            versionChecked=true
+            var versionInfo:VersionInfo?=versionDB?.db?.getOrDefault(receiver!!.getFirmwareName(),null)
+            if (versionInfo!=null && versionInfo.version!=version)
+                runOnUiThread {
+                    UpdateDialog(receiver!!,versionInfo).show(supportFragmentManager,"")
                 }
-                bluetoothGatt=device.connectGatt(applicationContext,false,bluetoothGattCallback)
-                return true
-            } catch (exception:IllegalArgumentException) {
-                Log.w(TAG,"Device not found with provided address.  Unable to connect.")
-                return false
+        }
+    }
+
+    override fun onSettings(
+        sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,PILOTbw:Int,DFMbw:Int,
+        call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,lcd:Int,nam:Int,buz:Int,
+        ver:String
+    ) {
+        runOnUiThread {
+            showProgress(false)
+            updateMute(mute)
+            val intent=Intent(this,SettingsActivity::class.java)
+            val extras=Bundle().apply {
+                putInt(TTGO.OLED_SDA,sda)
+                putInt(TTGO.OLED_SCL,scl)
+                putInt(TTGO.OLED_RST,rst)
+                putInt(TTGO.LED_POUT,led)
+                putInt(TTGO.RS41_RXBW,RS41bw)
+                putInt(TTGO.M20_RXBW,M20bw)
+                putInt(TTGO.M10_RXBW,M10bw)
+                putInt(TTGO.PILOT_RXBW,PILOTbw)
+                putInt(TTGO.DFM_RXBW,DFMbw)
+                putString(TTGO.MYCALL,call)
+                putInt(TTGO.FREQOFS,offset)
+                putInt(TTGO.VBATMIN,batMin)
+                putInt(TTGO.VBATMAX,batMax)
+                putInt(TTGO.VBATTYPE,batType)
+                putInt(TTGO.LCD,lcd)
+                putInt(TTGO.APRSNAME,nam)
+                putInt(TTGO.BUZ_PIN,buz)
             }
-        } ?: run {
-            Log.w(TAG,"BluetoothAdapter not initialized")
-            return false
+            intent.putExtras(extras)
+            resultLauncher.launch(intent)
         }
-    }
-
-    private fun connectLE():Boolean {
-        Log.i(TAG,"Inizio scan")
-        bluetoothAdapter=
-            (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-        bluetoothLeScanner=bluetoothAdapter!!.bluetoothLeScanner
-
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.BLUETOOTH)!=PackageManager.PERMISSION_GRANTED
-        ) {
-            Snackbar.make(binding.root,
-                "autorizzazione scansione BLE negata",
-                Snackbar.LENGTH_LONG).show()
-            Log.i(TAG,"autorizzazione scansione BLE negata")
-            return false
-        }
-        if (!bluetoothAdapter!!.isEnabled) {
-            Snackbar.make(binding.root,"bluetooth is OFF",Snackbar.LENGTH_LONG).show()
-            bluetoothAdapter!!.enable()
-            handler.postDelayed({connectLE()},1000)
-            return false
-        }
-        if (connected) {
-            bluetoothGatt?.disconnect()
-        } else if (!scanning) { // Stops scanning after a pre-defined scan period.
-            handler.postDelayed({
-                stopScanLE()
-            },SCAN_PERIOD)
-            scanning=true
-            bluetoothLeScanner!!.startScan(leScanCallback)
-        }
-        return true
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun stopScanLE() {
-        if (!scanning) return
-        scanning=false
-        bluetoothLeScanner!!.stopScan(leScanCallback)
-    }
+      }
 
     companion object {
         const val TAG="TrovaLaSonda"
@@ -2293,4 +1527,3 @@ class MultipleViewsTarget(views:List<View>):ViewTarget(views.first()) {
         return Rect(point.x-size/2,point.y-size/2,point.x+size/2,point.y+size/2)
     }
 }*/
-

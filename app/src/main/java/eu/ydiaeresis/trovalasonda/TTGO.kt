@@ -2,6 +2,7 @@ package eu.ydiaeresis.trovalasonda
 
 import android.util.Log
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
+import kotlinx.coroutines.sync.Mutex
 import java.time.Instant
 
 class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBluetoothDeviceInterface):Receiver(cb,name),
@@ -9,31 +10,45 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     SimpleBluetoothDeviceInterface.OnErrorListener,
     SimpleBluetoothDeviceInterface.OnMessageSentListener {
     private var timeLastMessage:Instant?=null
-    val isRdzTrovaLaSonda=name.startsWith("TrovaLaSonda")
-    var isCiapaSonde=name.startsWith("CiapaSonde")
+    private val isRdzTrovaLaSonda=name.startsWith(ReceiverBuilder.TROVALASONDAPREFIX)
+    private var otaRunning=false
+    private val mutexOta=Mutex()
+
+    override fun getFirmwareName():String =if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
 
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
-        sendCommands(listOf<Pair<String,Any>>(Pair("f",frequency),Pair("tipo",type)))
+        sendCommands(listOf<Pair<String,Any>>(Pair(FREQ,frequency),Pair(TIPO,type)))
     }
 
     override fun setMute(mute:Boolean) {
-        sendCommand("mute",mute)
+        sendCommand(MUTE,if (mute) 1 else 0)
     }
 
-    override fun requestSettings() {
+    override fun requestSettings():Boolean {
         sendCommand("?")
+        return true
     }
 
-    override fun startOTA(otaLength:Int) {
-        sendCommand("ota",otaLength)
+    override fun requestVersion() {}
+
+    override fun sendSettings(settings:List<Pair<String,Any>>) {
+        sendCommands(settings)
     }
 
-    override fun otaChunk(buf:ByteArray) {
+    override suspend fun startOTA(otaLength:Int) {
+        sendCommand(OTA,otaLength)
+        otaRunning=true
+    }
+
+    override suspend fun stopOTA() {
+        otaRunning=false
+    }
+
+    override fun getOtaChunkSize():Int = 4096
+
+    override suspend fun otaChunk(buf:ByteArray) {
+        mutexOta.lock()
         sendBytes(buf)
-    }
-
-    fun sendOTA(length:Int) {
-        sendCommand("ota",length)
     }
 
     private fun sendBytes(bytes:ByteArray) {
@@ -54,7 +69,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         try {
             deviceInterface.sendMessage("o{$cmd}o\r\n".toByteArray())
         } catch (e:Exception) {
-            Log.e(FullscreenActivity.TAG,e.toString())
+            Log.e(FullscreenActivity.TAG,"Eccezione in sendCommand: $e")
         }
     }
 
@@ -66,28 +81,30 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
         sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onType(SondeType.valueOf(type))
-        cb.onFrequency(freq)
+        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
         cb.onMute(mute==1)
-        cb.onBattery(batV)
+        cb.onBattery(batV,bat)
         cb.onRSSI(sign)
+
+        if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
         cb.onSerial(name)
         cb.onLatitude(lat)
         cb.onLongitude(lon)
         cb.onAltitude(height)
-        cb.onVelocity(_vel)
+        var vel=_vel
+        if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20")) vel*=3.6F
+        cb.onVelocity(vel)
         cb.onAFC(afc)
-        cb.onBkTime(bktime)
+        cb.onBurstKill(0,bktime)
         cb.onVersion(ver)
     }
 
     private fun mySondyGOStatus(
         type:String,freq:Float,sign:Float,bat:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onType(SondeType.valueOf(type))
-        cb.onFrequency(freq)
+        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
         cb.onMute(mute==1)
-        cb.onBattery(batV)
+        cb.onBattery(batV,bat)
         cb.onRSSI(sign)
         cb.onVersion(ver)
     }
@@ -95,11 +112,10 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     private fun mySondyGOSonde(
         type:String,freq:Float,name:String,sign:Float,bat:Int,afc:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onType(SondeType.valueOf(type))
-        cb.onFrequency(freq)
+        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
         cb.onSerial(name)
         cb.onMute(mute==1)
-        cb.onBattery(batV)
+        cb.onBattery(batV,bat)
         cb.onRSSI(sign)
         cb.onAFC(afc)
         cb.onVersion(ver)
@@ -110,135 +126,105 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         PILOTbw:Int,DFMbw:Int,call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,
         lcd:Int,nam:Int,buz:Int,ver:String,
     ) {
-        cb.onSettings(sda,
-            scl,
-            rst,
-            led,
-            RS41bw,
-            M20bw,
-            M10bw,
-            PILOTbw,
-            DFMbw,
-            call,
-            offset,
-            bat,
-            batMin,
-            batMax,
-            batType,
-            lcd,
-            nam,
-            buz,
-            ver)
+        cb.onSettings(sda,scl,rst,led,RS41bw,M20bw,M10bw,PILOTbw,DFMbw,call,offset,bat,batMin,
+            batMax,batType,lcd,nam,buz,ver)
     }
 
     private fun process(msg:String) {
         timeLastMessage=Instant.now()
         val campi=msg.split("/")
         if (campi[campi.size-1]!="o") {
-            Log.e(TAG,"manca terminatore messaggio")
+            Log.e(FullscreenActivity.TAG,"manca terminatore messaggio")
             return
         }
         when (campi[0]) {
-            "0" -> if (campi.size==9) mySondyGOStatus(campi[1],
-                campi[2].toFloat(),
-                campi[3].toFloat(),
-                campi[4].toInt(),
-                campi[5].toInt(),
-                campi[6].toInt(),
-                campi[7])
+            "0" -> if (campi.size==9)
+                mySondyGOStatus(campi[1],campi[2].toFloat(),campi[3].toFloat(),campi[4].toInt(),
+                campi[5].toInt(),campi[6].toInt(),campi[7])
             else {
-                Log.e(TAG,
+                Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 0 (${campi.size} invece di 9)")
                 return
             }
 
             "1" -> if (campi.size==20) {
-                mySondyGOSondePos(campi[1],
-                    campi[2].toFloat(),
-                    campi[3],
-                    campi[4].toDouble(),
-                    campi[5].toDouble(),
-                    campi[6].toDouble(),
-                    campi[7].toFloat(),
-                    campi[8].toFloat(),
-                    campi[9].toInt(),
-                    campi[10].toInt(),
-                    campi[11]=="1",
-                    campi[12].toInt(),
-                    campi[13].toInt(),
-                    campi[14].toInt(),
-                    campi[18])
+                mySondyGOSondePos(campi[1],campi[2].toFloat(),campi[3],campi[4].toDouble(),
+                    campi[5].toDouble(),campi[6].toDouble(),campi[7].toFloat(),campi[8].toFloat(),
+                    campi[9].toInt(),campi[10].toInt(),campi[11]=="1",campi[12].toInt(),
+                    campi[13].toInt(),campi[14].toInt(),campi[18])
                 //TODO: callback - freqOffsetReceiver?.freqOffset(campi[10].toInt())
             } else {
-                Log.e(TAG,
+                Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
                 return
             }
 
             "2" -> if (campi.size==11) {
-                mySondyGOSonde(campi[1],
-                    campi[2].toFloat(),
-                    campi[3],
-                    campi[4].toFloat(),
-                    campi[5].toInt(),
-                    campi[6].toInt(),
-                    campi[7].toInt(),
-                    campi[8].toInt(),
-                    campi[9])
+                mySondyGOSonde(campi[1],campi[2].toFloat(),campi[3],campi[4].toFloat(),
+                    campi[5].toInt(),campi[6].toInt(),campi[7].toInt(),campi[8].toInt(),campi[9])
                 //TODO: callback - freqOffsetReceiver?.freqOffset(campi[6].toInt())
             } else {
-                Log.e(TAG,
+                Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 2 (${campi.size} invece di 11)")
                 return
             }
 
-            "3" -> if (campi.size==23) mySondyGOSettings(campi[1],
-                campi[2].toFloat(),
-                campi[3].toInt(),
-                campi[4].toInt(),
-                campi[5].toInt(),
-                campi[6].toInt(),
-                campi[7].toInt(),
-                campi[8].toInt(),
-                campi[9].toInt(),
-                campi[10].toInt(),
-                campi[11].toInt(),
-                campi[12],
-                campi[13].toInt(),
-                campi[14].toInt(),
-                campi[15].toInt(),
-                campi[16].toInt(),
-                campi[17].toInt(),
-                campi[18].toInt(),
-                campi[19].toInt(),
-                campi[20].toInt(),
-                campi[21])
+            "3" -> if (campi.size==23)
+                mySondyGOSettings(campi[1],campi[2].toFloat(),campi[3].toInt(),campi[4].toInt(),
+                campi[5].toInt(),campi[6].toInt(),campi[7].toInt(),campi[8].toInt(),
+                campi[9].toInt(),campi[10].toInt(),campi[11].toInt(),campi[12],campi[13].toInt(),
+                campi[14].toInt(),campi[15].toInt(),campi[16].toInt(),campi[17].toInt(),
+                campi[18].toInt(),campi[19].toInt(),campi[20].toInt(),campi[21])
             else {
-                Log.e(TAG,
+                Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
                 return
             }
 
-            else -> Log.e(TAG,"Tipo messaggio sconosciuto")
+            else -> Log.e(FullscreenActivity.TAG,"Tipo messaggio sconosciuto")
         }
     }
 
     override fun onMessageReceived(message:String) {
-        Log.i(TAG,"Message: $message")
+        Log.i(FullscreenActivity.TAG,"Message: $message")
         try {
             process(message)
         } catch (e:Exception) {
-            Log.e(TAG,e.toString())
+            Log.e(FullscreenActivity.TAG,"Eccezione in process: $e")
         }
     }
 
     override fun onError(error:Throwable) {
-        Log.i(TAG,"Error: $error")
+        Log.i(FullscreenActivity.TAG,"Serial communication error: $error")
+        cb.onDisconnected()
     }
 
-    override fun onMessageSent(message:ByteArray) {}
+    override fun onMessageSent(message:ByteArray) {
+        if (otaRunning && mutexOta.isLocked) mutexOta.unlock()
+    }
 
-    companion object {
-        const val TAG="TrovaLaSonda"
+    companion object{
+        const val LCD="lcd"
+        const val OLED_SDA="oled_sda"
+        const val OLED_SCL="oled_scl"
+        const val OLED_RST="oled_rst"
+        const val BUZ_PIN="buz_pin"
+        const val LED_POUT="led_pout"
+        const val BATTERY="battery"
+        const val VBATMIN="vBatMin"
+        const val VBATMAX="vBatMax"
+        const val VBATTYPE="vBatType"
+        const val RS41_RXBW="rs41.rxbw"
+        const val M20_RXBW="m20.rxbw"
+        const val M10_RXBW="m10.rxbw"
+        const val PILOT_RXBW="pilot.rxbw"
+        const val DFM_RXBW="dmf.rxbw"
+        const val MYCALL="myCall"
+        const val APRSNAME="aprsName"
+        const val FREQOFS="freqofs"
+        private const val TIPO="tipo"
+        private const val MUTE="mute"
+        private const val FREQ="f"
+        private const val OTA="ota"
     }
 }

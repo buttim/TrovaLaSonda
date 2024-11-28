@@ -3,11 +3,6 @@ package eu.ydiaeresis.trovalasonda
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
@@ -26,32 +21,32 @@ import com.harrysoft.androidbluetoothserial.BluetoothSerialDevice
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import java.nio.BufferUnderflowException
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.time.Instant
-import java.util.UUID
 
-enum class SondeType(val value:Int) { RS41(0), M20(1), M10(2), PIL(3), DFM(4) }
+enum class SondeType(val value:Int) {
+    RS41(0), M20(1), M10(2), PIL(3), DFM(4), C50(5), IMET4(6);
+    companion object {
+        fun fromInt(value: Int):SondeType = SondeType.entries.first { it.value == value }
+    }
+}
 
 class BluetoothNotEnabledException(message:String):Exception(message)
 class ReceiverException(message:String):Exception(message)
 
 interface ReceiverCallback {
     fun onDisconnected()
-    fun onBattery(mv:Int)
+    fun onBattery(mv:Int,percentage:Int)
     fun onMute(mute:Boolean)
-    fun onType(type:SondeType)
-    fun onFrequency(freq:Float)
+    fun onTypeAndFreq(type:Int,freq:Float)
     fun onRSSI(rssi:Float)
     fun onSerial(serial:String)
     fun onLatitude(lat:Double)
-    fun onLongitude(lat:Double)
-    fun onAltitude(lat:Double)
+    fun onLongitude(lon:Double)
+    fun onAltitude(alt:Double)
     fun onVelocity(vel:Float)
     fun onAFC(afc:Int)
-    fun onBkTime(bkTime:Int)
+    fun onBurstKill(status:Byte,time:Int)
     fun onVersion(version:String)
     fun onSettings(
         sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,PILOTbw:Int,DFMbw:Int,
@@ -61,23 +56,29 @@ interface ReceiverCallback {
 }
 
 abstract class Receiver(val cb:ReceiverCallback,val name:String) {
+    abstract fun getFirmwareName():String
     abstract fun setTypeAndFrequency(type:Int,frequency:Float)
     abstract fun setMute(mute:Boolean)
-    abstract fun requestSettings()
-    abstract fun startOTA(otaLength:Int)
-    abstract fun otaChunk(buf:ByteArray)
+    abstract fun requestSettings():Boolean
+    abstract fun requestVersion()
+    abstract fun sendSettings(settings:List<Pair<String,Any>>)
+    abstract suspend fun startOTA(otaLength:Int)
+    abstract suspend fun stopOTA()
+    abstract fun getOtaChunkSize():Int
+    abstract suspend fun otaChunk(buf:ByteArray)
 }
 
 interface ReceiverBuilderCallback {
-    fun onReceiverConnected(receiver:Receiver)
+    fun onReceiverConnected(receiver:Receiver,builder:ReceiverBuilder)
+    fun onTimeout()
 }
 
 abstract class ReceiverBuilder(
-    val rbcb:ReceiverBuilderCallback,
-    val rcb:ReceiverCallback,
+    val builderCallback:ReceiverBuilderCallback,
+    val callback:ReceiverCallback,
     val context:Context,
     val activity:ComponentActivity,
-) {
+) :Disposable {
     abstract fun connect()
 
     companion object {
@@ -118,7 +119,7 @@ class BLEReceiverBuilder(
         }
     }
 
-    fun doConnectLE(address:String):Boolean {
+    private fun doConnectLE(address:String):Boolean {
         bluetoothAdapter?.let {adapter ->
             try {
                 val device=adapter.getRemoteDevice(address)
@@ -129,18 +130,16 @@ class BLEReceiverBuilder(
                     Log.i(TAG,"autorizzazione scansione BLE negata")
                     throw ReceiverException("autorizzazione scansione BLE negata")
                 }
-                val receiver=HeltecLora32(rcb,adapter.name,context,device)
-                rbcb.onReceiverConnected(receiver)
+                val receiver=HeltecLora32(callback,device.name,context,device)
+                builderCallback.onReceiverConnected(receiver,this)
                 return true
             } catch (exception:IllegalArgumentException) {
-                Log.w(TAG,
-                    "Device not found with provided address.  Unable to connect.")
-                return false
+                Log.w(TAG,"Device not found with provided address. Unable to connect.")
             }
         } ?: run {
             Log.w(TAG,"BluetoothAdapter not initialized")
-            return false
         }
+        return false
     }
 
     @SuppressLint("MissingPermission")
@@ -163,11 +162,24 @@ class BLEReceiverBuilder(
 
         if (!scanning) { // Stops scanning after a pre-defined scan period.
             Handler(Looper.getMainLooper()).postDelayed({
-                stopScanLE()
+                if (scanning) {
+                    stopScanLE()
+                    builderCallback.onTimeout()
+                }
             },SCAN_PERIOD)
             scanning=true
             bluetoothLeScanner!!.startScan(leScanCallback)
         }
+    }
+
+    var disposed=false
+    override fun isDisposed() = disposed
+
+    @SuppressLint("MissingPermission")
+    override fun dispose() {
+        if (!disposed && scanning && bluetoothLeScanner!=null)
+            bluetoothLeScanner.stopScan(leScanCallback)
+        disposed=true
     }
 }
 
@@ -230,10 +242,10 @@ class BTReceiverBuilder(
         val btAdapter=
             (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
         val name=btAdapter.getRemoteDevice(btMacAddress).name
-        val receiver=TTGO(rcb,name,deviceInterface!!)
+        val receiver=TTGO(callback,name,deviceInterface!!)
         deviceInterface?.setListeners(receiver,receiver,receiver)
 
-        rbcb.onReceiverConnected(receiver)
+        builderCallback.onReceiverConnected(receiver,this)
     }
 
     @SuppressLint("CheckResult")
@@ -243,9 +255,11 @@ class BTReceiverBuilder(
             .observeOn(AndroidSchedulers.mainThread()).subscribe(this::onConnected) {error ->
                 Log.e(TAG,"Uh, oh: $error")
                 bluetoothManager?.closeDevice(mac)
+                builderCallback.onTimeout()//better than nothing
             }
     }
 
+    @SuppressLint("MissingPermission")
     override fun connect() {
         val btAdapter=
             (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
@@ -261,7 +275,10 @@ class BTReceiverBuilder(
                     if (!isDiscovering)
                         if (startDiscovery()) {
                             Handler(Looper.getMainLooper()).postDelayed({
-                                cancelDiscovery()
+                                if (isDiscovering) {
+                                    cancelDiscovery()
+                                    builderCallback.onTimeout()
+                                }
                             },SCAN_PERIOD)
                         } else {
                             Log.e(TAG,"Failed to start BT discovery")
@@ -277,4 +294,17 @@ class BTReceiverBuilder(
             }
         }
     }
+
+    private var disposed=false
+
+    override fun dispose() {
+        if (!disposed)
+            try {
+                context.unregisterReceiver(broadCastReceiver)
+            }
+            catch (_:IllegalArgumentException) {}
+        disposed=true
+    }
+
+    override fun isDisposed()=disposed
 }

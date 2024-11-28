@@ -96,9 +96,9 @@ class Tawhiri(private val time: Instant, private val lat:Double, private val lng
     suspend fun getPrediction():Array<Stage> {
         HttpClient(CIO).use {
             val response: HttpResponse = it.get(getUri().toString())
-            //Log.d("MAURI",response.bodyAsText())
+            //Log.d(FullscreenActivity.TAG,response.bodyAsText())
             val result:Response = json.decodeFromString(Response.serializer(),response.bodyAsText())
-            //Log.d("MAURI",result.request.toString())
+            //Log.d(FullscreenActivity.TAG,result.request.toString())
             return result.prediction
         }
     }

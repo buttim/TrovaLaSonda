@@ -80,7 +80,7 @@ class Sondehub(private val sondeType:String,
                 ContentEncoding {gzip()}
             }.use {
                 val response:HttpResponse=it.get(uri.toString())
-                //Log.d("MAURI", response.bodyAsText())
+                //Log.d(FullscreenActivity.TAG, response.bodyAsText())
                 val json=Json.parseToJsonElement(response.bodyAsText())
                 val map=json.jsonObject.toMap()
 
@@ -93,7 +93,7 @@ class Sondehub(private val sondeType:String,
                 }
             }
         } catch (ex:Exception) {
-            Log.i("MAURI",ex.toString())
+            Log.i(FullscreenActivity.TAG,ex.toString())
         }
         return points
     }
