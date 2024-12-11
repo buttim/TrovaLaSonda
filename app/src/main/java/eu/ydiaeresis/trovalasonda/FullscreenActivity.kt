@@ -387,7 +387,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     private fun updateSondeLocation(id:String?,lat:Double?,lon:Double?,alt:Double?) {
-        Log.i(TAG,"alt:$alt, sondeAlt:$sondeAlt")
         if (id!=null && sondeId!=id) {
             newSonde(id)
             if (currentLocation!=null && lat!=null && lon!=null && lat!=0.0 && lon!=0.0) {
@@ -494,6 +493,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 unit.text="m"
                 distance.text=String.format(Locale.US,"%.1f",dist)
             }
+            panel.requestLayout()
         }
     }
 

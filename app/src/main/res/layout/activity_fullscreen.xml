@@ -67,7 +67,8 @@
             android:textColor="#7FFF7F"
             android:textSize="22sp"
             android:textStyle="bold"
-            app:layout_constraintLeft_toRightOf="@id/buzzer"
+            app:layout_constraintStart_toEndOf="@id/buzzer"
+            app:layout_constraintEnd_toStartOf="@id/subpanel"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
@@ -75,17 +76,18 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
+            android:autoSizeTextType="uniform"
             android:gravity="end|center_vertical"
+            android:maxLines="1"
             android:text="\??"
             android:textColor="@color/yellow"
             android:textSize="30sp"
             android:textStyle="bold"
-            android:maxLines="1"
-            android:autoSizeTextType="uniform"
-            app:layout_constraintStart_toEndOf="@+id/buzzer"
-            app:layout_constraintTop_toBottomOf="@+id/id"
             app:layout_constraintBottom_toTopOf="@id/bk"
             app:layout_constraintEnd_toStartOf="@id/unit"
+            app:layout_constraintHorizontal_weight="1"
+            app:layout_constraintStart_toEndOf="@+id/buzzer"
+            app:layout_constraintTop_toBottomOf="@+id/id"
             tools:ignore="HardcodedText" />
 
         <TextView
@@ -94,17 +96,19 @@
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:gravity="end|center_vertical"
             android:autoSizeTextType="uniform"
+            android:gravity="end|center_vertical"
             android:maxLines="1"
             android:text="@string/km"
             android:textColor="@color/yellow"
             android:textSize="15sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@id/distance"
+            app:layout_constraintBottom_toTopOf="@id/rssi"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toStartOf="@id/subpanel"
+            app:layout_constraintHorizontal_weight=".4"
             app:layout_constraintStart_toEndOf="@id/distance"
-            app:layout_constraintTop_toTopOf="@id/distance" />
+            app:layout_constraintTop_toBottomOf="@id/id" />
 
         <TextView
             android:id="@+id/bk"
