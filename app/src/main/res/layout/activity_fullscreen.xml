@@ -27,9 +27,10 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="160sp"
         android:background="#80000000"
         android:orientation="vertical"
+        android:animateLayoutChanges="true"
         android:layout_gravity="bottom">
 
         <ImageView
@@ -64,7 +65,7 @@
             android:gravity="center"
             android:text="@string/no_sonde"
             android:textColor="#7FFF7F"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             app:layout_constraintLeft_toRightOf="@id/buzzer"
             app:layout_constraintTop_toTopOf="parent" />
@@ -72,28 +73,38 @@
         <TextView
             android:id="@+id/distance"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:layout_marginStart="8dp"
-            android:gravity="end"
+            android:gravity="end|center_vertical"
             android:text="\??"
             android:textColor="@color/yellow"
             android:textSize="30sp"
             android:textStyle="bold"
-            app:layout_constraintLeft_toRightOf="@+id/buzzer"
+            android:maxLines="1"
+            android:autoSizeTextType="uniform"
+            app:layout_constraintStart_toEndOf="@+id/buzzer"
             app:layout_constraintTop_toBottomOf="@+id/id"
+            app:layout_constraintBottom_toTopOf="@id/bk"
+            app:layout_constraintEnd_toStartOf="@id/unit"
             tools:ignore="HardcodedText" />
 
         <TextView
             android:id="@+id/unit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:gravity="end|center_vertical"
+            android:autoSizeTextType="uniform"
+            android:maxLines="1"
             android:text="@string/km"
             android:textColor="@color/yellow"
             android:textSize="15sp"
             android:textStyle="bold"
-            app:layout_constraintBaseline_toBaselineOf="@id/distance"
-            app:layout_constraintStart_toEndOf="@id/distance" />
+            app:layout_constraintBottom_toBottomOf="@id/distance"
+            app:layout_constraintEnd_toStartOf="@id/subpanel"
+            app:layout_constraintStart_toEndOf="@id/distance"
+            app:layout_constraintTop_toTopOf="@id/distance" />
 
         <TextView
             android:id="@+id/bk"
@@ -108,77 +119,103 @@
             android:textStyle="bold"
             android:visibility="invisible"
             app:layout_constraintBottom_toTopOf="@+id/rssi"
-            app:layout_constraintEnd_toStartOf="@+id/type"
+            app:layout_constraintEnd_toStartOf="@id/subpanel"
             app:layout_constraintStart_toEndOf="@+id/battery_meter"
             app:layout_constraintTop_toBottomOf="@id/distance"
             tools:ignore="HardcodedText" />
 
-        <TextView
-            android:id="@+id/type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/subpanel"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:layout_marginStart="8dp"
-            android:text="RS41 ???.???MHz"
-            android:textColor="@color/yellow"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            app:layout_constraintLeft_toRightOf="@+id/id"
+            app:layout_constraintHorizontal_bias="100"
+            app:layout_constraintStart_toEndOf="@+id/id"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:ignore="HardcodedText" />
+            app:layout_constraintBottom_toTopOf="@id/rssi">
 
-        <TextView
-            android:id="@+id/height"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:text="H: -m"
-            android:textColor="@color/yellow"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintLeft_toLeftOf="@+id/type"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/type"
-            tools:ignore="HardcodedText" />
+            <TextView
+                android:id="@+id/type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="RS41 ???.???MHz"
+                android:textColor="@color/yellow"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="HardcodedText" />
 
-        <TextView
-            android:id="@+id/horizontal_speed"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_weight="1"
-            android:textColor="@color/yellow"
-            android:text="V: -km/h"
-            tools:ignore="HardcodedText"
-            app:layout_constraintTop_toBottomOf="@id/height"
-            app:layout_constraintLeft_toLeftOf="@+id/type" />
+            <TextView
+                android:id="@+id/direction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text='▲'
+                android:textColor="#FFFF00"
+                android:textSize="40sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:ignore="HardcodedText" />
 
-        <TextView
-            android:id="@+id/vertical_speed"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_weight="1"
-            android:textColor="@color/yellow"
-            android:text="Vs: -m/s"
-            tools:ignore="HardcodedText"
-            app:layout_constraintTop_toBottomOf="@id/horizontal_speed"
-            app:layout_constraintLeft_toLeftOf="@+id/type" />
+            <TextView
+                android:id="@+id/height"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:autoSizeTextType="uniform"
+                android:text="H: -m"
+                android:textColor="@color/yellow"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toTopOf="@+id/horizontal_speed"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/type"
+                app:layout_constraintVertical_weight="1"
+                tools:ignore="HardcodedText" />
 
-        <TextView
-            android:id="@+id/direction"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:textColor="#FFFF00"
-            android:textSize="40sp"
-            android:text=''
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="@id/height"
-            tools:ignore="HardcodedText" />
+            <TextView
+                android:id="@+id/horizontal_speed"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:autoSizeTextType="uniform"
+                android:maxLines="1"
+                android:text="V: -km/h"
+                android:textColor="@color/yellow"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toTopOf="@+id/vertical_speed"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/height"
+                app:layout_constraintVertical_weight=".7"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/vertical_speed"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:autoSizeTextType="uniform"
+                android:maxLines="1"
+                android:text="Vs: -m/s"
+                android:textColor="@color/yellow"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/direction"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/horizontal_speed"
+                app:layout_constraintVertical_weight=".7"
+                tools:ignore="HardcodedText" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <ProgressBar
             android:id="@+id/rssi"

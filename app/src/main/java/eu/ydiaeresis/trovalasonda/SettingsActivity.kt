@@ -1,6 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
-import android.annotation.SuppressLint
+//import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Build
@@ -43,7 +43,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
     private var sumOfOffsets=0
     private var nOffsets=0
 
-    @SuppressLint("SetTextI18n")
+    //@SuppressLint("SetTextI18n")
     override fun freqOffset(offset:Int) {
         sumOfOffsets+=offset
         nOffsets++
@@ -76,7 +76,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         }
     }
 
-    @SuppressLint("SetTextI18n")
+    //@SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this,R.layout.activity_settings)

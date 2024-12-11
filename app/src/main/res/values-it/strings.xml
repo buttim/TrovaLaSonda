@@ -66,7 +66,7 @@
     <string name="SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING">Numero seriale della sonda che stai ricevendo</string>
     <string name="YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY">Tocca qui per aprire Sondehub o radiosondy.info</string>
     <string name="DISTANCE">Distanza</string>
-    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Tra te e la sonda che stai ricevendo</string>
+    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Tra te e la sonda che stai ricevendo. Premi per attivare la modalità di caccia</string>
     <string name="BUZZER">Cicalino</string>
     <string name="MUTE_YOUR_RECEIVER_TAPPING_THIS">Zittisci il ricevitore toccando qui</string>
     <string name="BATTERY">Batteria</string>
@@ -104,4 +104,15 @@
     <string name="report_sent_successfully">Rapporto inviato con successo</string>
     <string name="settings_not_available_for_this_receiver">Impostazioni non disponibili per questo ricevitore</string>
     <string name="skip_tutorial">Salta presentazione</string>
+    <string name="no_receiver_found">Ricevitore non trovato</string>
+    <string name="chose_connection">Scegli la connessione</string>
+    <string name="bluetooth_classic_ttgo">Bluetooth Classic (TTGO)</string>
+    <string name="bluetooth_low_energy_heltec">Bluetooth Low Energy (Heltec)</string>
+    <string name="no_receiver">Nessun ricevitore</string>
+    <string name="exit">Esci</string>
+    <string name="title_activity_settings">Impostazioni</string>
+    <string name="what_s_new">Novità di questa versione</string>
+    <string name="close">Chiudi</string>
+    <string name="hunting_mode_on">Modalità di caccia ATTIVA</string>
+    <string name="hunting_mode_off">Modalità di caccia DISATTIVATA</string>
 </resources>

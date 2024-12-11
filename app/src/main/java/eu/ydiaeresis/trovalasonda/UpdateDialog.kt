@@ -107,5 +107,6 @@ class UpdateDialog(private val receiver:Receiver,
         super.onCancel(dialog)
         canceled=true
     }
+
     override fun onClick(v: View?) {}
 }

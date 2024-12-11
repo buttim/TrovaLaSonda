@@ -1,6 +1,8 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -72,6 +74,7 @@ class FirmwareUpdater {
     }
 
     fun update(receiver:Receiver,file:File):Flow<DownloadStatus> {
+        //TODO: timeout!
         return flow {
             val chunkSize=receiver.getOtaChunkSize()
             try {
@@ -89,7 +92,9 @@ class FirmwareUpdater {
                     emit(DownloadStatus.Success)
                 }
             }
-            catch (_:CancellationException) {}
+            catch (_:CancellationException) {
+                receiver.stopOTA()
+            }
             catch (ex:Exception) {
                 Log.e(FullscreenActivity.TAG,"Eccezione in update: $ex")
                 try {

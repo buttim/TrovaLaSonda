@@ -12,6 +12,16 @@
     </style>
     <style name="MaterialAlertDialog_rounded" parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="shapeAppearanceOverlay">@style/DialogCorners</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/DialogWindowTitle_Custom</item>
+    </style>
+    <style name="DialogWindowTitle_Custom" parent="@style/Base.MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textAppearance">@style/TextAppearance_DialogWindowTitle</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="TextAppearance_DialogWindowTitle" parent="@style/MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20dp</item>
     </style>
     <style name="DialogCorners">
         <item name="cornerFamily">rounded</item>

@@ -17,7 +17,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     override fun getFirmwareName():String =if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
 
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
-        sendCommands(listOf<Pair<String,Any>>(Pair(FREQ,frequency),Pair(TIPO,type)))
+        sendCommands(listOf<Pair<String,Any>>(Pair(FREQ,frequency),Pair(TIPO,type+1)))
     }
 
     override fun setMute(mute:Boolean) {
@@ -152,7 +152,6 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
                     campi[5].toDouble(),campi[6].toDouble(),campi[7].toFloat(),campi[8].toFloat(),
                     campi[9].toInt(),campi[10].toInt(),campi[11]=="1",campi[12].toInt(),
                     campi[13].toInt(),campi[14].toInt(),campi[18])
-                //TODO: callback - freqOffsetReceiver?.freqOffset(campi[10].toInt())
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
@@ -162,7 +161,6 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
             "2" -> if (campi.size==11) {
                 mySondyGOSonde(campi[1],campi[2].toFloat(),campi[3],campi[4].toFloat(),
                     campi[5].toInt(),campi[6].toInt(),campi[7].toInt(),campi[8].toInt(),campi[9])
-                //TODO: callback - freqOffsetReceiver?.freqOffset(campi[6].toInt())
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 2 (${campi.size} invece di 11)")

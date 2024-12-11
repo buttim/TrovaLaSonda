@@ -74,7 +74,7 @@
     <string name="SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING">Serial number for the sonde you are receiving</string>
     <string name="YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY"> You can tap it to open Sondehub or radiosondy.info</string>
     <string name="DISTANCE">Distance</string>
-    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Between you and the sonde you are receiving</string>
+    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Between you and the sonde you are receiving. Tap to activate hunting mode</string>
     <string name="BUZZER">Buzzer</string>
     <string name="MUTE_YOUR_RECEIVER_TAPPING_THIS">Mute your receiver tapping this</string>
     <string name="BATTERY">Battery</string>
@@ -113,6 +113,16 @@
     <string name="report_sent_successfully">Report sent successfully</string>
     <string name="settings_not_available_for_this_receiver">Settings not available for this receiver</string>
     <string name="skip_tutorial">Skip tutorial</string>
+    <string name="no_receiver_found">No receiver found</string>
+    <string name="chose_connection">Chose connection</string>
+    <string name="bluetooth_classic_ttgo">Bluetooth Classic (TTGO)</string>
+    <string name="bluetooth_low_energy_heltec">Bluetooth Low Energy (Heltec)</string>
+    <string name="no_receiver">No receiver</string>
+    <string name="exit">Exit</string>
+    <string name="what_s_new">What\'s new</string>
+    <string name="close">Close</string>
+    <string name="hunting_mode_on">Hunting mode ON</string>
+    <string name="hunting_mode_off">Hunting mode OFF</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>
