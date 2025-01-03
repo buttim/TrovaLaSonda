@@ -9,7 +9,11 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import androidx.annotation.RequiresApi
 import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
 import kotlinx.coroutines.sync.Mutex
 import java.nio.BufferUnderflowException
@@ -36,20 +40,28 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
     private var otaTxCharacteristic:BluetoothGattCharacteristic?=null
     private var otaRxCharacteristic:BluetoothGattCharacteristic?=null
     private var versionCharacteristic:BluetoothGattCharacteristic?=null
+    private var cryptoCharacteristic:BluetoothGattCharacteristic?=null
     private val mutexOta=Mutex()
     private val timer=Timer()
     private val bluetoothGattCallback=object:BluetoothGattCallback() {
         private var characteristicsToRegister:ArrayDeque<BluetoothGattCharacteristic?> =ArrayDeque()
         private val characteristicsToRead:ArrayDeque<BluetoothGattCharacteristic?> =ArrayDeque()
 
+        @RequiresApi(Build.VERSION_CODES.O)
         @SuppressLint("MissingPermission")
         private fun registerCharacteristic(gatt:BluetoothGatt?) {
             if (characteristicsToRegister.isEmpty()) {
-                characteristicsToRead.addAll(arrayOf(typeFreqCharacteristic,batteryCharacteristic,
-                    muteCharacteristic,serialCharacteristic,latitudeCharacteristic,
-                    longitudeCharacteristic,altitudeCharacteristic,velCharacteristic!!,versionCharacteristic))
-                if (versionCharacteristic==null)
-                    Log.e(TAG,"versionCharacteristic is null!!")
+                characteristicsToRead.addAll(arrayOf(typeFreqCharacteristic,
+                    batteryCharacteristic,
+                    muteCharacteristic,
+                    serialCharacteristic,
+                    latitudeCharacteristic,
+                    longitudeCharacteristic,
+                    altitudeCharacteristic,
+                    velCharacteristic!!,
+                    versionCharacteristic))
+                if (versionCharacteristic==null) Log.e(TAG,
+                    "versionCharacteristic is null!!")
                 bluetoothGatt.readCharacteristic(burstKillCharacteristic)
                 return
             }
@@ -70,6 +82,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         @SuppressLint("MissingPermission")
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicRead(
@@ -79,55 +92,67 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
         ) {
             super.onCharacteristicRead(gatt,characteristic,status)
             val value=characteristic!!.value
-            val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
-            when (characteristic.uuid) {
-                BURSTKILL_UUID -> {
-                    try {
-                        cb.onBurstKill(v.get(0),v.getShort(1).toInt())
+            if (value!=null) {
+                try {
+                    val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
+                    when (characteristic.uuid) {
+                        BURSTKILL_UUID -> {
+                            try {
+                                cb.onBurstKill(v.get(0),v.getShort(1).toInt())
+                            } catch (_:IndexOutOfBoundsException) {
+                            }
+                        }
+
+                        TYPEFREQ_UUID -> {
+                            val type=v.get(0).toInt()
+                            val freq=v.getInt(1)/1000F
+                            cb.onTypeAndFreq(type,freq)
+                        }
+
+                        SERIAL_UUID -> {
+                            val serial=characteristic.value.toString(Charsets.UTF_8)
+                            if (serial.isNotEmpty()) cb.onSerial(serial)
+                        }
+
+                        BAT_UUID -> cb.onBattery(0,v.getInt())
+
+                        MUTE_UUID -> cb.onMute(v.getChar().toInt()==1)
+
+                        LAT_UUID -> {
+                            try {
+                                cb.onLatitude(v.getDouble())
+                            } catch (_:BufferUnderflowException) {
+                            }
+                        }
+
+                        LON_UUID -> {
+                            try {
+                                cb.onLongitude(v.getDouble())
+                            } catch (_:BufferUnderflowException) {
+                            }
+                        }
+
+                        ALT_UUID -> {
+                            try {
+                                cb.onAltitude(v.getFloat().toDouble())
+                            } catch (_:BufferUnderflowException) {
+                            }
+                        }
+
+                        VEL_UUID -> {
+                            try {
+                                cb.onVelocity(v.getFloat())
+                            } catch (_:BufferUnderflowException) {
+                            }
+                        }
+
+                        VERSION_UUID -> cb.onVersion(characteristic.getStringValue(0))
                     }
-                    catch (_:IndexOutOfBoundsException) {}
                 }
-
-                TYPEFREQ_UUID -> {
-                    val type=v.get(0).toInt()
-                    val freq=v.getInt(1)/1000F
-                    cb.onTypeAndFreq(type,freq)
+                catch (_:BufferUnderflowException) {}
+                catch (ex:IndexOutOfBoundsException) {
+                    Log.w(TAG,"exception while processing characteristic ${characteristic.uuid}, $ex")
                 }
-
-                SERIAL_UUID -> {
-                    val serial=characteristic.value.toString(Charsets.UTF_8)
-                    if (serial.isNotEmpty()) cb.onSerial(serial)
-                }
-
-                BAT_UUID -> cb.onBattery(0,v.getInt())
-
-                MUTE_UUID -> cb.onMute(v.getChar().toInt()==1)
-
-                LAT_UUID -> {
-                    try {
-                        cb.onLatitude(v.getDouble())
-                    } catch (_:BufferUnderflowException) {}
-                }
-
-                LON_UUID -> {
-                    try {
-                        cb.onLongitude(v.getDouble())
-                    } catch (_:BufferUnderflowException) {}
-                }
-
-                ALT_UUID -> {
-                    try {
-                        cb.onAltitude(v.getFloat().toDouble())
-                    } catch (_:BufferUnderflowException) {}
-                }
-
-                VEL_UUID -> {
-                    try {
-                        cb.onVelocity(v.getFloat())
-                    } catch (_:BufferUnderflowException) {}
-                }
-
-                VERSION_UUID -> cb.onVersion(characteristic.getStringValue(0))
             }
             while (!characteristicsToRead.isEmpty()) {
                 val ch=characteristicsToRead.removeFirst()
@@ -155,6 +180,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             super.onCharacteristicWrite(gatt,characteristic,status)
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         override fun onDescriptorWrite(
             gatt:BluetoothGatt?,
             descriptor:BluetoothGattDescriptor?,
@@ -167,6 +193,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt:BluetoothGatt?,status:Int,newState:Int) {
             Log.i(TAG,"OnConnectionStateChange status=$status, newState=$newState")
@@ -182,6 +209,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         @SuppressLint("MissingPermission")
         override fun onMtuChanged(gatt:BluetoothGatt?,mtu:Int,status:Int) {
             super.onMtuChanged(gatt,mtu,status)
@@ -189,6 +217,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             bluetoothGatt.discoverServices()
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt:BluetoothGatt?,status:Int) {
             if (status==BluetoothGatt.GATT_SUCCESS) {
@@ -233,6 +262,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                                         characteristicsToRegister.add(ch)
                                     }
                                     VERSION_UUID -> versionCharacteristic=ch
+                                    CRYPTO_UUID -> cryptoCharacteristic=ch
                                 }
                             }
                         }
@@ -273,15 +303,21 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                     val t=v.getShort(1).toInt()
                     cb.onBurstKill(status,t)
                 }
+                CRYPTO_UUID -> {
+                    cb.onCrypto(v.getShort().toInt(),0,0)
+                }
             }
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
-    var bluetoothGatt:BluetoothGatt=device.connectGatt(context,false,bluetoothGattCallback)
+    var bluetoothGatt:BluetoothGatt=device.connectGatt(context,false,bluetoothGattCallback,
+        BluetoothDevice.TRANSPORT_AUTO, BluetoothDevice.PHY_LE_2M_MASK, Handler(Looper.getMainLooper()))
 
     init {
         timer.schedule(object:TimerTask() {
+            @RequiresApi(Build.VERSION_CODES.O)
             @SuppressLint("MissingPermission")
             override fun run() {
                 if (Instant.now().epochSecond-timeLastSeen.epochSecond>5000) {
@@ -296,7 +332,12 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
     }
 
     override fun getFirmwareName():String ="TrovaLaSondaFw"
+    override val sondeTypes:List<String>
+        get() {
+            return listOf("RS41","M20","M10","DFM09","DFM17")
+        }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
         typeFreqCharacteristic!!.value=
@@ -306,6 +347,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
         cb.onTypeAndFreq(type,frequency)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override fun setMute(mute:Boolean) {
         muteCharacteristic!!.value=ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN)
@@ -315,6 +357,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
 
     override fun requestSettings()=false
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override fun requestVersion() {
         bluetoothGatt.readCharacteristic(versionCharacteristic)
@@ -322,6 +365,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
 
     override fun sendSettings(settings:List<Pair<String,Any>>) {}
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override suspend fun startOTA(otaLength:Int) {
         val res=bluetoothGatt.requestConnectionPriority(CONNECTION_PRIORITY_HIGH)
@@ -334,6 +378,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
         bluetoothGatt.writeCharacteristic(otaTxCharacteristic!!)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override suspend fun stopOTA() {
         //mutexOta.lock()
@@ -344,6 +389,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
 
     override fun getOtaChunkSize():Int = CHUNK_SIZE
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override suspend fun otaChunk(buf:ByteArray) {
         mutexOta.lock()
@@ -371,6 +417,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
         private val BURSTKILL_UUID=UUID.fromString("b4da41fe-3194-42e7-8bbb-2e11d3ff6f6d")
         private val SERIAL_UUID=UUID.fromString("539fd1f8-f427-4ddc-99d2-80f51616baab")
         private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
+        private val CRYPTO_UUID=UUID.fromString("f5208a75-777d-47fe-ae8c-b3530d3244b7")
     }
 }
 

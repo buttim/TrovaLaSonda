@@ -43,7 +43,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                         with(binding) {
                             if (user.text.toString().isEmpty()) {
                                 Snackbar.make(binding.root,
-                                    getString(R.string.user_name_must_specified),
+                                    getString(R.string.user_name_must_be_specified),
                                     Snackbar.LENGTH_LONG).show()
                                 user.requestFocus()
                                 return

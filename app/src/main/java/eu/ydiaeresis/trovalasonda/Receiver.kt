@@ -23,13 +23,8 @@ import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-
-enum class SondeType(val value:Int) {
-    RS41(0), M20(1), M10(2), PIL(3), DFM(4), C50(5), IMET4(6);
-    companion object {
-        fun fromInt(value: Int):SondeType = SondeType.entries.first { it.value == value }
-    }
-}
+import java.util.Timer
+import java.util.TimerTask
 
 class BluetoothNotEnabledException(message:String):Exception(message)
 class ReceiverException(message:String):Exception(message)
@@ -53,10 +48,12 @@ interface ReceiverCallback {
         call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,lcd:Int,nam:Int,
         buz:Int,ver:String,
     )
+    fun onCrypto(rssi:Int,cpuTemp:Int,radioTemp:Int)
 }
 
 abstract class Receiver(val cb:ReceiverCallback,val name:String) {
     abstract fun getFirmwareName():String
+    abstract val sondeTypes:List<String>
     abstract fun setTypeAndFrequency(type:Int,frequency:Float)
     abstract fun setMute(mute:Boolean)
     abstract fun requestSettings():Boolean
@@ -106,10 +103,21 @@ class BLEReceiverBuilder(
 
             if (!scanning) return
             if (result.device.name!=null) Log.i(TAG,result.device.name)
-            if (result.device.name!=null && result.device.name.startsWith(TROVALASONDAPREFIX)) {
+
+            if ((result.device.type==BluetoothDevice.DEVICE_TYPE_LE  || result.device.type==BluetoothDevice.DEVICE_TYPE_DUAL) && result.device.name!=null && result.device.name.startsWith(TROVALASONDAPREFIX)) {
                 Log.i(TAG,"TROVATO------------------------")
                 stopScanLE()
-                doConnectLE(result.device.address)
+                //HACKHACK: fake BT discovery to somehow reset the adapter
+                //  without this 100% connection fail on my phone (GATT status=133)
+                val btAdapter=
+                    (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+                btAdapter.startDiscovery()
+                Timer().schedule(object:TimerTask(){
+                    override fun run() {
+                        btAdapter.cancelDiscovery()
+                        doConnectLE(result.device.address)
+                    }
+                },100)
             }
         }
 
@@ -172,13 +180,13 @@ class BLEReceiverBuilder(
         }
     }
 
-    var disposed=false
+    private var disposed=false
     override fun isDisposed() = disposed
 
     @SuppressLint("MissingPermission")
     override fun dispose() {
-        if (!disposed && scanning && bluetoothLeScanner!=null)
-            bluetoothLeScanner.stopScan(leScanCallback)
+        if (!disposed)
+            stopScanLE()
         disposed=true
     }
 }
@@ -207,7 +215,7 @@ class BTReceiverBuilder(
                     try {
                         val deviceName=device?.name
                         Log.i(TAG,"BT device found: $deviceName")
-                        if (deviceInterface==null && deviceName!=null && (deviceName.startsWith(
+                        if ((device?.type==BluetoothDevice.DEVICE_TYPE_CLASSIC || device?.type==BluetoothDevice.DEVICE_TYPE_DUAL) && deviceInterface==null && deviceName!=null && (deviceName.startsWith(
                                 MYSONDYGOPREFIX) || deviceName.startsWith(TROVALASONDAPREFIX) || deviceName.startsWith(
                                 CIAPASONDEPREFIX))
                         ) {
@@ -300,7 +308,7 @@ class BTReceiverBuilder(
     override fun dispose() {
         if (!disposed)
             try {
-                context.unregisterReceiver(broadCastReceiver)
+                //context.unregisterReceiver(broadCastReceiver)
             }
             catch (_:IllegalArgumentException) {}
         disposed=true

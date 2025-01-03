@@ -1,6 +1,7 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.util.Log
+import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import kotlinx.coroutines.sync.Mutex
 import java.time.Instant
@@ -15,6 +16,20 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     private val mutexOta=Mutex()
 
     override fun getFirmwareName():String =if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
+    override val sondeTypes:List<String>
+        get() {
+            return when {
+                name.startsWith(ReceiverBuilder.CIAPASONDEPREFIX) -> listOf("RS41",
+                    "M20",
+                    "M10",
+                    "PIL",
+                    "DFM",
+                    "C50",
+                    "IMET4")
+
+                else -> listOf("RS41","M20","M10","PIL","DFM")
+            }
+        }
 
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
         sendCommands(listOf<Pair<String,Any>>(Pair(FREQ,frequency),Pair(TIPO,type+1)))
@@ -81,7 +96,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
         sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
+        cb.onTypeAndFreq(sondeTypes.indexOf(type),freq)
         cb.onMute(mute==1)
         cb.onBattery(batV,bat)
         cb.onRSSI(sign)
@@ -102,7 +117,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     private fun mySondyGOStatus(
         type:String,freq:Float,sign:Float,bat:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
+        cb.onTypeAndFreq(sondeTypes.indexOf(type),freq)
         cb.onMute(mute==1)
         cb.onBattery(batV,bat)
         cb.onRSSI(sign)
@@ -112,7 +127,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
     private fun mySondyGOSonde(
         type:String,freq:Float,name:String,sign:Float,bat:Int,afc:Int,batV:Int,mute:Int,ver:String,
     ) {
-        cb.onTypeAndFreq(SondeType.valueOf(type).value,freq)
+        cb.onTypeAndFreq(sondeTypes.indexOf(type),freq)
         cb.onSerial(name)
         cb.onMute(mute==1)
         cb.onBattery(batV,bat)
@@ -194,6 +209,7 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
 
     override fun onError(error:Throwable) {
         Log.i(FullscreenActivity.TAG,"Serial communication error: $error")
+        BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
         cb.onDisconnected()
     }
 

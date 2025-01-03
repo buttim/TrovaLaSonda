@@ -11,13 +11,74 @@ import io.ktor.client.plugins.compression.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
+import org.json.JSONException
 import org.json.JSONObject
 import org.osmdroid.util.GeoPoint
 import java.time.Instant
 
+@Serializable
+data class Site @OptIn(ExperimentalSerializationApi::class) constructor(
+    val station:String,
+    @JsonNames("station_name") val stationName:String,
+    @JsonNames("burst_altitude") val burstAltitude:Float?=null,
+    @JsonNames("ascent_rate") val ascentRate:Float?=null,
+    @JsonNames("descent_rate") val descentRate:Float?=null
+)
 
-suspend fun recovered(context:Context,user:String,serial:String,lat:Double,lon:Double,alt:Double,description:String):String? {
+suspend fun sites():Map<String,Site>? {
+    HttpClient(CIO){
+        install(ContentEncoding) {
+            gzip()
+        }
+    }.use {
+        val response=it.get { url(Sondehub.URI+"sites")}
+        return when (response.status) {
+            HttpStatusCode.OK -> Json{
+                ignoreUnknownKeys = true
+            }.decodeFromString(MapSerializer(String.serializer(),Site.serializer()),response.bodyAsText())
+            else -> null
+        }
+    }
+}
+
+suspend fun stationFromSerial(sondeType:String,serial:String):String? {
+    val id=Sondehub.getSondehubId(sondeType,serial)
+    HttpClient(CIO){
+        install(ContentEncoding) {
+            gzip()
+        }
+    }.use {
+        val response=it.get { url(Sondehub.URI+"predictions/reverse?vehicles="+id)}
+        //Log.i(FullscreenActivity.TAG,"RESPONSE: (${response.status}) ${response.body<ByteArray>()}")
+        return when (response.status) {
+            HttpStatusCode.OK -> {
+                val json=JSONObject(response.bodyAsText())
+                try {
+                    json.getJSONObject(serial).getString("launch_site")
+                }
+                catch (_:JSONException) {
+                    null
+                }
+            }
+            else -> null
+        }
+    }
+}
+
+suspend fun recovered(
+    context:Context,
+    user:String,
+    serial:String,
+    lat:Double,
+    lon:Double,
+    alt:Double,
+    description:String,
+):String? {
     val data=buildJsonObject {
         put("serial",serial)
         put("recovered",true)
@@ -44,11 +105,11 @@ suspend fun recovered(context:Context,user:String,serial:String,lat:Double,lon:D
                     try {
                         val json=JSONObject(response.bodyAsText())
                         json.getString("message")
-                    }
-                    catch (ex:Exception) {
+                    } catch (ex:Exception) {
                         context.getString(R.string.unknown_error,response.bodyAsText())
                     }
                 }
+
                 else -> context.getString(R.string.error_sending_report_status,response.status)
             }
         }
@@ -58,9 +119,11 @@ suspend fun recovered(context:Context,user:String,serial:String,lat:Double,lon:D
     }
 }
 
-class Sondehub(private val sondeType:String,
-               private val sondeId:String,
-               private val lastSeen:Instant?) {
+class Sondehub(
+    private val sondeType:String,
+    private val sondeId:String,
+    private val lastSeen:Instant?,
+) {
     suspend fun getTrack():List<GeoPoint> {
         var duration="3h"
 
@@ -100,10 +163,9 @@ class Sondehub(private val sondeType:String,
 
     companion object {
         const val URI="https://api.v2.sondehub.org/"
-        private fun getSondehubId(sondeType:String,sondeId:String):String=when (sondeType) {
+        fun getSondehubId(sondeType:String,sondeId:String):String=when (sondeType) {
             "M10","M20" -> sondeId.substring(0,3)+"-"+sondeId.substring(3,
                 4)+"-"+sondeId.substring(4)
-
             else -> sondeId
         }
     }

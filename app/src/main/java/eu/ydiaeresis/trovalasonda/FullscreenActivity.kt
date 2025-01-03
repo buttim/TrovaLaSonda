@@ -13,6 +13,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.BlendMode
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
@@ -71,6 +72,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
+import org.osmdroid.views.overlay.FolderOverlay
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
@@ -84,6 +86,7 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
 import uk.co.deanwild.materialshowcaseview.ShowcaseConfig
 import uk.co.deanwild.materialshowcaseview.target.ViewTarget
+import java.io.File
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -116,6 +119,7 @@ fun MaterialShowcaseSequence.addSequenceItem(
 class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     ReceiverBuilderCallback,ReceiverCallback {
     private var version=""
+    private var platform=""
     private var reportAlreadyShown=false
     private var distance=999999.9
     private lateinit var binding:ActivityFullscreenBinding
@@ -162,7 +166,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private var roadManager:RoadManager=OSRMRoadManager(this,BuildConfig.APPLICATION_ID)
     private var roadOverlay:Polyline?=null
     private var lastConnectionChoice=0
+    private var site:Site?=null
     private var huntingMode=false
+    private var pollicinoMode=false
+    private val fldPollicino=FolderOverlay()
     private val cyclOSM=XYTileSource("CyclOSM",
         0,
         18,
@@ -384,6 +391,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         mkTarget?.setVisible(false)
         timeLastSeen=Instant.now()
         reportAlreadyShown=false
+        site=null
+        CoroutineScope(Dispatchers.IO).launch {
+            val sites=sites()
+            val stationId=stationFromSerial(receiver!!.sondeTypes[sondeType],id)
+            if (sites!=null && stationId!=null) {
+                site=sites.get(stationId)
+            }
+        }
     }
 
     private fun updateSondeLocation(id:String?,lat:Double?,lon:Double?,alt:Double?) {
@@ -442,11 +457,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
         if (deltaAlt!=0.0)
             timeLastSeen=Instant.now()
+        val maxHeight=site?.burstAltitude?.toDouble()?:33000.0
+        val ascRate=site?.ascentRate?.toDouble()?:5.0
+        val descRate=site?.descentRate?.toDouble()?:5.0
         if (nPositionsReceived>10 && (lastPrediction==null || lastPrediction?.until(Instant.now(),
                 ChronoUnit.SECONDS)!!>60)
         ) {
             lastPrediction=Instant.now()
-            predict(lat,lon,alt)
+            predict(lat,lon,alt,maxHeight,ascRate,descRate)
         }
         if (useImperialUnits()) {
             val h=String.format(Locale.US,"%.1f",alt*meters `in` feet)
@@ -460,8 +478,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 mkBurst?.apply {
                     position=GeoPoint(lat,lon)
                     setVisible(true)
-                    val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                    title=LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
+                    //val dtf=DateTimeFormatter.ofPattern("HH:mm")
+                    title=getBurstTitle(Instant.now(),alt,ascRate,descRate)//LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
                 }
                 playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
             }
@@ -510,7 +528,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun updateTypeAndFreq(type:Int,freq:Float) {
         sondeType=type
         this.freq=freq
-        binding.type.text="%s %.3f".format(Locale.US,SondeType.fromInt(sondeType).name,freq)
+        binding.type.text="%s %.3f".format(Locale.US,receiver!!.sondeTypes[sondeType],freq)
     }
 
     private fun updateBk(bk:Int) {
@@ -559,7 +577,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 ) {
                     lastPrediction=Instant.now()
                     points.last().apply {
-                        predict(latitude,longitude,altitude)
+                        val maxHeight=site?.burstAltitude?.toDouble()?:33000.0
+                        val ascRate=site?.ascentRate?.toDouble()?:5.0
+                        val descRate=site?.descentRate?.toDouble()?:5.0
+                        predict(latitude,longitude,altitude,maxHeight,ascRate,descRate)
                     }
                 }
             }
@@ -646,6 +667,27 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
+    fun getBurstTitle(t:Instant,maxHeight:Double,ascRate:Double,descRate:Double) : String {
+        val dtf=DateTimeFormatter.ofPattern("HH:mm")
+        var txt="time: "+LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
+        if (useImperialUnits()) {
+            val h=maxHeight*meters
+            val a=ascRate*meters
+            val d=descRate*meters
+            txt+="\nh:%.0fft\nasc:%.1fft/s\ndesc:%.1fft/s".format(
+                h `in` feet,
+                a `in` feet,
+                d `in` feet)
+        }
+        else {
+            txt+="\nh:%.1fm\nasc:%.0fm/s\ndesc:%.1fm/s".format(
+                maxHeight,
+                ascRate,
+                descRate)
+        }
+        return txt
+    }
+
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -694,6 +736,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding=ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //////////////////////////////////////////////
+//        CoroutineScope(Dispatchers.IO).launch {
+//            val sites=sites()
+//            val s=stationFromSerial("RS41","W0220408")
+//            Log.i(TAG,"station: ${sites!![s]}")
+//        }
+        //////////////////////////////////////////////
         /*//////////////////////////////////////
         CoroutineScope(Dispatchers.IO).launch {
             with (binding) {
@@ -774,7 +823,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             SondeTypeDialog().apply {
                 freq=this@FullscreenActivity.freq
                 type=sondeType
-                isCiapaSonde=this@FullscreenActivity.isCiapaSonde
+                sondeTypes=receiver?.sondeTypes
                 dialogCloseListener=object:DialogCloseListener {
                     override fun handleDialogClose() {
                         receiver?.setTypeAndFrequency(type,freq)
@@ -922,6 +971,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
             true
         }
+        binding.menuHelp.setOnLongClickListener {
+            pollicinoMode=!pollicinoMode
+            fldPollicino.items.removeAll{true}
+            Snackbar.make(binding.root,"Pollicino mode " + if (pollicinoMode) "ON" else "OFF",Snackbar.LENGTH_LONG).show()
+            closeMenu()
+            true
+        }
         binding.menuHelp.setOnClickListener {
             startActivity(Intent(this,ScrollingActivity::class.java))
             closeMenu()
@@ -1016,6 +1072,35 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     setVisible(false)
                 }
 
+                ///////////////////////////////////////////////////
+//                for (i in 0..10) {
+//                    fldPollicino.add(Marker(binding.map).apply {
+//                        icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
+//                        icon.setTint(Color.HSVToColor(floatArrayOf((10-i)*24F,1F,1F)))
+//                        icon.setTintBlendMode(BlendMode.DARKEN)
+//                        setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
+//                        infoWindow=null
+//                        position=GeoPoint(45.0714488, 7.593995+i*(7.649485-7.593995)/10.0)
+//                    })
+//                }
+//                fldPollicino.add(Marker(binding.map).apply {
+//                    icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
+//                    icon.setTint(Color.BLUE)
+//                    icon.setTintBlendMode(BlendMode.DARKEN)
+//                    setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
+//                    infoWindow=null
+//                    position=GeoPoint(45.076808585334724, 7.632490920227752)
+//                })
+//                fldPollicino.add(Marker(binding.map).apply {
+//                    icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
+//                    icon.setTint(Color.RED)
+//                    icon.setTintBlendMode(BlendMode.DARKEN)
+//                    setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
+//                    infoWindow=null
+//                    position=GeoPoint(45.077118163302394, 7.638972082918306)
+//                })
+                ///////////////////////////////////////////////////
+
                 path.outlinePaint.apply {
                     color=Color.rgb(0,0,255)
                     strokeCap=Paint.Cap.ROUND
@@ -1053,6 +1138,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     trajectory,
                     mkBurst,
                     mkTarget,
+                    fldPollicino,
                     copyrightOverlay,
                     mkSondehub,
                     mkSonde,
@@ -1073,7 +1159,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                         Instant.now(),
                         ChronoUnit.SECONDS)!!>=30)
                 ) {
-                    getFromSondeHub(SondeType.fromInt(sondeType).name,sondeId!!,timeLastSeen!!)
+                    getFromSondeHub(receiver!!.sondeTypes[sondeType],sondeId!!,timeLastSeen!!)
                     timeLastSondehub=Instant.now()
                 }
 
@@ -1102,15 +1188,16 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         ////////////////////////////////////////////////
     }
 
-    private fun predict(lat:Double,lng:Double,alt:Double) {
+    private fun predict(lat:Double,lng:Double,alt:Double,maxHeight:Double,ascRate:Double,descRate:Double) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                //TODO: usare velocità verticale corrente in discesa sotto a una certa quota
                 val tawhiri=Tawhiri(timeLastSeen ?: Instant.now(),
                     lat,
                     lng,
                     alt,
-                    if (burst) alt+1 else max(alt+100,33000.0))
+                    if (burst) alt+1 else max(alt+100,maxHeight),
+                    ascRate,
+                    descRate)
                 mkTarget?.setVisible(false)
                 mkBurst?.setVisible(false)
                 trajectory.actualPoints.clear()
@@ -1122,8 +1209,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     if (it.stage=="descent" && !burst) mkBurst?.apply {
                         position=lastPoint
                         val t=Instant.parse(lastTrajectoryPoint?.datetime)
-                        val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                        title=LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
+                        title=getBurstTitle(t,maxHeight,ascRate,descRate)
                         setVisible(true)
                     }
                     it.trajectory.forEach {point ->
@@ -1349,8 +1435,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
             .setCancelable(false)
             .setTitle(if (firstTime) getString(R.string.chose_connection) else getString(R.string.no_receiver_found))
-            .setSingleChoiceItems(arrayOf<CharSequence>(getString(R.string.bluetooth_classic_ttgo),
-                getString(R.string.bluetooth_low_energy_heltec),getString(R.string.no_receiver)),lastConnectionChoice) {_,x -> choice=x}
+            .setSingleChoiceItems(arrayOf<CharSequence>(getString(R.string.bluetooth_classic),
+                getString(R.string.bluetooth_low_energy),getString(R.string.no_receiver)),lastConnectionChoice) {_,x -> choice=x}
             .setPositiveButton("OK") {_,_ ->
                 if (choice<2) lastConnectionChoice=choice
                 prefs.edit {
@@ -1400,7 +1486,24 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     override fun onSerial(serial:String) {
-        runOnUiThread {updateSondeLocation(serial,sondeLat,sondeLon,sondeAlt)}
+        runOnUiThread {
+            updateSondeLocation(serial,sondeLat,sondeLon,sondeAlt)
+        }
+        //TODO: add RSSI
+        if (!serial.isEmpty())
+            currentLocation?.apply {
+                try {
+                    File(applicationContext.filesDir,
+                        serial).appendText("%s,%.7f,%.7f,%.1f\n".format(Locale.US,
+                        Instant.now().toString(),
+                        latitude,
+                        longitude,
+                        altitude))
+                }
+                catch (ex:Exception) {
+                    Log.w(TAG,"Exception in writing sonde $serial log: $ex")
+                }
+            }
     }
 
     override fun onLatitude(lat:Double) {
@@ -1442,11 +1545,20 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     override fun onVersion(version:String) {
-        this.version=version
+        val a=version.split("/")
+        if (a.size==1) {
+            this.version=version
+            platform=receiver?.getFirmwareName()?:""
+        }
+        else {
+            this.version=a[1]
+            platform=a[0]
+        }
+//        Log.i(TAG,"Current version: $version")
         if (!versionChecked && versionDB!=null && receiver!=null) {
             versionChecked=true
-            var versionInfo:VersionInfo?=versionDB?.db?.getOrDefault(receiver!!.getFirmwareName(),null)
-            if (versionInfo!=null && versionInfo.version!=version)
+            var versionInfo:VersionInfo?=versionDB?.db?.getOrDefault(platform,null)
+            if (versionInfo!=null && versionInfo.version!=this.version)
                 runOnUiThread {
                     UpdateDialog(receiver!!,versionInfo).show(supportFragmentManager,"")
                 }
@@ -1487,21 +1599,37 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
       }
 
+    override fun onCrypto(rssi:Int,cpuTemp:Int,radioTemp:Int) {
+        runOnUiThread {
+            if (pollicinoMode && currentLocation!=null) {
+                fldPollicino.add(Marker(binding.map).apply {
+                    icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
+                    //TODO: verificare scala rssi
+                    icon.setTint(Color.HSVToColor(floatArrayOf((240F+rssi),1F,.5F)))
+                    icon.setTintBlendMode(BlendMode.DARKEN)
+                    setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
+                    infoWindow=null
+                    position=GeoPoint(currentLocation!!.latitude,currentLocation!!.longitude)
+                })
+            }
+        }
+    }
+
     companion object {
         const val TAG="TrovaLaSonda"
         private const val SCAN_PERIOD:Long=15000
-        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
-        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
-        private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
-        private val ALT_UUID=UUID.fromString("1bfdccfe-80f4-46d0-844f-ad8410001989")
-        private val FRAME_UUID=UUID.fromString("343b7b66-8208-4e48-949f-e62739147f92")
-        private val BAT_UUID=UUID.fromString("4578ee77-f50f-4584-b59c-46264c56d949")
-        private val RSSI_UUID=UUID.fromString("e482dfeb-774f-4f8b-8eea-87a752326fbd")
-        private val TYPE_UUID=UUID.fromString("66bf4d7f-2b21-468d-8dce-b241c7447cc6")
-        private val FREQ_UUID=UUID.fromString("b4da41fe-3194-42e7-8bbb-2e11d3ff6f6d")
-        private val SERIAL_UUID=UUID.fromString("539fd1f8-f427-4ddc-99d2-80f51616baab")
-        private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
+//        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
+//        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+//        private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
+//        private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
+//        private val ALT_UUID=UUID.fromString("1bfdccfe-80f4-46d0-844f-ad8410001989")
+//        private val FRAME_UUID=UUID.fromString("343b7b66-8208-4e48-949f-e62739147f92")
+//        private val BAT_UUID=UUID.fromString("4578ee77-f50f-4584-b59c-46264c56d949")
+//        private val RSSI_UUID=UUID.fromString("e482dfeb-774f-4f8b-8eea-87a752326fbd")
+//        private val TYPE_UUID=UUID.fromString("66bf4d7f-2b21-468d-8dce-b241c7447cc6")
+//        private val FREQ_UUID=UUID.fromString("b4da41fe-3194-42e7-8bbb-2e11d3ff6f6d")
+//        private val SERIAL_UUID=UUID.fromString("539fd1f8-f427-4ddc-99d2-80f51616baab")
+//        private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
         private const val EXPANDED_MENU="expandedMenu"
         private const val MAP_STYLE="mapStyle"
         private const val MUTE="mute"

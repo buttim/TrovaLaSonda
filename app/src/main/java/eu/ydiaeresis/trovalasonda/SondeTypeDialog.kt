@@ -22,7 +22,8 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
     private lateinit var binding: SondetypeBinding
     var type=0
     var freq=403F
-    var isCiapaSonde=false
+//    var isCiapaSonde=false
+    var sondeTypes:List<String>?=null
     var dialogCloseListener: DialogCloseListener?=null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -33,17 +34,14 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 type.adapter = object : BaseAdapter() {
                     val adapter=ArrayAdapter(this@SondeTypeDialog.requireContext(),
                         R.layout.sonde_spinner_entry,
-                        SondeType.entries
+                        sondeTypes!!
                     )
                     override fun getDropDownView(position:Int,
                                                  convertView:View?,
                                                  parent:ViewGroup?):View? {
                         val mView=adapter.getDropDownView(position,convertView,parent!!)
-                        if (position>=5 && !isCiapaSonde)
-                            (mView as TextView).setTextColor(Color.GRAY)
                         return mView
                     }
-                    override fun isEnabled(position:Int) : Boolean = position<5 || isCiapaSonde
                     override fun getCount():Int = adapter.count
                     override fun getItem(position:Int):Any = adapter.getItem(position) as Any
                     override fun getItemId(position:Int):Long = adapter.getItemId(position)

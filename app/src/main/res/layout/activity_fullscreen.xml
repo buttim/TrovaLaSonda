@@ -247,6 +247,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:text="@string/dbm"
+            android:maxLines="1"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
