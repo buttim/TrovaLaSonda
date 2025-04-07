@@ -17,11 +17,11 @@ fun whatsnew(context:Context,callback:(()->Unit)) {
     if (prefs.getInt(whatsnewTag,0)%1000!=BuildConfig.VERSION_CODE%1000) {
         val wv=WebView(context)
         if(WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING))
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.getSettings(), true);
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.getSettings(), true)
 
         context.resources.openRawResource(R.raw.whatsnew).use { stream ->
             stream.bufferedReader().use { reader ->
-                wv.loadData(reader.readText(), "text/html", null);
+                wv.loadData(reader.readText(), "text/html", null)
             }
         }
         MaterialAlertDialogBuilder(context,R.style.MaterialAlertDialog_rounded)

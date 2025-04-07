@@ -10,7 +10,6 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.UpdateDialogBinding
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
 import java.io.File
 
 class UpdateDialog(private val receiver:Receiver,

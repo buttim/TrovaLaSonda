@@ -115,4 +115,5 @@
     <string name="close">Chiudi</string>
     <string name="hunting_mode_on">Modalità di caccia ATTIVA</string>
     <string name="hunting_mode_off">Modalità di caccia DISATTIVATA</string>
+    <string name="cannot_access_remote_firmware_updates_database">Impossibile accedere al database remoto dei firmware</string>
 </resources>

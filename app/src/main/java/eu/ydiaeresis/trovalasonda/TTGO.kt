@@ -1,21 +1,37 @@
 package eu.ydiaeresis.trovalasonda
 
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothProfile
+import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
+import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
 import kotlinx.coroutines.sync.Mutex
 import java.time.Instant
+import java.util.Timer
+import java.util.TimerTask
+import java.util.UUID
 
-class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBluetoothDeviceInterface):Receiver(cb,name),
+abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     SimpleBluetoothDeviceInterface.OnMessageReceivedListener,
     SimpleBluetoothDeviceInterface.OnErrorListener,
     SimpleBluetoothDeviceInterface.OnMessageSentListener {
-    private var timeLastMessage:Instant?=null
-    private val isRdzTrovaLaSonda=name.startsWith(ReceiverBuilder.TROVALASONDAPREFIX)
-    private var otaRunning=false
-    private val mutexOta=Mutex()
+    protected val isRdzTrovaLaSonda=name.startsWith(ReceiverBuilder.TROVALASONDAPREFIX)
+    protected var timeLastMessage:Instant?=null
+    protected var otaRunning=false
+    protected val mutexOta=Mutex()
+    override fun getFirmwareName():String=if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
 
-    override fun getFirmwareName():String =if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
     override val sondeTypes:List<String>
         get() {
             return when {
@@ -50,26 +66,6 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         sendCommands(settings)
     }
 
-    override suspend fun startOTA(otaLength:Int) {
-        sendCommand(OTA,otaLength)
-        otaRunning=true
-    }
-
-    override suspend fun stopOTA() {
-        otaRunning=false
-    }
-
-    override fun getOtaChunkSize():Int = 4096
-
-    override suspend fun otaChunk(buf:ByteArray) {
-        mutexOta.lock()
-        sendBytes(buf)
-    }
-
-    private fun sendBytes(bytes:ByteArray) {
-        deviceInterface.sendMessage(bytes)
-    }
-
     private fun sendCommands(commands:List<Pair<String,Any>>) {
         if (commands.isEmpty()) return
         val sb=StringBuilder()
@@ -80,18 +76,37 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         sendCommand(sb.toString())
     }
 
-    private fun sendCommand(cmd:String) {
-        try {
-            deviceInterface.sendMessage("o{$cmd}o\r\n".toByteArray())
-        } catch (e:Exception) {
-            Log.e(FullscreenActivity.TAG,"Eccezione in sendCommand: $e")
-        }
-    }
-
-    private fun sendCommand(cmd:String,value:Any) {
+    protected fun sendCommand(cmd:String,value:Any) {
         sendCommand("$cmd=$value")
     }
 
+    fun sendCommand(cmd:String) {
+        try {
+            sendBytes("o{$cmd}o\r\n".toByteArray())
+        } catch (e:Exception) {
+            Log.e(FullscreenActivity.TAG,"Exception in sendCommand: $e")
+        }
+    }
+
+    abstract fun sendBytes(bytes:ByteArray)
+
+    override suspend fun startOTA(otaLength:Int) {
+        sendCommand(OTA,otaLength)
+        otaRunning=true
+    }
+
+    override suspend fun stopOTA() {
+        otaRunning=false
+    }
+
+    override fun getOtaChunkSize():Int=4096
+
+    override suspend fun otaChunk(buf:ByteArray) {
+        mutexOta.lock()
+        sendBytes(buf)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSondePos(
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
         sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,
@@ -136,16 +151,34 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         cb.onVersion(ver)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSettings(
         type:String,freq:Float,sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,
         PILOTbw:Int,DFMbw:Int,call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,
         lcd:Int,nam:Int,buz:Int,ver:String,
     ) {
-        cb.onSettings(sda,scl,rst,led,RS41bw,M20bw,M10bw,PILOTbw,DFMbw,call,offset,bat,batMin,
-            batMax,batType,lcd,nam,buz,ver)
+        cb.onSettings(sda,
+            scl,
+            rst,
+            led,
+            RS41bw,
+            M20bw,
+            M10bw,
+            PILOTbw,
+            DFMbw,
+            call,
+            offset,
+            bat,
+            batMin,
+            batMax,
+            batType,
+            lcd,
+            nam,
+            buz,
+            ver)
     }
 
-    private fun process(msg:String) {
+    protected fun process(msg:String) {
         timeLastMessage=Instant.now()
         val campi=msg.split("/")
         if (campi[campi.size-1]!="o") {
@@ -153,9 +186,13 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
             return
         }
         when (campi[0]) {
-            "0" -> if (campi.size==9)
-                mySondyGOStatus(campi[1],campi[2].toFloat(),campi[3].toFloat(),campi[4].toInt(),
-                campi[5].toInt(),campi[6].toInt(),campi[7])
+            "0" -> if (campi.size==9) mySondyGOStatus(campi[1],
+                campi[2].toFloat(),
+                campi[3].toFloat(),
+                campi[4].toInt(),
+                campi[5].toInt(),
+                campi[6].toInt(),
+                campi[7])
             else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 0 (${campi.size} invece di 9)")
@@ -163,10 +200,21 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
             }
 
             "1" -> if (campi.size==20) {
-                mySondyGOSondePos(campi[1],campi[2].toFloat(),campi[3],campi[4].toDouble(),
-                    campi[5].toDouble(),campi[6].toDouble(),campi[7].toFloat(),campi[8].toFloat(),
-                    campi[9].toInt(),campi[10].toInt(),campi[11]=="1",campi[12].toInt(),
-                    campi[13].toInt(),campi[14].toInt(),campi[18])
+                mySondyGOSondePos(campi[1],
+                    campi[2].toFloat(),
+                    campi[3],
+                    campi[4].toDouble(),
+                    campi[5].toDouble(),
+                    campi[6].toDouble(),
+                    campi[7].toFloat(),
+                    campi[8].toFloat(),
+                    campi[9].toInt(),
+                    campi[10].toInt(),
+                    campi[11]=="1",
+                    campi[12].toInt(),
+                    campi[13].toInt(),
+                    campi[14].toInt(),
+                    campi[18])
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
@@ -174,20 +222,42 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
             }
 
             "2" -> if (campi.size==11) {
-                mySondyGOSonde(campi[1],campi[2].toFloat(),campi[3],campi[4].toFloat(),
-                    campi[5].toInt(),campi[6].toInt(),campi[7].toInt(),campi[8].toInt(),campi[9])
+                mySondyGOSonde(campi[1],
+                    campi[2].toFloat(),
+                    campi[3],
+                    campi[4].toFloat(),
+                    campi[5].toInt(),
+                    campi[6].toInt(),
+                    campi[7].toInt(),
+                    campi[8].toInt(),
+                    campi[9])
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 2 (${campi.size} invece di 11)")
                 return
             }
 
-            "3" -> if (campi.size==23)
-                mySondyGOSettings(campi[1],campi[2].toFloat(),campi[3].toInt(),campi[4].toInt(),
-                campi[5].toInt(),campi[6].toInt(),campi[7].toInt(),campi[8].toInt(),
-                campi[9].toInt(),campi[10].toInt(),campi[11].toInt(),campi[12],campi[13].toInt(),
-                campi[14].toInt(),campi[15].toInt(),campi[16].toInt(),campi[17].toInt(),
-                campi[18].toInt(),campi[19].toInt(),campi[20].toInt(),campi[21])
+            "3" -> if (campi.size==23) mySondyGOSettings(campi[1],
+                campi[2].toFloat(),
+                campi[3].toInt(),
+                campi[4].toInt(),
+                campi[5].toInt(),
+                campi[6].toInt(),
+                campi[7].toInt(),
+                campi[8].toInt(),
+                campi[9].toInt(),
+                campi[10].toInt(),
+                campi[11].toInt(),
+                campi[12],
+                campi[13].toInt(),
+                campi[14].toInt(),
+                campi[15].toInt(),
+                campi[16].toInt(),
+                campi[17].toInt(),
+                campi[18].toInt(),
+                campi[19].toInt(),
+                campi[20].toInt(),
+                campi[21])
             else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
@@ -207,17 +277,16 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         }
     }
 
-    override fun onError(error:Throwable) {
-        Log.i(FullscreenActivity.TAG,"Serial communication error: $error")
-        BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
-        cb.onDisconnected()
-    }
-
     override fun onMessageSent(message:ByteArray) {
         if (otaRunning && mutexOta.isLocked) mutexOta.unlock()
     }
 
-    companion object{
+    override fun onError(error:Throwable) {
+        Log.i(FullscreenActivity.TAG,"Serial communication error: $error")
+        cb.onDisconnected()
+    }
+
+    companion object {
         const val LCD="lcd"
         const val OLED_SDA="oled_sda"
         const val OLED_SCL="oled_scl"
@@ -240,5 +309,169 @@ class TTGO(cb:ReceiverCallback,name:String, private val deviceInterface:SimpleBl
         private const val MUTE="mute"
         private const val FREQ="f"
         private const val OTA="ota"
+    }
+}
+
+class TTGO2(
+    cb:ReceiverCallback,
+    name:String,
+    private val deviceInterface:SimpleBluetoothDeviceInterface,
+):TTGO(cb,name) {
+    override fun sendBytes(bytes:ByteArray) {
+        deviceInterface.sendMessage(bytes)
+    }
+
+    override fun onError(error:Throwable) {
+        BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
+    }
+}
+
+class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val device:BluetoothDevice):
+    TTGO(cb,name) {
+    private var connected=false
+    private var timeLastSeen=Instant.now()
+    private val timer=Timer()
+    private var rxCharacteristic:BluetoothGattCharacteristic?=null
+    private var txCharacteristic:BluetoothGattCharacteristic?=null
+
+    private val bluetoothGattCallback=object:BluetoothGattCallback() {
+        private fun registerCharacteristic(gatt:BluetoothGatt?) {
+            Log.d(TAG,"onRegisterCharacteristic")
+        }
+
+        override fun onCharacteristicRead(
+            gatt:BluetoothGatt?,
+            characteristic:BluetoothGattCharacteristic?,
+            status:Int,
+        ) {
+            Log.d(TAG,"onCharacteristicRead ${characteristic?.uuid} $status")
+        }
+
+        override fun onCharacteristicWrite(
+            gatt:BluetoothGatt?,
+            characteristic:BluetoothGattCharacteristic?,
+            status:Int,
+        ) {
+            Log.d(TAG,"onCharacteristicWrite ${characteristic?.uuid} $status")
+        }
+
+        override fun onDescriptorWrite(
+            gatt:BluetoothGatt?,
+            descriptor:BluetoothGattDescriptor?,
+            status:Int,
+        ) {
+            Log.d(TAG,"onDescriptorWrite ${descriptor?.uuid} $status")
+        }
+
+        override fun onConnectionStateChange(gatt:BluetoothGatt?,status:Int,newState:Int) {
+            Log.i(TAG,"OnConnectionStateChange status=$status, newState=$newState")
+            if (newState==BluetoothProfile.STATE_CONNECTED) {
+                connected=true
+                bluetoothGatt.discoverServices()
+            } else if (newState==BluetoothProfile.STATE_DISCONNECTED) {
+                connected=false
+                gatt?.disconnect()
+                gatt?.close()
+                cb.onDisconnected()
+                timer.cancel()
+            }
+        }
+
+        override fun onServicesDiscovered(gatt:BluetoothGatt?,status:Int) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
+                if (bluetoothGatt.services!=null) for (svc in bluetoothGatt.services!!) {
+                    Log.d(TAG,"SVC: ${svc.uuid} (${svc.characteristics.size})")
+                    when (svc.uuid) {
+                        UART_SERVICE_UUID -> {
+                            Log.d(TAG,"Servizio trovato!")
+                            for (ch in svc.characteristics) {
+                                when (ch.uuid) {
+                                    UART_TX_CHAR_UUID -> {
+                                        Log.d(TAG,"caratteristica TX trovata!")
+                                        txCharacteristic=ch
+                                    }
+
+                                    UART_RX_CHAR_UUID -> {
+                                        Log.d(TAG,"caratteristica RX trovata!")
+                                        rxCharacteristic=ch
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                gatt!!.requestMtu(517)
+            }
+        }
+
+        override fun onMtuChanged(gatt:BluetoothGatt?,mtu:Int,status:Int) {
+            super.onMtuChanged(gatt,mtu,status)
+            if (rxCharacteristic!=null) {
+                if (!gatt?.setCharacteristicNotification(rxCharacteristic,true)!!)
+                    Log.e(TAG,"Error calling setCharacteristicNotification")
+                val descriptor=rxCharacteristic!!.getDescriptor(CLIENT_CONFIG_DESCRIPTOR)
+                Log.i(TAG,
+                    "registrazione notifiche per caratteristica ${rxCharacteristic!!.uuid}, descriptor $descriptor")
+                if (descriptor!=null) {
+                    if ((BluetoothGattCharacteristic.PROPERTY_INDICATE and rxCharacteristic!!.properties)!=0) descriptor.value=
+                        BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                    else if ((BluetoothGattCharacteristic.PROPERTY_NOTIFY and rxCharacteristic!!.properties)!=0) descriptor.value=
+                        BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    else Log.e(TAG,"Cannot register notification")
+                    if (!gatt.writeDescriptor(descriptor)) Log.e(TAG,
+                        "registrazione non avvenuta!!! ${rxCharacteristic!!.uuid}")
+                }
+                else Log.e(TAG,"Impossibile registrare notifiche")
+            }
+        }
+
+        override fun onCharacteristicChanged(
+            gatt:BluetoothGatt,
+            characteristic:BluetoothGattCharacteristic,
+        ) {
+            timeLastSeen=Instant.now()
+            val v=characteristic.value.toString(Charsets.UTF_8)
+            Log.d(TAG,"onCharacteristicChanged ${characteristic.uuid} ${v}")
+            process(v)
+        }
+    }
+
+    var bluetoothGatt:BluetoothGatt=device.connectGatt(context,
+        false,
+        bluetoothGattCallback,
+        BluetoothDevice.TRANSPORT_AUTO,
+        BluetoothDevice.PHY_LE_2M_MASK,
+        Handler(Looper.getMainLooper()))
+
+    init {
+        timer.schedule(object:TimerTask() {
+            @RequiresApi(Build.VERSION_CODES.O)
+            @SuppressLint("MissingPermission")
+            override fun run() {
+                if (Instant.now().epochSecond-timeLastSeen.epochSecond>5000) {
+                    Log.i(TAG,"Disconnessione dopo 5 secondi")
+                    bluetoothGatt.disconnect()
+                    bluetoothGatt.close()
+                    cb.onDisconnected()
+                    timer.cancel()
+                }
+            }
+        },5000,5000)
+    }
+
+    override fun sendBytes(bytes:ByteArray) {
+        txCharacteristic!!.value=bytes
+        bluetoothGatt.writeCharacteristic(txCharacteristic)
+    }
+
+    override fun onError(error:Throwable) {
+        bluetoothGatt.disconnect()
+        bluetoothGatt.close()
+    }
+
+    companion object {
+        private val UART_SERVICE_UUID=UUID.fromString("53797269-614d-6972-6b6f-44616c6d6f6e")
+        private val UART_TX_CHAR_UUID=UUID.fromString("53797268-614d-6972-6b6f-44616c6d6f7e")
+        private val UART_RX_CHAR_UUID=UUID.fromString("53797267-614d-6972-6b6f-44616c6d6f8e")
     }
 }

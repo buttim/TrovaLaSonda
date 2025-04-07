@@ -123,6 +123,8 @@
     <string name="close">Close</string>
     <string name="hunting_mode_on">Hunting mode ON</string>
     <string name="hunting_mode_off">Hunting mode OFF</string>
+    <string name="cannot_access_remote_firmware_updates_database">Cannot access remote firmware updates database</string>
+    <string name="pollicino_mode">Pollicino mode %1$s</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

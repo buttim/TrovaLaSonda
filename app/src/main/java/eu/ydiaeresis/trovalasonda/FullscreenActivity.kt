@@ -47,7 +47,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.graphics.plus
 import androidx.core.os.bundleOf
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.core.view.updatePadding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import eu.ydiaeresis.trovalasonda.databinding.ActivityFullscreenBinding
@@ -95,7 +98,6 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
-import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -103,7 +105,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
 
-fun MaterialShowcaseSequence.addSequenceItem(
+/*fun MaterialShowcaseSequence.addSequenceItem(
     ctx:Context,
     targetView:View,
     title:Int,
@@ -114,7 +116,7 @@ fun MaterialShowcaseSequence.addSequenceItem(
         ctx.getString(title),
         ctx.getString(content),
         ctx.getString(dismissText))
-}
+}*/
 
 class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     ReceiverBuilderCallback,ReceiverCallback {
@@ -162,7 +164,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private var versionChecked=false
     private var isRdzTrovaLaSonda=false
     private var isCiapaSonde=false
-    private var otaRunning=false
+    //private var otaRunning=false
     private var roadManager:RoadManager=OSRMRoadManager(this,BuildConfig.APPLICATION_ID)
     private var roadOverlay:Polyline?=null
     private var lastConnectionChoice=0
@@ -183,8 +185,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             val data:Intent?=result.data
             var reset=false
             val settings=mutableListOf<Pair<String,Any>>()
-            val resetCmds=listOf(TTGO.LCD,TTGO.OLED_SCL,TTGO.OLED_RST,TTGO.LED_POUT,TTGO.OLED_SDA,
-                TTGO.BUZ_PIN,TTGO.BATTERY)
+            val resetCmds=listOf(TTGO.LCD,
+                TTGO.OLED_SCL,
+                TTGO.OLED_RST,
+                TTGO.LED_POUT,
+                TTGO.OLED_SDA,
+                TTGO.BUZ_PIN,
+                TTGO.BATTERY)
             if (data!=null && data.extras!=null) {
                 for (k in data.extras?.keySet()!!) {
                     reset=resetCmds.indexOf(k)>=0
@@ -205,20 +212,24 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
         }
 
-    private fun addShowcaseItem(seq:MaterialShowcaseSequence,view:View,title:Int,content:Int) : MaterialShowcaseView{
-        val mcsv=MaterialShowcaseView.Builder(this@FullscreenActivity)
-            .setTarget(view)
+    private fun addShowcaseItem(
+        seq:MaterialShowcaseSequence,
+        view:View,
+        title:Int,
+        content:Int,
+    ):MaterialShowcaseView {
+        val mcsv=MaterialShowcaseView.Builder(this@FullscreenActivity).setTarget(view)
             .setTitleText(applicationContext.getString(title))
             .setSkipText(getString(R.string.skip_tutorial))
-            .setContentText(applicationContext.getString(content))
-            .setDismissText(R.string.GOT_IT).build()
+            .setContentText(applicationContext.getString(content)).setDismissText(R.string.GOT_IT)
+            .build()
         seq.addSequenceItem(mcsv)
         return mcsv
     }
 
     @Suppress("SameParameterValue")
-    private fun showcase(id:String) : Boolean {
-        var res=false
+    private fun showcase(id:String):Boolean {
+        var res:Boolean
         MaterialShowcaseSequence(this,id).apply {
             var timer:Timer?=null
             setConfig(ShowcaseConfig().apply {
@@ -227,18 +238,39 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             })
             res=hasFired()
 
-            addShowcaseItem(this,binding.type,R.string.SONDE_DATA,R.string.TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY)
-                .setTarget(MultipleViewsTarget(listOf(binding.verticalSpeed,
-                    binding.horizontalSpeed,
-                    binding.height,
-                    binding.type)))
-            addShowcaseItem(this,binding.id,R.string.SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING,R.string.YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY)
-            addShowcaseItem(this,binding.distance,R.string.DISTANCE,R.string.BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING)
-            addShowcaseItem(this,binding.buzzer,R.string.BUZZER,R.string.MUTE_YOUR_RECEIVER_TAPPING_THIS)
-            addShowcaseItem(this,binding.batteryMeter,R.string.BATTERY,R.string.KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL)
-            addShowcaseItem(this,binding.menuLayer,R.string.MAP_LAYERS,R.string.CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS)
+            addShowcaseItem(this,
+                binding.type,
+                R.string.SONDE_DATA,
+                R.string.TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY).setTarget(MultipleViewsTarget(
+                    listOf(binding.verticalSpeed,
+                        binding.horizontalSpeed,
+                        binding.height,
+                        binding.type)))
+            addShowcaseItem(this,
+                binding.id,
+                R.string.SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING,
+                R.string.YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY)
+            addShowcaseItem(this,
+                binding.distance,
+                R.string.DISTANCE,
+                R.string.BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING)
+            addShowcaseItem(this,
+                binding.buzzer,
+                R.string.BUZZER,
+                R.string.MUTE_YOUR_RECEIVER_TAPPING_THIS)
+            addShowcaseItem(this,
+                binding.batteryMeter,
+                R.string.BATTERY,
+                R.string.KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL)
+            addShowcaseItem(this,
+                binding.menuLayer,
+                R.string.MAP_LAYERS,
+                R.string.CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS)
             addShowcaseItem(this,binding.menuMaps,R.string.NAVIGATION,R.string.LAUNCH_GOOGLE_MAPS)
-            addShowcaseItem(this,binding.menuSettings,R.string.RECEIVER_PARAMETERS,R.string.SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER)
+            addShowcaseItem(this,
+                binding.menuSettings,
+                R.string.RECEIVER_PARAMETERS,
+                R.string.SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER)
             setOnItemShownListener {_,i ->
                 timer?.cancel()
                 if (i==5) openMenu()
@@ -260,13 +292,13 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         return res
     }
 
-    fun startOta() {
-        otaRunning=true
-    }
-
-    fun stopOta() {
-        otaRunning=false
-    }
+//    fun startOta() {
+//        otaRunning=true
+//    }
+//
+//    fun stopOta() {
+//        otaRunning=false
+//    }
 
     private fun showProgress(show:Boolean) {
         binding.progress.visibility=if (show) View.VISIBLE else View.GONE
@@ -299,22 +331,21 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onStatusChanged(provider:String,status:Int,extras:Bundle) {
     }
 
-    private val turnOnBTContract=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
-        if (result.resultCode!=Activity.RESULT_OK) finish()
-        else handler.postDelayed({
-            askForScanning()
-        },2000)
-    }
+    private val turnOnBTContract=
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
+            if (result.resultCode!=Activity.RESULT_OK) finish()
+            else handler.postDelayed({
+                askForScanning()
+            },2000)
+        }
 
     private fun createReceiver(builder:ReceiverBuilder) {
         try {
             builder.connect()
-        }
-        catch (ex:BluetoothNotEnabledException) {
+        } catch (ex:BluetoothNotEnabledException) {
             val intent=Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             turnOnBTContract.launch(intent)
-        }
-        catch (ex1:ReceiverException) {
+        } catch (ex1:ReceiverException) {
             Log.e(TAG,"Impossibile connettersi al ricevitore: $ex1")
         }
     }
@@ -323,8 +354,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         Snackbar.make(binding.root,
             applicationContext.getString(R.string.CONNECTED_TO)+" "+receiver?.name,
             Snackbar.LENGTH_LONG).show()
-        isCiapaSonde=receiver?.name?.startsWith(CIAPASONDEPREFIX)?:false
-        isRdzTrovaLaSonda=receiver?.name?.startsWith(TROVALASONDAPREFIX)?:false
+        isCiapaSonde=receiver?.name?.startsWith(CIAPASONDEPREFIX) ?: false
+        isRdzTrovaLaSonda=receiver?.name?.startsWith(TROVALASONDAPREFIX) ?: false
         timeLastMessage=null
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_yellow)
         locationOverlay?.apply {
@@ -394,9 +425,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         site=null
         CoroutineScope(Dispatchers.IO).launch {
             val sites=sites()
-            val stationId=stationFromSerial(receiver!!.sondeTypes[sondeType],id)
+            val stationId=
+                stationFromSerial(if (receiver!=null) receiver!!.sondeTypes[sondeType] else "RS41",
+                    id)
             if (sites!=null && stationId!=null) {
-                site=sites.get(stationId)
+                site=sites[stationId]
             }
         }
     }
@@ -405,34 +438,32 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         if (id!=null && sondeId!=id) {
             newSonde(id)
             if (currentLocation!=null && lat!=null && lon!=null && lat!=0.0 && lon!=0.0) {
-                binding.map.zoomToBoundingBox(BoundingBox.fromGeoPointsSafe(mutableListOf(
-                    GeoPoint(lat,lon),
-                    GeoPoint(currentLocation))).increaseByScale(1.9F),false,50)
+                binding.map.zoomToBoundingBox(BoundingBox.fromGeoPointsSafe(mutableListOf(GeoPoint(
+                    lat,
+                    lon),GeoPoint(currentLocation))).increaseByScale(1.9F),false,50)
                 binding.map.invalidate()
-            } else
-                if (lat!=null && lon!=null && lat!=0.0 && lon!=0.0) {
-                    mkSonde?.position=GeoPoint(lat,lon,alt?:0.0)
-                    binding.map.controller?.setCenter(mkSonde?.position)
-                }
+            } else if (lat!=null && lon!=null && lat!=0.0 && lon!=0.0) {
+                mkSonde?.position=GeoPoint(lat,lon,alt ?: 0.0)
+                binding.map.controller?.setCenter(mkSonde?.position)
+            }
 
             playSound()
         }
 
-        val deltaAlt = if (alt!=null && sondeAlt!=null) alt-sondeAlt!! else null
+        val deltaAlt=if (alt!=null && sondeAlt!=null) alt-sondeAlt!! else null
         if (lat!=null) sondeLat=lat
         if (lon!=null) sondeLon=lon
         if (alt!=null) sondeAlt=alt
 
-        if (lat==null || lon==null || sondeLat==null || sondeLon==null || sondeLat!! == 0.0 || sondeLon!! == 0.0)
-            return
+        if (lat==null || lon==null || sondeLat!! == 0.0 || sondeLon!! == 0.0) return
 
         mkSonde?.setVisible(true)
-        mkSonde?.position=GeoPoint(lat,lon,alt?:0.0)
+        mkSonde?.position=GeoPoint(lat,lon,alt ?: 0.0)
         sondePath.addPoint(mkSonde?.position)
         sondeLevelListDrawable.level=1
 
-        val d=
-            if (currentLocation!=null) GeoPoint(currentLocation).distanceToAsDouble(GeoPoint(lat,lon)) else 0.0
+        val d=if (currentLocation!=null) GeoPoint(currentLocation).distanceToAsDouble(GeoPoint(lat,
+            lon)) else 0.0
         if (d>1000000.0) return
 
         binding.lat.text=String.format(Locale.US," %.5f",lat)
@@ -449,49 +480,44 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 val verticalSpeed=deltaAlt/delta
                 val vs=verticalSpeed*meters
                 binding.verticalSpeed.text=
-                    if (useImperialUnits())
-                        String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
-                    else
-                        String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
+                    if (useImperialUnits()) String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
+                    else String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
             }
         }
-        if (deltaAlt!=0.0)
-            timeLastSeen=Instant.now()
-        val maxHeight=site?.burstAltitude?.toDouble()?:33000.0
-        val ascRate=site?.ascentRate?.toDouble()?:5.0
-        val descRate=site?.descentRate?.toDouble()?:5.0
+        if (deltaAlt!=0.0) timeLastSeen=Instant.now()
+        var maxHeight=if (burst) sondeAlt!!+1 else site?.burstAltitude?.toDouble() ?: 33000.0
+        val ascRate=site?.ascentRate?.toDouble() ?: 5.0
+        val descRate=site?.descentRate?.toDouble() ?: 5.0
+        if (useImperialUnits()) {
+            val h=String.format(Locale.US,"%.1f",alt*meters `in` feet)
+            binding.height.text="H: ${h}ft"
+        } else binding.height.text="H: ${alt.toInt()}m"
+        if (sondeAlt!=null && deltaAlt!=null && deltaAlt!=0.0) {
+            binding.direction.text=if (abs(deltaAlt)<2) "=" else if (deltaAlt>0.0) "▲" else "▼"
+            if (!burst && heightDelta>0 && deltaAlt<0) {
+                burst=true
+                mkBurst?.apply {
+                    position=GeoPoint(lat,lon)
+                    setVisible(true)
+                    title=getBurstTitle(Instant.now(),alt,ascRate,descRate)
+                }
+                playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
+            }
+            heightDelta=deltaAlt
+        }
+        if (burst) maxHeight=sondeAlt!!+1
         if (nPositionsReceived>10 && (lastPrediction==null || lastPrediction?.until(Instant.now(),
                 ChronoUnit.SECONDS)!!>60)
         ) {
             lastPrediction=Instant.now()
             predict(lat,lon,alt,maxHeight,ascRate,descRate)
         }
-        if (useImperialUnits()) {
-            val h=String.format(Locale.US,"%.1f",alt*meters `in` feet)
-            binding.height.text="H: ${h}ft"
-        } else binding.height.text="H: ${alt.toInt()}m"
-        if (sondeAlt!=null && deltaAlt!=null && deltaAlt!=0.0) {
-            binding.direction.text=
-                if (abs(deltaAlt)<2) "=" else if (deltaAlt>0.0) "▲" else "▼"
-            if (!burst && heightDelta>0 && deltaAlt<0) {
-                burst=true
-                mkBurst?.apply {
-                    position=GeoPoint(lat,lon)
-                    setVisible(true)
-                    //val dtf=DateTimeFormatter.ofPattern("HH:mm")
-                    title=getBurstTitle(Instant.now(),alt,ascRate,descRate)//LocalTime.from(Instant.now().atZone(ZoneId.systemDefault())).format(dtf)
-                }
-                playSound(R.raw._541192__eminyildirim__balloon_explosion_pop)
-            }
-            heightDelta=deltaAlt
-        }
-}
-
-    private fun useImperialUnits():Boolean {
-        if (Build.VERSION.SDK_INT<Build.VERSION_CODES.P) return false
-        val ms=LocaleData.getMeasurementSystem(ULocale.getDefault())
-        return ms.equals(LocaleData.MeasurementSystem.US)
     }
+
+    fun useImperialUnits()=
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) LocaleData.getMeasurementSystem(ULocale.getDefault())==LocaleData.MeasurementSystem.US
+        else false
+
 
     private fun setDistance(dist:Double) {
         with(binding) {
@@ -542,9 +568,9 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun updateRSSI(rssi:Float) {
         binding.dbm.text="-%.1fdBm".format(Locale.US,rssi)
         binding.rssi.progress=(binding.rssi.max-rssi).toInt()
-        if (timeLastSeen!=null && Instant.now().toEpochMilli()-timeLastSeen!!.toEpochMilli()>8000 &&
-                sondeLat!=null && sondeLon!=null && !reportAlreadyShown && distance<30)
-            showReport()
+        if (timeLastSeen!=null && Instant.now()
+                .toEpochMilli()-timeLastSeen!!.toEpochMilli()>8000 && sondeLat!=null && sondeLon!=null && !reportAlreadyShown && distance<30
+        ) showReport()
     }
 
     private fun updateBattery(percent:Int,mV:Int) {
@@ -555,34 +581,44 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun showReport() {
         if (sondeLat==null || sondeLon==null) return
         reportAlreadyShown=true
-        WebPageChooserDialog().showForRecovery(supportFragmentManager,sondeId!!,sondeLat!!, sondeLon!!,sondeAlt!!)
+        WebPageChooserDialog().showForRecovery(supportFragmentManager,
+            sondeId!!,
+            sondeLat!!,
+            sondeLon!!,
+            sondeAlt!!)
     }
 
     private fun getFromSondeHub(type:String,id:String,lastSeen:Instant) {
         val sh=Sondehub(type,id,lastSeen)
 
         CoroutineScope(Dispatchers.IO).launch {
-            val points=sh.getTrack()
-            if (points.isNotEmpty()) {
-                sondehubPath.actualPoints.clear()
-                points.forEach {pt ->
-                    sondehubPath.addPoint(pt)
-                }
-                mkSondehub?.position=points.last()
-                mkSondehub?.setVisible(true)
-                sondehubPath.isVisible=true
+            try {
+                val points=sh.getTrack()
+                if (points.isNotEmpty()) {
+                    sondehubPath.actualPoints.clear()
+                    points.forEach {pt ->
+                        sondehubPath.addPoint(pt)
+                    }
+                    mkSondehub?.position=points.last()
+                    mkSondehub?.setVisible(true)
+                    sondehubPath.isVisible=true
 
-                if ((lastPrediction==null || lastPrediction?.until(Instant.now(),
-                        ChronoUnit.SECONDS)!!>60)
-                ) {
-                    lastPrediction=Instant.now()
-                    points.last().apply {
-                        val maxHeight=site?.burstAltitude?.toDouble()?:33000.0
-                        val ascRate=site?.ascentRate?.toDouble()?:5.0
-                        val descRate=site?.descentRate?.toDouble()?:5.0
-                        predict(latitude,longitude,altitude,maxHeight,ascRate,descRate)
+                    if ((lastPrediction==null || lastPrediction?.until(Instant.now(),
+                            ChronoUnit.SECONDS)!!>60)
+                    ) {
+                        lastPrediction=Instant.now()
+                        points.last().apply {
+                            val maxHeight=
+                                if (burst) sondeAlt!!+1 else site?.burstAltitude?.toDouble()
+                                    ?: 33000.0
+                            val ascRate=site?.ascentRate?.toDouble() ?: 5.0
+                            val descRate=site?.descentRate?.toDouble() ?: 5.0
+                            predict(latitude,longitude,altitude,maxHeight,ascRate,descRate)
+                        }
                     }
                 }
+            } catch (ex:Exception) {
+                Log.w(TAG,"Eccezione in getFromSondehub: $ex")
             }
         }
     }
@@ -614,8 +650,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     private fun receiverNotConnectedWarning() {
         Snackbar.make(binding.root,R.string.RECEIVER_NOT_CONNECTED,Snackbar.LENGTH_LONG)
-            .setAction("connect") { askForScanning(true) }
-            .show()
+            .setAction("connect") {askForScanning(true)}.show()
     }
 
     private fun toggleBuzzer() {
@@ -653,8 +688,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
-    private var n:Int=0 //solo per debug
-
     private fun maybeShowDonation() {
         val prefs=getSharedPreferences(BuildConfig.APPLICATION_ID,MODE_PRIVATE)
         val last:Long=prefs.getLong(LAST_TIME_DONATION_SHOWN,0)
@@ -667,23 +700,18 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
-    fun getBurstTitle(t:Instant,maxHeight:Double,ascRate:Double,descRate:Double) : String {
+    fun getBurstTitle(t:Instant,maxHeight:Double,ascRate:Double,descRate:Double):String {
         val dtf=DateTimeFormatter.ofPattern("HH:mm")
         var txt="time: "+LocalTime.from(t.atZone(ZoneId.systemDefault())).format(dtf)
         if (useImperialUnits()) {
             val h=maxHeight*meters
             val a=ascRate*meters
             val d=descRate*meters
-            txt+="\nh:%.0fft\nasc:%.1fft/s\ndesc:%.1fft/s".format(
-                h `in` feet,
+            txt+="\nh:%.0fft\nasc:%.1fft/s\ndesc:%.1fft/s".format(h `in` feet,
                 a `in` feet,
                 d `in` feet)
-        }
-        else {
-            txt+="\nh:%.1fm\nasc:%.0fm/s\ndesc:%.1fm/s".format(
-                maxHeight,
-                ascRate,
-                descRate)
+        } else {
+            txt+="\nh:%.1fm\nasc:%.0fm/s\ndesc:%.1fm/s".format(maxHeight,ascRate,descRate)
         }
         return txt
     }
@@ -692,13 +720,17 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
 
-        lastConnectionChoice=getSharedPreferences(BuildConfig.APPLICATION_ID,MODE_PRIVATE).getInt(LAST_CONNECTION_CHOICE,0)
-        @Suppress("DEPRECATION") setTaskDescription(if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU) {
-            ActivityManager.TaskDescription.Builder().setIcon(R.drawable.ic_launcher_foreground)
-                .build()
-        } else ActivityManager.TaskDescription(null,
-            R.drawable.ic_launcher_foreground,
-            Color.YELLOW))
+        lastConnectionChoice=getSharedPreferences(BuildConfig.APPLICATION_ID,MODE_PRIVATE).getInt(
+            LAST_CONNECTION_CHOICE,
+            0)
+        @Suppress("DEPRECATION") val td=
+            if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU) ActivityManager.TaskDescription.Builder()
+                .setIcon(R.drawable.ic_launcher_foreground).build()
+            else ActivityManager.TaskDescription(
+                null,
+                R.drawable.ic_launcher_foreground,
+                Color.YELLOW)
+        setTaskDescription(td)
         Configuration.getInstance().apply {
             load(applicationContext,this@FullscreenActivity.getPreferences(Context.MODE_PRIVATE))
             userAgentValue=BuildConfig.APPLICATION_ID
@@ -706,10 +738,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
         CoroutineScope(Dispatchers.IO).launch {
             versionDB=FirmwareUpdater().getVersion()
-            if (versionDB!=null)
-                receiver?.requestVersion()
+            if (versionDB!=null) receiver?.requestVersion()
             else runOnUiThread {
-                Snackbar.make(binding.root,"Cannot access remote firmware updates database",Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root,
+                    getString(R.string.cannot_access_remote_firmware_updates_database),
+                    Snackbar.LENGTH_SHORT).show()
             }
         }
 
@@ -765,6 +798,20 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
         *///////////////////////////////////////
 
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            ViewCompat.setOnApplyWindowInsetsListener(binding.root) {v,insets ->
+                val bars=
+                    insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                v.updatePadding(
+                    left=bars.left,
+                    top=bars.top,
+                    right=bars.right,
+                    bottom=bars.bottom,
+                )
+                WindowInsetsCompat.CONSUMED
+            }
+        }
+
         if (useImperialUnits()) with(binding) {
             unit.text="mi"
             height.text="H: -ft"
@@ -803,10 +850,15 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding.lon.setOnLongClickListener(copyCoordinates)
         binding.id.setOnClickListener {
             if (sondeId!=null) {
-                if (sondeLat==null || sondeLon==null)
-                    WebPageChooserDialog().showForInfo(supportFragmentManager,sondeId!!,currentLocation!!.latitude,currentLocation!!.longitude)
-                else
-                    WebPageChooserDialog().showForInfo(supportFragmentManager,sondeId!!,sondeLat!!,sondeLon!!)
+                if (sondeLat==null || sondeLon==null) WebPageChooserDialog().showForInfo(
+                    supportFragmentManager,
+                    sondeId!!,
+                    currentLocation!!.latitude,
+                    currentLocation!!.longitude)
+                else WebPageChooserDialog().showForInfo(supportFragmentManager,
+                    sondeId!!,
+                    sondeLat!!,
+                    sondeLon!!)
             } else Snackbar.make(binding.root,
                 R.string.NO_SONDE_TO_OPEN_A_WEBPAGE_FOR,
                 Snackbar.LENGTH_SHORT).show()
@@ -871,26 +923,17 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             //////////////////////////////////////////////////////////////////////////////////
             if (Debug.isDebuggerConnected()) {
                 //predict(45.0,7.0,1000.0)
-//                val msgs=
-//                    arrayOf("1/RS41/402.800/T1840263/41.20888/5.82557/6060.9/93.1/127.5/53/0/1/28040/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20888/8.82567/6060.9/93.1/127.5/15/0/1/28039/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20888/8.82577/6040.9/93.1/127.5/99/0/1/28038/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o",
-//                        "1/RS41/402.800/T1840263/45.20898/8.82567/6030.9/93.1/127.5/1/0/1/28037/3643/0/0/0/0/2.30/o")
-//                n++
-//                n%=msgs.size
-//                process(msgs[n])
+                heightDelta=-20.0
+                for (i in 0..12) {
+                    handler.postDelayed({
+                        sondeAlt=1000.0-i*20
+                        nPositionsReceived=i
+                        updateSondeLocation("V4640201",45.7,7.1+i*.01,sondeAlt)
+                    },1000L*i)
+                }
+//                handler.postDelayed({updateSondeLocation("V4640201",45.7,7.1001,12000.0)},3000)
+                //////////////////////////////////////////////////////////////////////////////////
             }
-            //////////////////////////////////////////////////////////////////////////////////
             closeMenu()
         }
         binding.menuCenter.setOnLongClickListener {
@@ -898,14 +941,12 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             true
         }
         binding.menuSettings.setOnClickListener {
-            if (receiver==null)
-                receiverNotConnectedWarning()
+            if (receiver==null) receiverNotConnectedWarning()
             else {
-                if (receiver?.requestSettings()==true)
-                    showProgress(true)
-                else
-                    Snackbar.make(binding.root,
-                        getString(R.string.settings_not_available_for_this_receiver),Snackbar.LENGTH_LONG).show()
+                if (receiver?.requestSettings()==true) showProgress(true)
+                else Snackbar.make(binding.root,
+                    getString(R.string.settings_not_available_for_this_receiver),
+                    Snackbar.LENGTH_LONG).show()
             }
             closeMenu()
         }
@@ -973,8 +1014,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
         binding.menuHelp.setOnLongClickListener {
             pollicinoMode=!pollicinoMode
-            fldPollicino.items.removeAll{true}
-            Snackbar.make(binding.root,"Pollicino mode " + if (pollicinoMode) "ON" else "OFF",Snackbar.LENGTH_LONG).show()
+            fldPollicino.items.removeAll {true}
+            Snackbar.make(binding.root,
+                getString(R.string.pollicino_mode,if (pollicinoMode) "ON" else "OFF"),
+                Snackbar.LENGTH_LONG).show()
             closeMenu()
             true
         }
@@ -1170,8 +1213,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         handler.postDelayed({
             whatsnew(this) {
                 val hasAlreadyFired=showcase("info")
-                if (hasAlreadyFired)
-                    askForScanning(true)
+                if (hasAlreadyFired) askForScanning(true)
             }
         },2000)
 
@@ -1188,7 +1230,14 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         ////////////////////////////////////////////////
     }
 
-    private fun predict(lat:Double,lng:Double,alt:Double,maxHeight:Double,ascRate:Double,descRate:Double) {
+    private fun predict(
+        lat:Double,
+        lng:Double,
+        alt:Double,
+        maxHeight:Double,
+        ascRate:Double,
+        descRate:Double,
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val tawhiri=Tawhiri(timeLastSeen ?: Instant.now(),
@@ -1408,11 +1457,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
         }
         binding.id.text=normalizeSondeId()
-        if (sondeAlt!=null)
-            if (useImperialUnits()) {
-                val h=sondeAlt!!*meters
-                binding.height.text=(h `in` feet).toString()
-            } else binding.height.text=sondeAlt.toString()
+        if (sondeAlt!=null) if (useImperialUnits()) {
+            val h=sondeAlt!!*meters
+            binding.height.text=(h `in` feet).toString()
+        } else binding.height.text=sondeAlt.toString()
     }
 
     override fun singleTapConfirmedHelper(p:GeoPoint?):Boolean {
@@ -1427,25 +1475,38 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         return false
     }
 
-    private var rec:Receiver?=null
     private fun askForScanning(firstTime:Boolean=false) {
         val prefs=getSharedPreferences(BuildConfig.APPLICATION_ID,MODE_PRIVATE)
         var choice:Int=lastConnectionChoice
 
-        MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded)
-            .setCancelable(false)
+        MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded).setCancelable(false)
             .setTitle(if (firstTime) getString(R.string.chose_connection) else getString(R.string.no_receiver_found))
             .setSingleChoiceItems(arrayOf<CharSequence>(getString(R.string.bluetooth_classic),
-                getString(R.string.bluetooth_low_energy),getString(R.string.no_receiver)),lastConnectionChoice) {_,x -> choice=x}
-            .setPositiveButton("OK") {_,_ ->
-                if (choice<2) lastConnectionChoice=choice
-                prefs.edit {
-                    putInt(LAST_CONNECTION_CHOICE,lastConnectionChoice)
-                    commit()
-                }
-                when (choice) {
-                    0 -> createReceiver(BTReceiverBuilder(this,this,applicationContext,this@FullscreenActivity))
-                    1 -> createReceiver(BLEReceiverBuilder(this,this,applicationContext,this@FullscreenActivity))
+                getString(R.string.bluetooth_low_energy),
+                getString(R.string.no_receiver)),lastConnectionChoice) {_,x ->
+                choice=x
+                if (choice<2) Snackbar.make(binding.root,
+                    if (choice==0) "Connect to a MySondyGO receiver"
+                    else "Connect to a TrovaLaSondaFw receiver",
+                    Snackbar.LENGTH_SHORT).show()
+            }.setPositiveButton("OK") {_,_ ->
+                if (choice<2) {
+                    lastConnectionChoice=choice
+                    prefs.edit {
+                        putInt(LAST_CONNECTION_CHOICE,lastConnectionChoice)
+                        commit()
+                    }
+                    when (choice) {
+                        0 -> createReceiver(BTReceiverBuilder(this,
+                            this,
+                            applicationContext,
+                            this@FullscreenActivity))
+
+                        1 -> createReceiver(BLEReceiverBuilder(this,
+                            this,
+                            applicationContext,
+                            this@FullscreenActivity))
+                    }
                 }
             }.setNegativeButton(getString(R.string.exit)) {_,_ ->
                 exitProcess(-1)
@@ -1488,22 +1549,28 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onSerial(serial:String) {
         runOnUiThread {
             updateSondeLocation(serial,sondeLat,sondeLon,sondeAlt)
+            if (pollicinoMode && currentLocation!=null) {
+                fldPollicino.add(Marker(binding.map).apply {
+                    icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
+                    setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_CENTER)
+                    infoWindow=null
+                    position=GeoPoint(currentLocation!!.latitude,currentLocation!!.longitude)
+                })
+            }
         }
         //TODO: add RSSI
-        if (!serial.isEmpty())
-            currentLocation?.apply {
-                try {
-                    File(applicationContext.filesDir,
-                        serial).appendText("%s,%.7f,%.7f,%.1f\n".format(Locale.US,
-                        Instant.now().toString(),
-                        latitude,
-                        longitude,
-                        altitude))
-                }
-                catch (ex:Exception) {
-                    Log.w(TAG,"Exception in writing sonde $serial log: $ex")
-                }
+        if (!serial.isEmpty()) currentLocation?.apply {
+            try {
+                File(applicationContext.filesDir,serial).appendText("%s,%.7f,%.7f,%.1f\n".format(
+                    Locale.US,
+                    Instant.now().toString(),
+                    latitude,
+                    longitude,
+                    altitude))
+            } catch (ex:Exception) {
+                Log.w(TAG,"Exception in writing sonde $serial log: $ex")
             }
+        }
     }
 
     override fun onLatitude(lat:Double) {
@@ -1527,10 +1594,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         val v=vel*kilometers
         runOnUiThread {
             binding.horizontalSpeed.text=
-                if (useImperialUnits())
-                    String.format(Locale.US,"V: %.1fmph",v `in` miles)
-                else
-                    String.format(Locale.US,"V: %.1fkm/h",vel)
+                if (useImperialUnits()) String.format(Locale.US,"V: %.1fmph",v `in` miles)
+                else String.format(Locale.US,"V: %.1fkm/h",vel)
         }
     }
 
@@ -1548,20 +1613,18 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         val a=version.split("/")
         if (a.size==1) {
             this.version=version
-            platform=receiver?.getFirmwareName()?:""
-        }
-        else {
+            platform=receiver?.getFirmwareName() ?: ""
+        } else {
             this.version=a[1]
             platform=a[0]
         }
 //        Log.i(TAG,"Current version: $version")
         if (!versionChecked && versionDB!=null && receiver!=null) {
             versionChecked=true
-            var versionInfo:VersionInfo?=versionDB?.db?.getOrDefault(platform,null)
-            if (versionInfo!=null && versionInfo.version!=this.version)
-                runOnUiThread {
-                    UpdateDialog(receiver!!,versionInfo).show(supportFragmentManager,"")
-                }
+            val versionInfo:VersionInfo?=versionDB?.db?.getOrDefault(platform,null)
+            if (versionInfo!=null && versionInfo.version!=this.version) runOnUiThread {
+                UpdateDialog(receiver!!,versionInfo).show(supportFragmentManager,"")
+            }
         }
     }
 
@@ -1597,8 +1660,9 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             intent.putExtras(extras)
             resultLauncher.launch(intent)
         }
-      }
+    }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCrypto(rssi:Int,cpuTemp:Int,radioTemp:Int) {
         runOnUiThread {
             if (pollicinoMode && currentLocation!=null) {
@@ -1617,8 +1681,9 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     companion object {
         const val TAG="TrovaLaSonda"
-        private const val SCAN_PERIOD:Long=15000
-//        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
+        //private const val SCAN_PERIOD:Long=15000
+
+        //        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
 //        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 //        private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
 //        private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
@@ -1642,7 +1707,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         private const val TIME_LAST_SEEN="timeLastSeen"
         private const val TIME_LAST_MESSAGE="timeLastMessage"
         private const val CURRENT_LOCATION="currentLocation"
-        private const val BT_MAC_ADDRESS="btMacAddress"
+        //private const val BT_MAC_ADDRESS="btMacAddress"
         private const val SONDE_ID="sondeId"
         private const val LAT="lat"
         private const val LON="lon"

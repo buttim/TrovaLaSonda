@@ -406,7 +406,6 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
         private val OTA_TX_UUID=UUID.fromString("63fa4cbe-3a81-463f-aa84-049dea77a209")
         private val OTA_RX_UUID=UUID.fromString("4f0227ff-dca1-4484-99f9-155cba7f3d86")
         private val VERSION_UUID=UUID.fromString("2bc3ed96-a00a-4c9a-84af-7e1283835d71")
-        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
         private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
         private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
         private val ALT_UUID=UUID.fromString("1bfdccfe-80f4-46d0-844f-ad8410001989")

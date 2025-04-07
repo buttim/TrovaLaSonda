@@ -25,6 +25,7 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import java.util.Timer
 import java.util.TimerTask
+import java.util.UUID
 
 class BluetoothNotEnabledException(message:String):Exception(message)
 class ReceiverException(message:String):Exception(message)
@@ -63,6 +64,9 @@ abstract class Receiver(val cb:ReceiverCallback,val name:String) {
     abstract suspend fun stopOTA()
     abstract fun getOtaChunkSize():Int
     abstract suspend fun otaChunk(buf:ByteArray)
+    companion object {
+        val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+    }
 }
 
 interface ReceiverBuilderCallback {
@@ -104,7 +108,8 @@ class BLEReceiverBuilder(
             if (!scanning) return
             if (result.device.name!=null) Log.i(TAG,result.device.name)
 
-            if ((result.device.type==BluetoothDevice.DEVICE_TYPE_LE  || result.device.type==BluetoothDevice.DEVICE_TYPE_DUAL) && result.device.name!=null && result.device.name.startsWith(TROVALASONDAPREFIX)) {
+            if ((result.device.type==BluetoothDevice.DEVICE_TYPE_LE  || result.device.type==BluetoothDevice.DEVICE_TYPE_DUAL) && result.device.name!=null && (
+                        result.device.name.startsWith(TROVALASONDAPREFIX) || result.device.name.startsWith(MYSONDYGOPREFIX))) {
                 Log.i(TAG,"TROVATO------------------------")
                 stopScanLE()
                 //HACKHACK: fake BT discovery to somehow reset the adapter
@@ -138,7 +143,10 @@ class BLEReceiverBuilder(
                     Log.i(TAG,"autorizzazione scansione BLE negata")
                     throw ReceiverException("autorizzazione scansione BLE negata")
                 }
-                val receiver=HeltecLora32(callback,device.name,context,device)
+                val receiver=if (device.name.startsWith(MYSONDYGOPREFIX))
+                    TTGO3(callback,device.name,context,device)
+                else
+                    HeltecLora32(callback,device.name,context,device)
                 builderCallback.onReceiverConnected(receiver,this)
                 return true
             } catch (exception:IllegalArgumentException) {
@@ -250,7 +258,7 @@ class BTReceiverBuilder(
         val btAdapter=
             (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
         val name=btAdapter.getRemoteDevice(btMacAddress).name
-        val receiver=TTGO(callback,name,deviceInterface!!)
+        val receiver=TTGO2(callback,name,deviceInterface!!)
         deviceInterface?.setListeners(receiver,receiver,receiver)
 
         builderCallback.onReceiverConnected(receiver,this)

@@ -31,42 +31,54 @@ data class Site @OptIn(ExperimentalSerializationApi::class) constructor(
 )
 
 suspend fun sites():Map<String,Site>? {
-    HttpClient(CIO){
-        install(ContentEncoding) {
-            gzip()
+    try{
+        HttpClient(CIO){
+            install(ContentEncoding) {
+                gzip()
+            }
+        }.use {
+            val response=it.get { url(Sondehub.URI+"sites")}
+            return when (response.status) {
+                HttpStatusCode.OK -> Json{
+                    ignoreUnknownKeys = true
+                }.decodeFromString(MapSerializer(String.serializer(),Site.serializer()),response.bodyAsText())
+                else -> null
+            }
         }
-    }.use {
-        val response=it.get { url(Sondehub.URI+"sites")}
-        return when (response.status) {
-            HttpStatusCode.OK -> Json{
-                ignoreUnknownKeys = true
-            }.decodeFromString(MapSerializer(String.serializer(),Site.serializer()),response.bodyAsText())
-            else -> null
-        }
+    }
+    catch (ex:Exception) {
+        Log.e(FullscreenActivity.TAG,"Eccezione in sites(): $ex")
+        return null
     }
 }
 
 suspend fun stationFromSerial(sondeType:String,serial:String):String? {
     val id=Sondehub.getSondehubId(sondeType,serial)
-    HttpClient(CIO){
-        install(ContentEncoding) {
-            gzip()
-        }
-    }.use {
-        val response=it.get { url(Sondehub.URI+"predictions/reverse?vehicles="+id)}
-        //Log.i(FullscreenActivity.TAG,"RESPONSE: (${response.status}) ${response.body<ByteArray>()}")
-        return when (response.status) {
-            HttpStatusCode.OK -> {
-                val json=JSONObject(response.bodyAsText())
-                try {
-                    json.getJSONObject(serial).getString("launch_site")
-                }
-                catch (_:JSONException) {
-                    null
-                }
+    try {
+        HttpClient(CIO) {
+            install(ContentEncoding) {
+                gzip()
             }
-            else -> null
+        }.use {
+            val response=it.get {url(Sondehub.URI+"predictions/reverse?vehicles="+id)}
+            //Log.i(FullscreenActivity.TAG,"RESPONSE: (${response.status}) ${response.body<ByteArray>()}")
+            return when (response.status) {
+                HttpStatusCode.OK -> {
+                    val json=JSONObject(response.bodyAsText())
+                    try {
+                        json.getJSONObject(serial).getString("launch_site")
+                    } catch (_:JSONException) {
+                        null
+                    }
+                }
+
+                else -> null
+            }
         }
+    }
+    catch (ex:Exception) {
+        Log.e(FullscreenActivity.TAG,"Eccezione in stationFromSerial: $ex")
+        return null
     }
 }
 

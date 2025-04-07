@@ -1,8 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
