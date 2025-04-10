@@ -27,10 +27,29 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     SimpleBluetoothDeviceInterface.OnErrorListener,
     SimpleBluetoothDeviceInterface.OnMessageSentListener {
     protected val isRdzTrovaLaSonda=name.startsWith(ReceiverBuilder.TROVALASONDAPREFIX)
-    protected var timeLastMessage:Instant?=null
+    protected val timer=Timer()
+    protected var timeLastMessage=Instant.now()
     protected var otaRunning=false
     protected val mutexOta=Mutex()
     override fun getFirmwareName():String=if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
+
+    init {
+        timer.schedule(object:TimerTask() {
+            @RequiresApi(Build.VERSION_CODES.O)
+            @SuppressLint("MissingPermission")
+            override fun run() {
+                val dt=Instant.now().epochSecond-timeLastMessage.epochSecond
+                if (dt>5) {
+                    Log.i(TAG,"Disconnessione dopo 5 secondi")
+                    disconnect()
+                    cb.onDisconnected()
+                    timer.cancel()
+                }
+            }
+        },5000,5000)
+    }
+
+    abstract fun disconnect()
 
     override val sondeTypes:List<String>
         get() {
@@ -109,7 +128,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSondePos(
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
-        sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,
+        sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,hVel:Float=0F
     ) {
         cb.onTypeAndFreq(sondeTypes.indexOf(type),freq)
         cb.onMute(mute==1)
@@ -178,7 +197,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
             ver)
     }
 
-    protected fun process(msg:String) {
+    protected fun process(msg:String,useHVel:Boolean=false) {
         timeLastMessage=Instant.now()
         val campi=msg.split("/")
         if (campi[campi.size-1]!="o") {
@@ -199,22 +218,24 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                 return
             }
 
-            "1" -> if (campi.size==20) {
+            "1" -> if (!useHVel && campi.size==20 || useHVel && campi.size==21) {
+                val offset=if (useHVel) 1 else 0
                 mySondyGOSondePos(campi[1],
                     campi[2].toFloat(),
                     campi[3],
                     campi[4].toDouble(),
                     campi[5].toDouble(),
                     campi[6].toDouble(),
-                    campi[7].toFloat(),
-                    campi[8].toFloat(),
-                    campi[9].toInt(),
-                    campi[10].toInt(),
-                    campi[11]=="1",
-                    campi[12].toInt(),
-                    campi[13].toInt(),
-                    campi[14].toInt(),
-                    campi[18])
+                    campi[7+offset].toFloat(),
+                    campi[8+offset].toFloat(),
+                    campi[9+offset].toInt(),
+                    campi[10+offset].toInt(),
+                    campi[11+offset]=="1",
+                    campi[12+offset].toInt(),
+                    campi[13+offset].toInt(),
+                    campi[14+offset].toInt(),
+                    campi[18+offset],
+                    if (useHVel) campi[7].toFloat() else 0F)
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
@@ -317,6 +338,9 @@ class TTGO2(
     name:String,
     private val deviceInterface:SimpleBluetoothDeviceInterface,
 ):TTGO(cb,name) {
+    override fun disconnect() {
+        BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
+    }
     override fun sendBytes(bytes:ByteArray) {
         deviceInterface.sendMessage(bytes)
     }
@@ -329,8 +353,6 @@ class TTGO2(
 class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val device:BluetoothDevice):
     TTGO(cb,name) {
     private var connected=false
-    private var timeLastSeen=Instant.now()
-    private val timer=Timer()
     private var rxCharacteristic:BluetoothGattCharacteristic?=null
     private var txCharacteristic:BluetoothGattCharacteristic?=null
 
@@ -429,11 +451,16 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             gatt:BluetoothGatt,
             characteristic:BluetoothGattCharacteristic,
         ) {
-            timeLastSeen=Instant.now()
             val v=characteristic.value.toString(Charsets.UTF_8)
             Log.d(TAG,"onCharacteristicChanged ${characteristic.uuid} ${v}")
-            process(v)
+            if (v!="\r\n")
+                process(v,true)
         }
+    }
+
+    override fun disconnect() {
+        bluetoothGatt.disconnect()
+        bluetoothGatt.close()
     }
 
     var bluetoothGatt:BluetoothGatt=device.connectGatt(context,
@@ -442,22 +469,6 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
         BluetoothDevice.TRANSPORT_AUTO,
         BluetoothDevice.PHY_LE_2M_MASK,
         Handler(Looper.getMainLooper()))
-
-    init {
-        timer.schedule(object:TimerTask() {
-            @RequiresApi(Build.VERSION_CODES.O)
-            @SuppressLint("MissingPermission")
-            override fun run() {
-                if (Instant.now().epochSecond-timeLastSeen.epochSecond>5000) {
-                    Log.i(TAG,"Disconnessione dopo 5 secondi")
-                    bluetoothGatt.disconnect()
-                    bluetoothGatt.close()
-                    cb.onDisconnected()
-                    timer.cancel()
-                }
-            }
-        },5000,5000)
-    }
 
     override fun sendBytes(bytes:ByteArray) {
         txCharacteristic!!.value=bytes

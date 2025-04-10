@@ -1202,7 +1202,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                         Instant.now(),
                         ChronoUnit.SECONDS)!!>=30)
                 ) {
-                    getFromSondeHub(receiver!!.sondeTypes[sondeType],sondeId!!,timeLastSeen!!)
+                    getFromSondeHub(receiver!!.sondeTypes[sondeType],sondeId!!,timeLastSeen!!) //crash on exit?
                     timeLastSondehub=Instant.now()
                 }
 
@@ -1681,20 +1681,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     companion object {
         const val TAG="TrovaLaSonda"
-        //private const val SCAN_PERIOD:Long=15000
 
-        //        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
-//        private val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-//        private val LAT_UUID=UUID.fromString("fc62efe0-eb5d-4cb0-93d3-01d4fb083e18")
-//        private val LON_UUID=UUID.fromString("c8666b42-954a-420f-b235-6baaba740840")
-//        private val ALT_UUID=UUID.fromString("1bfdccfe-80f4-46d0-844f-ad8410001989")
-//        private val FRAME_UUID=UUID.fromString("343b7b66-8208-4e48-949f-e62739147f92")
-//        private val BAT_UUID=UUID.fromString("4578ee77-f50f-4584-b59c-46264c56d949")
-//        private val RSSI_UUID=UUID.fromString("e482dfeb-774f-4f8b-8eea-87a752326fbd")
-//        private val TYPE_UUID=UUID.fromString("66bf4d7f-2b21-468d-8dce-b241c7447cc6")
-//        private val FREQ_UUID=UUID.fromString("b4da41fe-3194-42e7-8bbb-2e11d3ff6f6d")
-//        private val SERIAL_UUID=UUID.fromString("539fd1f8-f427-4ddc-99d2-80f51616baab")
-//        private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
         private const val EXPANDED_MENU="expandedMenu"
         private const val MAP_STYLE="mapStyle"
         private const val MUTE="mute"
