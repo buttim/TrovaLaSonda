@@ -59,6 +59,7 @@ abstract class Receiver(val cb:ReceiverCallback,val name:String) {
     abstract fun setMute(mute:Boolean)
     abstract fun requestSettings():Boolean
     abstract fun requestVersion()
+    abstract fun close()
     abstract fun sendSettings(settings:List<Pair<String,Any>>)
     abstract suspend fun startOTA(otaLength:Int)
     abstract suspend fun stopOTA()

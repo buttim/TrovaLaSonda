@@ -116,4 +116,6 @@
     <string name="hunting_mode_on">Modalità di caccia ATTIVA</string>
     <string name="hunting_mode_off">Modalità di caccia DISATTIVATA</string>
     <string name="cannot_access_remote_firmware_updates_database">Impossibile accedere al database remoto dei firmware</string>
+    <string name="connect_to_mysondygo_v2">Connetti a un ricevitore MySondyGO v2</string>
+    <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connetti a un ricevitore MySondyGO v3 o TrovaLaSondaFw</string>
 </resources>

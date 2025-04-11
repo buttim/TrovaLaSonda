@@ -125,6 +125,8 @@
     <string name="hunting_mode_off">Hunting mode OFF</string>
     <string name="cannot_access_remote_firmware_updates_database">Cannot access remote firmware updates database</string>
     <string name="pollicino_mode">Pollicino mode %1$s</string>
+    <string name="connect_to_mysondygo_v2">Connect to a MySondyGO v2 receiver</string>
+    <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connect to a MySondyGO v3 or TrovaLaSondaFw receiver</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

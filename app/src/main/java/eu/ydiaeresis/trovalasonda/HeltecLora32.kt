@@ -322,13 +322,19 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             override fun run() {
                 if (Instant.now().epochSecond-timeLastSeen.epochSecond>5000) {
                     Log.i(TAG,"Disconnessione dopo 5 secondi")
-                    bluetoothGatt.disconnect()
-                    bluetoothGatt.close()
                     cb.onDisconnected()
                     timer.cancel()
+                    close()
                 }
             }
         },5000,5000)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @SuppressLint("MissingPermission")
+    override fun close() {
+        bluetoothGatt.disconnect()
+        bluetoothGatt.close()
     }
 
     override fun getFirmwareName():String ="TrovaLaSondaFw"

@@ -374,6 +374,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun onDisconnectedCommon() {
         Log.i(TAG,"----------- disconnected")
         receiver=null
+        if (isFinishing || isDestroyed) return
         playSound(R.raw._541506__se2001__cartoon_quick_zip_reverse)
         val bmp=BitmapFactory.decodeResource(resources,R.drawable.ic_person_red)
         locationOverlay?.setPersonIcon(bmp)
@@ -384,7 +385,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         showProgress(false)
         Snackbar.make(binding.root,R.string.CONNECTION_LOST,Snackbar.LENGTH_LONG).show()
         handler.postDelayed({
-            askForScanning()//connect()
+            askForScanning()
         },1000)
         binding.batteryMeter.chargeLevel=null
         versionChecked=false
@@ -1012,15 +1013,15 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             }
             true
         }
-        binding.menuHelp.setOnLongClickListener {
-            pollicinoMode=!pollicinoMode
-            fldPollicino.items.removeAll {true}
-            Snackbar.make(binding.root,
-                getString(R.string.pollicino_mode,if (pollicinoMode) "ON" else "OFF"),
-                Snackbar.LENGTH_LONG).show()
-            closeMenu()
-            true
-        }
+//        binding.menuHelp.setOnLongClickListener {
+//            pollicinoMode=!pollicinoMode
+//            fldPollicino.items.removeAll {true}
+//            Snackbar.make(binding.root,
+//                getString(R.string.pollicino_mode,if (pollicinoMode) "ON" else "OFF"),
+//                Snackbar.LENGTH_LONG).show()
+//            closeMenu()
+//            true
+//        }
         binding.menuHelp.setOnClickListener {
             startActivity(Intent(this,ScrollingActivity::class.java))
             closeMenu()
@@ -1383,6 +1384,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             android.R.attr.alertDialogIcon).setTitle("TrovaLaSonda")
             .setMessage(R.string.ARE_YOU_SURE_YOU_WANT_TO_EXIT)
             .setPositiveButton(R.string.YES) {_,_ ->
+                receiver?.close()
                 finish()
             }.setNegativeButton("No",null).show()
     }
@@ -1486,8 +1488,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 getString(R.string.no_receiver)),lastConnectionChoice) {_,x ->
                 choice=x
                 if (choice<2) Snackbar.make(binding.root,
-                    if (choice==0) "Connect to a MySondyGO receiver"
-                    else "Connect to a TrovaLaSondaFw receiver",
+                    getString(if (choice==0) R.string.connect_to_mysondygo_v2
+                        else R.string.connect_to_mysondygo_v3_or_trovalasondafw_receiver),
                     Snackbar.LENGTH_SHORT).show()
             }.setPositiveButton("OK") {_,_ ->
                 if (choice<2) {

@@ -41,15 +41,13 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                 val dt=Instant.now().epochSecond-timeLastMessage.epochSecond
                 if (dt>5) {
                     Log.i(TAG,"Disconnessione dopo 5 secondi")
-                    disconnect()
+                    close()
                     cb.onDisconnected()
                     timer.cancel()
                 }
             }
         },5000,5000)
     }
-
-    abstract fun disconnect()
 
     override val sondeTypes:List<String>
         get() {
@@ -338,7 +336,7 @@ class TTGO2(
     name:String,
     private val deviceInterface:SimpleBluetoothDeviceInterface,
 ):TTGO(cb,name) {
-    override fun disconnect() {
+    override fun close() {
         BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
     }
     override fun sendBytes(bytes:ByteArray) {
@@ -458,7 +456,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
         }
     }
 
-    override fun disconnect() {
+    override fun close() {
         bluetoothGatt.disconnect()
         bluetoothGatt.close()
     }
