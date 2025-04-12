@@ -64,6 +64,9 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
             }
         }
 
+    override val hasVerticalSpeed:Boolean
+        get()=false
+
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
         sendCommands(listOf<Pair<String,Any>>(Pair(FREQ,frequency),Pair(TIPO,type+1)))
     }
@@ -126,7 +129,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     @Suppress("UNUSED_PARAMETER")
     private fun mySondyGOSondePos(
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
-        sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,hVel:Float=0F
+        sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,hVel:Float=Float.NaN
     ) {
         cb.onTypeAndFreq(sondeTypes.indexOf(type),freq)
         cb.onMute(mute==1)
@@ -144,6 +147,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         cb.onAFC(afc)
         cb.onBurstKill(0,bktime)
         cb.onVersion(ver)
+        if (hVel!=Float.NaN) cb.onVerticalSpeed(hVel)
     }
 
     private fun mySondyGOStatus(
@@ -233,7 +237,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                     campi[13+offset].toInt(),
                     campi[14+offset].toInt(),
                     campi[18+offset],
-                    if (useHVel) campi[7].toFloat() else 0F)
+                    if (useHVel) campi[7].toFloat() else Float.NaN)
             } else {
                 Log.e(FullscreenActivity.TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
@@ -336,6 +340,9 @@ class TTGO2(
     name:String,
     private val deviceInterface:SimpleBluetoothDeviceInterface,
 ):TTGO(cb,name) {
+    override val hasVerticalSpeed:Boolean
+        get()=false
+
     override fun close() {
         BluetoothManager.instance?.closeDevice(deviceInterface.device.mac)
     }
@@ -455,6 +462,9 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
                 process(v,true)
         }
     }
+
+    override val hasVerticalSpeed:Boolean
+        get()=true
 
     override fun close() {
         bluetoothGatt.disconnect()

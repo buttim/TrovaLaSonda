@@ -41,6 +41,7 @@ interface ReceiverCallback {
     fun onLongitude(lon:Double)
     fun onAltitude(alt:Double)
     fun onVelocity(vel:Float)
+    fun onVerticalSpeed(vel:Float)
     fun onAFC(afc:Int)
     fun onBurstKill(status:Byte,time:Int)
     fun onVersion(version:String)
@@ -55,6 +56,7 @@ interface ReceiverCallback {
 abstract class Receiver(val cb:ReceiverCallback,val name:String) {
     abstract fun getFirmwareName():String
     abstract val sondeTypes:List<String>
+    abstract val hasVerticalSpeed:Boolean
     abstract fun setTypeAndFrequency(type:Int,frequency:Float)
     abstract fun setMute(mute:Boolean)
     abstract fun requestSettings():Boolean

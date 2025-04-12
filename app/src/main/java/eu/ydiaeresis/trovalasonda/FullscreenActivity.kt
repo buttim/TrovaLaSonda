@@ -475,14 +475,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             updateSondeDirection()
         }
         if (alt==null) return
-        if (timeLastSeen!=null) {
+        if (receiver?.hasVerticalSpeed==false && timeLastSeen!=null) {
             val delta=Instant.now().epochSecond-timeLastSeen!!.epochSecond
             if (delta!=0L && deltaAlt!=null && deltaAlt!=0.0) {
-                val verticalSpeed=deltaAlt/delta
-                val vs=verticalSpeed*meters
-                binding.verticalSpeed.text=
-                    if (useImperialUnits()) String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
-                    else String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
+                val verticalSpeed=(deltaAlt/delta).toFloat()
+                setVerticalSpeed(verticalSpeed)
             }
         }
         if (deltaAlt!=0.0) timeLastSeen=Instant.now()
@@ -519,6 +516,12 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) LocaleData.getMeasurementSystem(ULocale.getDefault())==LocaleData.MeasurementSystem.US
         else false
 
+    private fun setVerticalSpeed(verticalSpeed:Float) {
+        val vs=verticalSpeed*meters
+        binding.verticalSpeed.text=
+            if (useImperialUnits()) String.format(Locale.US,"Vs: %.1fft/s",vs `in` feet)
+            else String.format(Locale.US,"Vs: %.1fm/s",verticalSpeed)
+    }
 
     private fun setDistance(dist:Double) {
         with(binding) {
@@ -1601,6 +1604,10 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
     }
 
+    override fun onVerticalSpeed(vel:Float) {
+        setVerticalSpeed(vel)
+    }
+
     override fun onAFC(afc:Int) {
         freqOffsetReceiver?.freqOffset(afc)
     }
@@ -1708,7 +1715,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         private const val SONDE_LAT="sondeLat"
         private const val SONDE_LON="sondeLon"
         private const val REQUEST_PERMISSIONS_REQUEST_CODE=1
-        private const val MYSONDYGOPREFIX="MySondyGO-"
         private const val TROVALASONDAPREFIX="TrovaLaSonda"
         private const val CIAPASONDEPREFIX="CiapaSonde"
         private const val LAST_TIME_DONATION_SHOWN="lastTimeDonationShown"

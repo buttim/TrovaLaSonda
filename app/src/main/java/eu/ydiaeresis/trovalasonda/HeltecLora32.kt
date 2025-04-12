@@ -343,6 +343,9 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             return listOf("RS41","M20","M10","DFM09","DFM17")
         }
 
+    override val hasVerticalSpeed:Boolean
+        get()=false
+
     @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
