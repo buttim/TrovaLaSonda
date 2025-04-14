@@ -104,6 +104,8 @@ import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
+import androidx.core.net.toUri
+import androidx.core.view.isVisible
 
 /*fun MaterialShowcaseSequence.addSequenceItem(
     ctx:Context,
@@ -164,7 +166,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private var versionChecked=false
     private var isRdzTrovaLaSonda=false
     private var isCiapaSonde=false
-    //private var otaRunning=false
     private var roadManager:RoadManager=OSRMRoadManager(this,BuildConfig.APPLICATION_ID)
     private var roadOverlay:Polyline?=null
     private var lastConnectionChoice=0
@@ -291,14 +292,6 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         }
         return res
     }
-
-//    fun startOta() {
-//        otaRunning=true
-//    }
-//
-//    fun stopOta() {
-//        otaRunning=false
-//    }
 
     private fun showProgress(show:Boolean) {
         binding.progress.visibility=if (show) View.VISIBLE else View.GONE
@@ -647,7 +640,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         expandedMenu=true
         binding.menu.apply {
             layoutParams?.height=
-                children.fold(0) {sum,el -> sum+if (el.visibility==View.VISIBLE) el.layoutParams.height else 0}
+                children.fold(0) {sum,el -> sum+if (el.isVisible) el.layoutParams.height else 0}
             requestLayout()
         }
     }
@@ -667,7 +660,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             setOnErrorListener {_,a,b -> Log.e(TAG,"$a $b"); true}
             try {
                 setDataSource(applicationContext,
-                    Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/${id}"))
+                    "${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/${id}".toUri())
                 prepareAsync()
             } catch (e:Exception) {
                 Log.e(TAG,"Eccezione playsound: $e")
@@ -1200,7 +1193,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                     if (bk!=null) updateBk(Instant.now().until(bk,ChronoUnit.SECONDS).toInt())
                 }
 
-                if ((sondeId?.length
+                if (receiver!=null && (sondeId?.length
                         ?: 0)>0 && timeLastSeen!=null && timeLastSeen?.until(Instant.now(),
                         ChronoUnit.MINUTES)!!>=2 && (timeLastSondehub==null || timeLastSondehub?.until(
                         Instant.now(),
@@ -1354,17 +1347,17 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     }
 
     private fun navigate(position:GeoPoint) {
-        val uri=Uri.parse(String.format(Locale.US,
+        val uri=String.format(Locale.US,
             "google.navigation:q=%f,%f",
             position.latitude,
-            position.longitude))
+            position.longitude).toUri()
         val intent=Intent(Intent.ACTION_VIEW,uri)
         intent.setPackage("com.google.android.apps.maps")
         startActivity(intent)
     }
 
     private fun navigateGeneric(position:GeoPoint) {
-        val uri=Uri.parse(String.format(Locale.US,"geo:%f,%f",position.latitude,position.longitude))
+        val uri=String.format(Locale.US,"geo:%f,%f",position.latitude,position.longitude).toUri()
         val intent=Intent(Intent.ACTION_VIEW,uri)
         startActivity(intent)
     }
