@@ -25,6 +25,9 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.UUID
 
+//todo?
+//https://stackoverflow.com/questions/62155016/bluez-and-service-characteristics-cache-issue-with-android
+
 class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:BluetoothDevice):
     Receiver(cb,name) {
     private var connected=false
@@ -50,14 +53,10 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                 characteristicsToRead.addAll(arrayOf(typeFreqCharacteristic,
                     batteryCharacteristic,
                     muteCharacteristic,
-                    packetCharacteristic,/*serialCharacteristic,
-                latitudeCharacteristic,
-                longitudeCharacteristic,
-                altitudeCharacteristic,
-                velCharacteristic!!,*/
+                    packetCharacteristic,
                     versionCharacteristic))
                 if (versionCharacteristic==null) Log.e(TAG,"versionCharacteristic is null!!")
-                bluetoothGatt.readCharacteristic(typeFreqCharacteristic)//burstKillCharacteristic)
+                bluetoothGatt.readCharacteristic(typeFreqCharacteristic)
                 return
             }
             while (!characteristicsToRegister.isEmpty()) {
@@ -114,7 +113,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                     val v=ByteBuffer.wrap(value).order(ByteOrder.LITTLE_ENDIAN)
                     when (characteristic.uuid) {
                         PACKET_UUID -> readPacket(v)
-                        RSSI_UUID -> cb.onRSSI(-v.getInt()/2F)
+                        RSSI_UUID -> cb.onRSSI(v.getInt()/2F)
                         TYPEFREQ_UUID -> {
                             val type=v.get(0).toInt()
                             val freq=v.getInt(1)/1000F
@@ -124,46 +123,6 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                         BAT_UUID -> cb.onBattery(0,v.getInt())
                         MUTE_UUID -> cb.onMute(v.getChar().toInt()==1)
                         VERSION_UUID -> cb.onVersion(characteristic.getStringValue(0))
-
-                        /*BURSTKILL_UUID -> {
-                            try {
-                                cb.onBurstKill(v.get(0),v.getShort(1).toInt())
-                            } catch (_:IndexOutOfBoundsException) {
-                            }
-                        }
-
-                        SERIAL_UUID -> {
-                            val serial=characteristic.value.toString(Charsets.UTF_8)
-                            if (serial.isNotEmpty()) cb.onSerial(serial)
-                        }
-
-                        LAT_UUID -> {
-                            try {
-                                cb.onLatitude(v.getDouble())
-                            } catch (_:BufferUnderflowException) {
-                            }
-                        }
-
-                        LON_UUID -> {
-                            try {
-                                cb.onLongitude(v.getDouble())
-                            } catch (_:BufferUnderflowException) {
-                            }
-                        }
-
-                        ALT_UUID -> {
-                            try {
-                                cb.onAltitude(v.getFloat().toDouble())
-                            } catch (_:BufferUnderflowException) {
-                            }
-                        }
-
-                        VEL_UUID -> {
-                            try {
-                                cb.onVelocity(v.getFloat())
-                            } catch (_:BufferUnderflowException) {
-                            }
-                        }*/
                     }
                 } catch (_:BufferUnderflowException) {
                 } catch (ex:IndexOutOfBoundsException) {
@@ -247,44 +206,17 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                                         packetCharacteristic=ch
                                         characteristicsToRegister.add(ch)
                                     }
-
                                     TYPEFREQ_UUID -> typeFreqCharacteristic=ch
                                     MUTE_UUID -> muteCharacteristic=ch
                                     BAT_UUID -> {
                                         batteryCharacteristic=ch
                                         characteristicsToRegister.add(ch)
                                     }
-
                                     RSSI_UUID -> {
                                         rssiCharacteristic=ch
                                         characteristicsToRegister.add(ch)
                                     }
-
-                                    VERSION_UUID -> versionCharacteristic=ch/*BURSTKILL_UUID -> {
-                                    burstKillCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                LAT_UUID -> {
-                                    latitudeCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                LON_UUID -> {
-                                    longitudeCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                ALT_UUID -> {
-                                    altitudeCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                VEL_UUID -> {
-                                    velCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                SERIAL_UUID -> {
-                                    serialCharacteristic=ch
-                                    characteristicsToRegister.add(ch)
-                                }
-                                CRYPTO_UUID -> cryptoCharacteristic=ch*/
+                                    VERSION_UUID -> versionCharacteristic=ch
                                 }
                             }
                         }
@@ -301,6 +233,13 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
                     }
                 }
             }
+            if (packetCharacteristic==null || typeFreqCharacteristic==null || muteCharacteristic==null || versionCharacteristic==null
+                || otaRxCharacteristic==null || otaTxCharacteristic==null || batteryCharacteristic==null || rssiCharacteristic==null) {
+                //connection failed, we should alert the user!
+                close()
+                cb.onDisconnected()
+                return
+            }
             registerCharacteristic(gatt)
         }
 
@@ -313,21 +252,9 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             val v=ByteBuffer.wrap(characteristic.value).order(ByteOrder.LITTLE_ENDIAN)
             when (characteristic.uuid) {
                 OTA_RX_UUID -> mutexOta.unlock()
-                RSSI_UUID -> cb.onRSSI(-v.getInt()/2F)
+                RSSI_UUID -> cb.onRSSI(v.getInt()/2F)
                 BAT_UUID -> cb.onBattery(0,v.getInt())
                 PACKET_UUID -> readPacket(v)
-
-                /*LAT_UUID -> cb.onLatitude(v.getDouble())
-                LON_UUID -> cb.onLongitude(v.getDouble())
-                ALT_UUID -> cb.onAltitude(v.getFloat().toDouble())
-                VEL_UUID -> cb.onVelocity((v.getFloat()*3.6).toFloat())
-                SERIAL_UUID -> cb.onSerial(characteristic.value.toString(Charsets.UTF_8))
-                BURSTKILL_UUID -> {
-                    val status=v.get()
-                    val t=v.getShort(1).toInt()
-                    cb.onBurstKill(status,t)
-                }
-                CRYPTO_UUID -> cb.onCrypto(v.getShort().toInt(),0,0)*/
             }
         }
     }
@@ -438,16 +365,16 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
 
     companion object {
         private const val CHUNK_SIZE=512
+        private val SERVICE_UUID=UUID.fromString("177fba78-7843-40a6-801b-a4cd8d7f5c11")
         private val PACKET_UUID=UUID.fromString("4dee4a71-2e7e-4018-9656-b60f1e562047")
-        private val SERVICE_UUID=UUID.fromString("79ee1705-f663-4674-8774-55042fc215f5")
-        private val OTA_SERVICE_UUID=UUID.fromString("0410c8a6-2c9c-4d6a-9f0e-4bc0ff7e0f7e")
-        private val OTA_TX_UUID=UUID.fromString("63fa4cbe-3a81-463f-aa84-049dea77a209")
-        private val OTA_RX_UUID=UUID.fromString("4f0227ff-dca1-4484-99f9-155cba7f3d86")
-        private val VERSION_UUID=UUID.fromString("2bc3ed96-a00a-4c9a-84af-7e1283835d71")
         private val BAT_UUID=UUID.fromString("4578ee77-f50f-4584-b59c-46264c56d949")
         private val RSSI_UUID=UUID.fromString("e482dfeb-774f-4f8b-8eea-87a752326fbd")
         private val TYPEFREQ_UUID=UUID.fromString("66bf4d7f-2b21-468d-8dce-b241c7447cc6")
         private val MUTE_UUID=UUID.fromString("a8b47819-eb1a-4b5c-8873-6258ddfe8055")
+        private val VERSION_UUID=UUID.fromString("2bc3ed96-a00a-4c9a-84af-7e1283835d71")
+        private val OTA_SERVICE_UUID=UUID.fromString("0410c8a6-2c9c-4d6a-9f0e-4bc0ff7e0f7e")
+        private val OTA_TX_UUID=UUID.fromString("63fa4cbe-3a81-463f-aa84-049dea77a209")
+        private val OTA_RX_UUID=UUID.fromString("4f0227ff-dca1-4484-99f9-155cba7f3d86")
     }
 }
 
