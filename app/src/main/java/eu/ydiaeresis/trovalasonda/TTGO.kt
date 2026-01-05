@@ -60,7 +60,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                     "C50",
                     "IMET4")
 
-                else -> listOf("RS41","M20","M10","PIL","DFM")
+                else -> listOf("RS41","M20","M10","PIL","DFM","RD41")
             }
         }
 
@@ -137,17 +137,19 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         cb.onRSSI(sign)
 
         if (height==0.0 || height>40000.0 || lat==0.0 || lon==0.0) return
-        cb.onSerial(name)
-        cb.onLatitude(lat)
-        cb.onLongitude(lon)
-        cb.onAltitude(height)
+//        cb.onSerial(name)
+//        cb.onLatitude(lat)
+//        cb.onLongitude(lon)
+//        cb.onAltitude(height)
         var vel=_vel
         if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20")) vel*=3.6F
-        cb.onVelocity(vel)
+//        cb.onVelocity(vel)
+        cb.onSerial(name)
+        cb.onPacket(lat,lon,height,vel,hVel)
         cb.onAFC(afc)
         cb.onBurstKill(0,bktime)
         cb.onVersion(ver)
-        if (hVel!=Float.NaN) cb.onVerticalSpeed(hVel)
+//        if (hVel!=Float.NaN) cb.onVerticalSpeed(hVel)
     }
 
     private fun mySondyGOStatus(

@@ -416,15 +416,15 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         mkTarget?.setVisible(false)
         timeLastSeen=Instant.now()
         reportAlreadyShown=false
+        nPositionsReceived=0
         site=null
         CoroutineScope(Dispatchers.IO).launch {
             val sites=sites()
             val stationId=
                 stationFromSerial(if (receiver!=null) receiver!!.sondeTypes[sondeType] else "RS41",
                     id)
-            if (sites!=null && stationId!=null) {
+            if (sites!=null && stationId!=null)
                 site=sites[stationId]
-            }
         }
     }
 
@@ -485,7 +485,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         } else binding.height.text="H: ${alt.toInt()}m"
         if (sondeAlt!=null && deltaAlt!=null && deltaAlt!=0.0) {
             binding.direction.text=if (abs(deltaAlt)<2) "=" else if (deltaAlt>0.0) "▲" else "▼"
-            if (!burst && heightDelta>0 && deltaAlt<0) {
+            if (!burst && /*heightDelta>0 &&*/ deltaAlt<0) {
                 burst=true
                 mkBurst?.apply {
                     position=GeoPoint(lat,lon)
@@ -920,12 +920,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             //////////////////////////////////////////////////////////////////////////////////
             if (Debug.isDebuggerConnected()) {
                 //predict(45.0,7.0,1000.0)
-                heightDelta=-20.0
+                heightDelta=+20.0
                 for (i in 0..12) {
                     handler.postDelayed({
-                        sondeAlt=1000.0-i*20
                         nPositionsReceived=i
-                        updateSondeLocation("V4640201",45.7,7.1+i*.01,sondeAlt)
+                        updateSondeLocation("V4640201",45.7,7.1+i*.01,1000.0-i*20)
                     },1000L*i)
                 }
 //                handler.postDelayed({updateSondeLocation("V4640201",45.7,7.1001,12000.0)},3000)
@@ -1546,7 +1545,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     override fun onSerial(serial:String) {
         runOnUiThread {
-            updateSondeLocation(serial,sondeLat,sondeLon,sondeAlt)
+            updateSondeLocation(serial,null,null,null)//,sondeLat,sondeLon,sondeAlt)
             if (pollicinoMode && currentLocation!=null) {
                 fldPollicino.add(Marker(binding.map).apply {
                     icon=AppCompatResources.getDrawable(applicationContext,R.drawable.spot)
@@ -1556,8 +1555,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 })
             }
         }
-        //TODO: add RSSI
-        if (!serial.isEmpty()) currentLocation?.apply {
+        /*if (!serial.isEmpty()) currentLocation?.apply {
             try {
                 File(applicationContext.filesDir,serial).appendText("%s,%.7f,%.7f,%.1f\n".format(
                     Locale.US,
@@ -1568,38 +1566,53 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             } catch (ex:Exception) {
                 Log.w(TAG,"Exception in writing sonde $serial log: $ex")
             }
-        }
+        }*/
     }
 
-    override fun onLatitude(lat:Double) {
-        sondeLat=lat
-    }
-
-    override fun onLongitude(lon:Double) {
+    override fun onPacket(lat:Double,lon:Double,alt:Double,vVel:Float,hVel:Float) {
         nPositionsReceived++
         runOnUiThread {
-            updateSondeLocation(sondeId,sondeLat,lon,sondeAlt)
+            updateSondeLocation(sondeId,lat,lon,alt)
             mkSondehub?.setVisible(false)
             sondehubPath.isVisible=false
-        }
-    }
-
-    override fun onAltitude(alt:Double) {
-        runOnUiThread {updateSondeLocation(sondeId,sondeLat,sondeLon,alt)}
-    }
-
-    override fun onVelocity(vel:Float) {
-        val v=vel*kilometers
-        runOnUiThread {
+            val v=hVel*kilometers
             binding.horizontalSpeed.text=
                 if (useImperialUnits()) String.format(Locale.US,"V: %.1fmph",v `in` miles)
-                else String.format(Locale.US,"V: %.1fkm/h",vel)
+                else String.format(Locale.US,"V: %.1fkm/h",hVel)
+            if (!vVel.isNaN())
+                setVerticalSpeed(vVel)
         }
     }
 
-    override fun onVerticalSpeed(vel:Float) {
-        setVerticalSpeed(vel)
-    }
+//    override fun onLatitude(lat:Double) {
+//        sondeLat=lat
+//    }
+//
+//    override fun onLongitude(lon:Double) {
+//        nPositionsReceived++
+//        runOnUiThread {
+//            updateSondeLocation(sondeId,sondeLat,lon,sondeAlt)
+//            mkSondehub?.setVisible(false)
+//            sondehubPath.isVisible=false
+//        }
+//    }
+//
+//    override fun onAltitude(alt:Double) {
+//        runOnUiThread {updateSondeLocation(sondeId,sondeLat,sondeLon,alt)}
+//    }
+//
+//    override fun onVelocity(vel:Float) {
+//        val v=vel*kilometers
+//        runOnUiThread {
+//            binding.horizontalSpeed.text=
+//                if (useImperialUnits()) String.format(Locale.US,"V: %.1fmph",v `in` miles)
+//                else String.format(Locale.US,"V: %.1fkm/h",vel)
+//        }
+//    }
+//
+//    override fun onVerticalSpeed(vel:Float) {
+//        setVerticalSpeed(vel)
+//    }
 
     override fun onAFC(afc:Int) {
         freqOffsetReceiver?.freqOffset(afc)

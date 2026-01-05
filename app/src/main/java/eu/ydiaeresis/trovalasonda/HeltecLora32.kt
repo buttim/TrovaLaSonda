@@ -90,11 +90,12 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
             val encrypted=v.get()>0
             val serial=Charset.forName("UTF-8").decode(v.asReadOnlyBuffer()).toString()
             cb.onSerial(serial)
-            cb.onLatitude(lat)
-            cb.onLongitude(lng)
-            cb.onAltitude(alt)
-            cb.onVelocity(hVel)
-            cb.onVerticalSpeed(vVel)
+            cb.onPacket(lat,lng,alt,vVel,hVel)
+//            cb.onLatitude(lat)
+//            cb.onLongitude(lng)
+//            cb.onAltitude(alt)
+//            cb.onVelocity(hVel)
+//            cb.onVerticalSpeed(vVel)
             if (bkTime!=0xFFFF.toUShort()) cb.onBurstKill(bkStatus,bkTime.toInt())
         }
 
@@ -293,7 +294,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
     override fun getFirmwareName():String="TrovaLaSondaFw"
     override val sondeTypes:List<String>
         get() {
-            return listOf("RS41","M20","M10","DFM09","DFM17")
+            return listOf("RS41","M20","M10","DFM09","DFM17","RD41")
         }
 
     override val hasVerticalSpeed:Boolean
