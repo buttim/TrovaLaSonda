@@ -14,7 +14,7 @@ class BatteryIndicator:AppCompatImageView {
     private fun init() {
         paintBlack.color=Color.argb(255,0,0,0)
         paintBlack.textAlign=Paint.Align.CENTER
-        paintBlack.setTypeface(Typeface.create("Arial",Typeface.BOLD))
+        paintBlack.typeface=Typeface.create("Arial",Typeface.BOLD)
         paintYellow.color=Color.argb(255,255,255,0)
         paintGray.color=Color.argb(255,160,160,0)
     }

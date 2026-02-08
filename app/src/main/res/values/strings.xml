@@ -42,6 +42,7 @@
     <string name="WAIT_FOR_THE_RADIO_TO_REBOOT">Wait for the radio to reboot and reconnect</string>
     <string name="ARE_YOU_SURE_YOU_WANT_TO_EXIT">Are you sure you want to exit?</string>
     <string name="YES">Yes</string>
+    <string name="NO">No</string>
     <string name="ALERT">Alert</string>
     <string name="CANCEL">Cancel</string>
     <string name="NEW_SETTINGS_REQUIRE_A_RESTART">New settings require to restart the receiver, do you want to apply them anyway?</string>
@@ -127,6 +128,8 @@
     <string name="pollicino_mode">Pollicino mode %1$s</string>
     <string name="connect_to_mysondygo_v2">Connect to a MySondyGO v2 receiver</string>
     <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connect to a MySondyGO v3 or TrovaLaSondaFw receiver</string>
+    <string name="nearby_sonde_detected">Nearby sonde detected</string>
+    <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Do you want to automatically setup the receiver?\n(%1$s %2$.3fMHz)</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

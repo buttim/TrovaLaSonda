@@ -56,7 +56,7 @@ class SondeTypeDialog : DialogFragment(), View.OnClickListener  {
                 root.invalidate()
             }
             binding.type.setSelection(type)
-            return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
+            /*return*/ MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setPositiveButton("OK") { _, _ ->
                     binding.apply {

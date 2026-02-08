@@ -24,6 +24,7 @@ import java.time.Instant
 import java.util.Timer
 import java.util.TimerTask
 import java.util.UUID
+import kotlin.math.roundToInt
 
 //todo?
 //https://stackoverflow.com/questions/62155016/bluez-and-service-characteristics-cache-issue-with-android
@@ -42,6 +43,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
     private var versionCharacteristic:BluetoothGattCharacteristic?=null
     private val mutexOta=Mutex()
     private val timer=Timer()
+    @Suppress("unused")
     private val bluetoothGattCallback=object:BluetoothGattCallback() {
         private var characteristicsToRegister:ArrayDeque<BluetoothGattCharacteristic?> = ArrayDeque()
         private val characteristicsToRead:ArrayDeque<BluetoothGattCharacteristic?> = ArrayDeque()
@@ -305,7 +307,7 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
     override fun setTypeAndFrequency(type:Int,frequency:Float) {
         typeFreqCharacteristic!!.value=
             ByteBuffer.allocate(5).order(ByteOrder.LITTLE_ENDIAN).put((type).toByte())
-                .putInt(Math.round(frequency*1000)).array()
+                .putInt((frequency*1000).roundToInt()).array()
 
         bluetoothGatt.writeCharacteristic(typeFreqCharacteristic!!)
         cb.onTypeAndFreq(type,frequency)

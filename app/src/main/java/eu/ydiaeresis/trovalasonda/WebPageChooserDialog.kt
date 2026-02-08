@@ -10,6 +10,7 @@ import androidx.fragment.app.FragmentManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import eu.ydiaeresis.trovalasonda.databinding.WebpageChoserBinding
 import java.util.*
+import androidx.core.net.toUri
 
 class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
     private lateinit var binding:WebpageChoserBinding
@@ -22,21 +23,23 @@ class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
     private var supportFragmentManager:FragmentManager?=null
 
     private fun getAprsId():String {
-        val id=sondeId!!.replace("-","")
         return when (sondeType) {
             "M20" -> {
-                val leftAsInt=id.substring(0,3).toInt()
-                val right=id.substring(sondeId!!.length-5)
-                String.format("ME%02X%s",leftAsInt-49,right)
+                val tmp=sondeId!![2].code-48+
+                        10*(sondeId!![1].code-48)-1+
+                        12*(sondeId!![0].code-48)
+                val data18=tmp or (((sondeId!![4].code-48-1) and 1) shl 7)
+                String.format("ME%02X%s",data18,sondeId!!.substring(6))
             }
             "M10" -> {
-                val leftAsInt=id.substring(0,1).toInt()
-                val secondAsInt=id.substring(1,3).toInt()
-                val middle=id.substring(3,4)
-                val rightAsInt=id.substring((4)).toInt()
-                String.format("ME%1X%1X%s%04X",leftAsInt,secondAsInt,middle,rightAsInt-1808)
+                val data95=(sondeId!![0].code-48)*16+
+                        10*(sondeId!![1].code-48)+
+                        sondeId!![2].code-48
+                val data96and7=sondeId!!.takeLast(4).toInt()+
+                        ((sondeId!![6].code-48) shl 13)
+                String.format("ME%2X%s%04X",data95,sondeId!![4],data96and7)
             }
-            "DFM" -> "D"+id.split('-').last().trimStart('0')//TODO: not tested
+            "DFM" -> "D"+sondeId!!.split('-').last().trimStart('0')//TODO: not tested
             else -> sondeId!!
         }
     }
@@ -46,7 +49,7 @@ class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
 
         return when (sondeType) {
             "M10" -> sondeId!!.substring(0,8)+sondeId!!.substring(9)
-            "M20" -> id.substring(0,3)+"-"+id.substring(3,4)+"-"+id.substring(4)
+            "M20" -> id.take(3)+"-"+id[3]+"-"+id.substring(4)
             else -> sondeId!!
         }
     }
@@ -94,7 +97,7 @@ class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
                     if (isNotification)
                         showRadiosondyReport()
                     else
-                        launchPage(Uri.parse("https://radiosondy.info/sonde.php?sondenumber=${getAprsId()}"))
+                        launchPage("https://radiosondy.info/sonde.php?sondenumber=${getAprsId()}".toUri())
                     dialog?.cancel()
                 }
                 sondehub.setOnClickListener {
@@ -114,11 +117,11 @@ class WebPageChooserDialog : DialogFragment(), View.OnClickListener {
                             lon,
                             getSondehubId(),
                             getSondehubId())
-                        launchPage(Uri.parse(url))
+                        launchPage(url.toUri())
                     }
                 }
             }
-            return MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
+            /*return*/ MaterialAlertDialogBuilder(it, R.style.MaterialAlertDialog_rounded)
                 .setView(binding.root)
                 .setNegativeButton(R.string.CANCEL) { _, _ -> dialog?.cancel() }
                 .create()

@@ -368,6 +368,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             Log.d(TAG,"onRegisterCharacteristic")
         }
 
+        @Deprecated("Deprecated in Java")
         override fun onCharacteristicRead(
             gatt:BluetoothGatt?,
             characteristic:BluetoothGattCharacteristic?,
@@ -454,6 +455,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             }
         }
 
+        @Deprecated("Deprecated in Java")
         override fun onCharacteristicChanged(
             gatt:BluetoothGatt,
             characteristic:BluetoothGattCharacteristic,

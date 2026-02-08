@@ -1,6 +1,5 @@
 package eu.ydiaeresis.trovalasonda
 
-import android.net.Uri
 import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -14,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
+import androidx.core.net.toUri
 
 sealed class DownloadStatus {
     data object Success : DownloadStatus()
@@ -30,7 +30,7 @@ data class VersionInfo(val version:String, val info:String?=null, val file:Strin
 class FirmwareUpdater {
     private val json = Json { ignoreUnknownKeys = true }
     suspend fun getVersion():VersionDB? {
-        val uri=Uri.parse(BASE_URI+JSON)
+        val uri=(BASE_URI+JSON).toUri()
         Log.i(FullscreenActivity.TAG,uri.toString())
         try {
             HttpClient(CIO).use {
@@ -46,7 +46,7 @@ class FirmwareUpdater {
 
     fun getUpdate(name:String,file:File,chunkSize:Int):Flow<DownloadStatus> {
         return flow {
-            val uri=Uri.parse(BASE_URI+name)
+            val uri=(BASE_URI+name).toUri()
             Log.i(FullscreenActivity.TAG,"Downloading firmware from $uri")
             try {
                 HttpClient(OkHttp).use {it ->

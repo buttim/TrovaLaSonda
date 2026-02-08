@@ -33,6 +33,7 @@
     <string name="WAIT_FOR_THE_RADIO_TO_REBOOT">Attendi che la radio si riavvi e riconnetta</string>
     <string name="ARE_YOU_SURE_YOU_WANT_TO_EXIT">Sei sicuro di voler uscire?</string>
     <string name="YES">Si</string>
+    <string name="NO">No</string>
     <string name="CANCEL">Annulla</string>
     <string name="ALERT">Attenzione</string>
     <string name="NEW_SETTINGS_REQUIRE_A_RESTART">Le nuove impostazioni richiedono di riavviare il ricevitore, le vuoi applicare comunque?</string>
@@ -118,4 +119,6 @@
     <string name="cannot_access_remote_firmware_updates_database">Impossibile accedere al database remoto dei firmware</string>
     <string name="connect_to_mysondygo_v2">Connetti a un ricevitore MySondyGO v2</string>
     <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connetti a un ricevitore MySondyGO v3 o TrovaLaSondaFw</string>
+    <string name="nearby_sonde_detected">Rilevata sonda vicina</string>
+    <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Vuoi impostare automaticamente il ricevitore?\n(%1$s %2$.3fMHz)</string>
 </resources>

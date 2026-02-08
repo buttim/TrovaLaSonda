@@ -3,13 +3,11 @@ package eu.ydiaeresis.trovalasonda
 import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.ActivityManager
 import android.bluetooth.BluetoothAdapter
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentResolver
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -25,7 +23,6 @@ import android.icu.util.ULocale
 import android.location.Location
 import android.location.LocationListener
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Debug
@@ -46,10 +43,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.graphics.plus
+import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -89,7 +88,6 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
 import uk.co.deanwild.materialshowcaseview.ShowcaseConfig
 import uk.co.deanwild.materialshowcaseview.target.ViewTarget
-import java.io.File
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -104,8 +102,6 @@ import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import org.osmdroid.views.overlay.Polygon as Polygon1
-import androidx.core.net.toUri
-import androidx.core.view.isVisible
 
 /*fun MaterialShowcaseSequence.addSequenceItem(
     ctx:Context,
@@ -179,10 +175,11 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         256,
         ".png",
         arrayOf("https://a.tile-cyclosm.openstreetmap.fr/cyclosm/"))
+    private var typeAndFreq:Pair<String,Float>?=null
 
     private val resultLauncher=
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
-            if (result.resultCode!=Activity.RESULT_OK) return@registerForActivityResult
+            if (result.resultCode!=RESULT_OK) return@registerForActivityResult
             val data:Intent?=result.data
             var reset=false
             val settings=mutableListOf<Pair<String,Any>>()
@@ -297,11 +294,37 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         binding.progress.visibility=if (show) View.VISIBLE else View.GONE
     }
 
+    private fun autoConfig() {
+        if (typeAndFreq===null || receiver===null) return
+        val t:Int=receiver!!.sondeTypes.indexOf(typeAndFreq!!.first)
+        val f=typeAndFreq!!.second
+        val typeName=typeAndFreq!!.first
+        typeAndFreq=null    //prevent multiple calls
+        if (t==-1 || t==sondeType && freq==f) return
+        runOnUiThread {
+            MaterialAlertDialogBuilder(this@FullscreenActivity,R.style.MaterialAlertDialog_rounded)
+                .setIconAttribute(android.R.attr.alertDialogIcon)
+                .setTitle(getString(R.string.nearby_sonde_detected))
+                .setMessage(getString(R.string.do_you_want_to_automatically_setup_the_receiver_mhz,typeName,f))
+                .setPositiveButton(R.string.YES) {_,_ ->
+                    receiver!!.setTypeAndFrequency(t,f)
+                }.setNegativeButton(R.string.NO,null).show()
+        }
+    }
+
     override fun onLocationChanged(location:Location) {
         //discard points with accuracy less than 100m
         if (location.hasAccuracy() && location.accuracy>100) return
         val point=GeoPoint(location)
-        if (currentLocation==null) binding.map.controller?.setCenter(point)
+
+        if (currentLocation===null) {
+            binding.map.controller?.setCenter(point)
+            CoroutineScope(Dispatchers.IO).launch {
+                typeAndFreq=getCurrentSonde(location.latitude,location.longitude)
+                Log.i(TAG,"typeAndFreq: $typeAndFreq")
+                autoConfig()
+            }
+        }
         currentLocation=location
         path.addPoint(point)
         path.actualPoints.apply {if (size>400) removeAt(0)}
@@ -326,7 +349,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
 
     private val turnOnBTContract=
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {result ->
-            if (result.resultCode!=Activity.RESULT_OK) finish()
+            if (result.resultCode!=RESULT_OK) finish()
             else handler.postDelayed({
                 askForScanning()
             },2000)
@@ -335,7 +358,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     private fun createReceiver(builder:ReceiverBuilder) {
         try {
             builder.connect()
-        } catch (ex:BluetoothNotEnabledException) {
+        } catch (_:BluetoothNotEnabledException) {
             val intent=Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             turnOnBTContract.launch(intent)
         } catch (ex1:ReceiverException) {
@@ -362,6 +385,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         playSound(R.raw._541506__se2001__cartoon_quick_zip)
 
         maybeShowDonation()
+
+        //handler.postDelayed({autoConfig()},3000)
     }
 
     private fun onDisconnectedCommon() {
@@ -552,6 +577,8 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
         sondeType=type
         this.freq=freq
         binding.type.text="%s %.3f".format(Locale.US,receiver!!.sondeTypes[sondeType],freq)
+        if (typeAndFreq!==null)
+            autoConfig()
     }
 
     private fun updateBk(bk:Int) {
@@ -678,7 +705,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 permissionsToRequest.add(permission)
             }
         }
-        if (permissionsToRequest.size>0) {
+        if (permissionsToRequest.isNotEmpty()) {
             ActivityCompat.requestPermissions(this,
                 permissionsToRequest.toArray(arrayOfNulls(0)),
                 REQUEST_PERMISSIONS_REQUEST_CODE)
@@ -729,7 +756,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
                 Color.YELLOW)
         setTaskDescription(td)
         Configuration.getInstance().apply {
-            load(applicationContext,this@FullscreenActivity.getPreferences(Context.MODE_PRIVATE))
+            load(applicationContext,this@FullscreenActivity.getPreferences(MODE_PRIVATE))
             userAgentValue=BuildConfig.APPLICATION_ID
         }
 
@@ -920,7 +947,7 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
             //////////////////////////////////////////////////////////////////////////////////
             if (Debug.isDebuggerConnected()) {
                 //predict(45.0,7.0,1000.0)
-                heightDelta=+20.0
+                heightDelta=20.0
                 for (i in 0..12) {
                     handler.postDelayed({
                         nPositionsReceived=i
@@ -1376,12 +1403,12 @@ class FullscreenActivity:AppCompatActivity(),LocationListener,MapEventsReceiver,
     override fun onBackPressed() {
         if (expandedMenu) closeMenu()
         else MaterialAlertDialogBuilder(this,R.style.MaterialAlertDialog_rounded).setIconAttribute(
-            android.R.attr.alertDialogIcon).setTitle("TrovaLaSonda")
+            android.R.attr.alertDialogIcon).setTitle(R.string.app_name)
             .setMessage(R.string.ARE_YOU_SURE_YOU_WANT_TO_EXIT)
             .setPositiveButton(R.string.YES) {_,_ ->
                 receiver?.close()
                 finish()
-            }.setNegativeButton("No",null).show()
+            }.setNegativeButton(R.string.NO,null).show()
     }
 
     override fun onSaveInstanceState(outState:Bundle) {

@@ -10,30 +10,33 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import androidx.core.net.toUri
 
 @Serializable
 private data class Metadata(val complete_datetime: String, val start_datetime: String)
 
 @Serializable
 data class TrajectoryPoint(
-    val altitude: Double,
-    val datetime: String,
-    val latitude: Double,
-    val longitude: Double)
+    val altitude:Double,
+    val datetime:String,
+    val latitude:Double,
+    val longitude:Double,
+)
 
 @Serializable
 private data class Request(
-    val ascent_rate: Double,
-    val burst_altitude: Double,
-    val dataset: String,
-    val descent_rate: Double,
-    val launch_altitude: Double,
-    val launch_datetime: String,
-    val launch_latitude: Double,
-    val launch_longitude: Double,
-    val profile: String,
-    val version: Int,
-    val format:String="json")
+    val ascent_rate:Double,
+    val burst_altitude:Double,
+    val dataset:String,
+    val descent_rate:Double,
+    val launch_altitude:Double,
+    val launch_datetime:String,
+    val launch_latitude:Double,
+    val launch_longitude:Double,
+    val profile:String,
+    val version:Int,
+    val format:String="json",
+)
 
 @Serializable
 data class Stage(val stage:String,val trajectory:Array<TrajectoryPoint>) {
@@ -78,11 +81,13 @@ private data class Response(val metadata:Metadata,val prediction:Array<Stage>,va
 
 private val json = Json { ignoreUnknownKeys = true }
 
-class Tawhiri(private val time: Instant, private val lat:Double, private val lng:Double,
-              private val alt:Double, private val burstAlt:Double=33000.0,
-              private val ascRate:Double=5.0, private val descRate:Double=5.0) {
+class Tawhiri(
+    private val time:Instant,private val lat:Double,private val lng:Double,
+    private val alt:Double,private val burstAlt:Double=33000.0,
+    private val ascRate:Double=5.0,private val descRate:Double=5.0,
+) {
     private fun getUri() : Uri {
-        return Uri.parse(URI).buildUpon()
+        return URI.toUri().buildUpon()
             .appendQueryParameter("launch_latitude",lat.toString())
             .appendQueryParameter("launch_longitude",lng.toString())
             .appendQueryParameter("launch_altitude",alt.toString())

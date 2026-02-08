@@ -1,7 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -20,15 +19,69 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.osmdroid.util.GeoPoint
 import java.time.Instant
+import androidx.core.net.toUri
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
-data class Site @OptIn(ExperimentalSerializationApi::class) constructor(
+data class Site(
     val station:String,
     @JsonNames("station_name") val stationName:String,
     @JsonNames("burst_altitude") val burstAltitude:Float?=null,
     @JsonNames("ascent_rate") val ascentRate:Float?=null,
-    @JsonNames("descent_rate") val descentRate:Float?=null
+    @JsonNames("descent_rate") val descentRate:Float?=null,
 )
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class Sonde(val type:String,val frequency:Float, val tx_frequency:Float?=null,val lat:Double, val lon:Double, val alt:Double)
+
+@OptIn(ExperimentalSerializationApi::class)
+
+private val json1=Json {
+    ignoreUnknownKeys=true
+}
+
+//TODO: find most likely sonde type and frequency from current position
+
+suspend fun getCurrentSonde(lat:Double,lng:Double):Pair<String,Float>? {
+    val maxDistance=200000
+    val maxSeconds=72000
+    val url=Sondehub.URI+"sondes?lat=$lat&lon=$lng&distance=$maxDistance&last=$maxSeconds"
+    try{
+        HttpClient(CIO){
+            install(ContentEncoding) {
+                gzip()
+            }
+        }.use {
+            val response=it.get { url(url) }
+            return if (response.status==HttpStatusCode.OK) {
+                val point=GeoPoint(lat,lng)
+                val sondes:Map<String,Sonde> = json1.decodeFromString(MapSerializer(String.serializer(),Sonde.serializer()),response.bodyAsText())
+                var minDistance:Double?=null
+                var type:String?=null
+                var freq:Float?=null
+                sondes.forEach { entry ->
+                    val p=GeoPoint(entry.value.lat,entry.value.lon)
+                    val d=point.distanceToAsDouble(p)
+                    if (minDistance===null || d<minDistance) {
+                        minDistance=d
+                        type=entry.value.type
+                        freq=entry.value.tx_frequency?:entry.value.frequency
+                    }
+                }
+                if (type!=null)
+                    Pair(type,freq!!)
+                else null
+            }
+            else null
+        }
+    }
+    catch (ex:Exception) {
+        Log.e(FullscreenActivity.TAG,"Eccezione in getCurrentSonde(): $ex")
+        return null
+    }
+
+}
 
 suspend fun sites():Map<String,Site>? {
     try{
@@ -39,9 +92,7 @@ suspend fun sites():Map<String,Site>? {
         }.use {
             val response=it.get { url(Sondehub.URI+"sites")}
             return when (response.status) {
-                HttpStatusCode.OK -> Json{
-                    ignoreUnknownKeys = true
-                }.decodeFromString(MapSerializer(String.serializer(),Site.serializer()),response.bodyAsText())
+                HttpStatusCode.OK -> json1.decodeFromString(MapSerializer(String.serializer(),Site.serializer()),response.bodyAsText())
                 else -> null
             }
         }
@@ -117,7 +168,7 @@ suspend fun recovered(
                     try {
                         val json=JSONObject(response.bodyAsText())
                         json.getString("message")
-                    } catch (ex:Exception) {
+                    } catch (_:Exception) {
                         context.getString(R.string.unknown_error,response.bodyAsText())
                     }
                 }
@@ -146,7 +197,7 @@ class Sondehub(
             else if (delta<60*60) duration="1h"
         }
         val uri=
-            Uri.parse(URI+"sondes/telemetry").buildUpon().appendQueryParameter("duration",duration)
+            (URI+"sondes/telemetry").toUri().buildUpon().appendQueryParameter("duration",duration)
                 .appendQueryParameter("serial",getSondehubId(sondeType,sondeId)).build()
         val points=mutableListOf<GeoPoint>()
 
@@ -176,8 +227,7 @@ class Sondehub(
     companion object {
         const val URI="https://api.v2.sondehub.org/"
         fun getSondehubId(sondeType:String,sondeId:String):String=when (sondeType) {
-            "M10","M20" -> sondeId.substring(0,3)+"-"+sondeId.substring(3,
-                4)+"-"+sondeId.substring(4)
+            "M10","M20" -> sondeId.take(3)+"-"+sondeId[3]+"-"+sondeId.substring(4)
             else -> sondeId
         }
     }

@@ -21,6 +21,7 @@ import eu.ydiaeresis.trovalasonda.databinding.SondehubReportBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.core.view.isVisible
 
 
 class SondehubReport:DialogFragment(),View.OnClickListener {
@@ -30,9 +31,11 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
     var lon:Double?=null
     var alt:Double?=null
 
-    override fun onCreateView(inflater:LayoutInflater,
-                              container:ViewGroup?,
-                              savedInstanceState:Bundle?):View? {
+    override fun onCreateView(
+        inflater:LayoutInflater,
+        container:ViewGroup?,
+        savedInstanceState:Bundle?,
+    ):View? {
         dialog?.setCanceledOnTouchOutside(false)
         dialog?.setOnShowListener(object:DialogInterface.OnShowListener {
             override fun onShow(dialog:DialogInterface?) {
@@ -56,7 +59,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                             }
                             try {
                                 lat=latitude.text.toString().toDouble()
-                            } catch (ex:NumberFormatException) {
+                            } catch (_:NumberFormatException) {
                                 latitude.requestFocus()
                                 Snackbar.make(binding.root,
                                     getString(R.string.INVALID_LATITUDE),
@@ -65,7 +68,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                             }
                             try {
                                 lon=longitude.text.toString().toDouble()
-                            } catch (ex:NumberFormatException) {
+                            } catch (_:NumberFormatException) {
                                 longitude.requestFocus()
                                 Snackbar.make(binding.root,
                                     getString(R.string.INVALID_LONGITUDE),
@@ -74,7 +77,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                             }
                             try {
                                 alt=altitude.text.toString().toDouble()
-                            } catch (ex:NumberFormatException) {
+                            } catch (_:NumberFormatException) {
                                 Snackbar.make(binding.root,
                                     getString(R.string.INVALID_ALTITUDE),
                                     Snackbar.LENGTH_LONG).show()
@@ -108,8 +111,10 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                                     Snackbar.make(binding.root,
                                         getString(R.string.report_sent_successfully),Snackbar.LENGTH_LONG)
                                         .addCallback(object:Snackbar.Callback() {
-                                            override fun onDismissed(transientBottomBar:Snackbar?,
-                                                                     event:Int) {
+                                            override fun onDismissed(
+                                                transientBottomBar:Snackbar?,
+                                                event:Int,
+                                            ) {
                                                 super.onDismissed(transientBottomBar,event)
                                                 dialog.dismiss()
                                             }
@@ -154,7 +159,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                 altitude.setText(alt.toString())
                 description.requestFocus()
                 showCoords.setOnClickListener {
-                    if (coordsLayout.visibility==View.VISIBLE) {
+                    if (coordsLayout.isVisible) {
                         showCoords.text=resources.getString(R.string.coord_closed)
                         coordsLayout.visibility=View.GONE
                         description.requestFocus()
@@ -171,7 +176,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                     inputMethodManager.showSoftInput(description,InputMethodManager.SHOW_IMPLICIT)
                 },100)
             }
-            return MaterialAlertDialogBuilder(it,R.style.MaterialAlertDialog_rounded).setView(
+            /*return*/ MaterialAlertDialogBuilder(it,R.style.MaterialAlertDialog_rounded).setView(
                 binding.root).setNegativeButton(R.string.CANCEL) {_,_ -> dialog?.cancel()}
                 .setPositiveButton(getString(R.string.SEND_REPORT)) {_,_ ->
 
