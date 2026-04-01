@@ -1,14 +1,12 @@
 package eu.ydiaeresis.trovalasonda
 
 import android.content.Context
-import android.view.WindowManager
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatActivity.MODE_PRIVATE
 import androidx.core.content.edit
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import org.osmdroid.views.MapView
 
 
 fun whatsnew(context:Context,callback:(()->Unit)) {

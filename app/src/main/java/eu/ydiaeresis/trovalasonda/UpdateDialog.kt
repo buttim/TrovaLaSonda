@@ -51,7 +51,7 @@ class UpdateDialog(private val receiver:Receiver,
                     deleteOnExit()
                 }
                 CoroutineScope(Dispatchers.IO).launch {
-                    FirmwareUpdater().getUpdate(versionInfo.file!!,file,receiver.getOtaChunkSize()).collect {
+                    FirmwareUpdater().getUpdate(versionInfo.file!!,file,receiver.getOtaChunkSize()).collect { it ->
                         withContext(Dispatchers.Main) {
                             when (it) {
                                 is DownloadStatus.Progress ->

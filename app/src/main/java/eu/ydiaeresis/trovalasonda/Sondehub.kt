@@ -33,6 +33,7 @@ data class Site(
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
+@Suppress("PropertyName")
 data class Sonde(val type:String,val frequency:Float, val tx_frequency:Float?=null,val lat:Double, val lon:Double, val alt:Double)
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -41,8 +42,7 @@ private val json1=Json {
     ignoreUnknownKeys=true
 }
 
-//TODO: find most likely sonde type and frequency from current position
-
+//find most likely sonde type and frequency from current position
 suspend fun getCurrentSonde(lat:Double,lng:Double):Pair<String,Float>? {
     val maxDistance=200000
     val maxSeconds=72000

@@ -47,7 +47,7 @@ interface ReceiverCallback {
     fun onBurstKill(status:Byte,time:Int)
     fun onVersion(version:String)
     fun onSettings(
-        sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,PILOTbw:Int,DFMbw:Int,
+        sda:Int,scl:Int,rst:Int,led:Int,rs41bw:Int,m20bw:Int,m10bw:Int,pilotbw:Int,dfmbw:Int,
         call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,lcd:Int,nam:Int,
         buz:Int,ver:String,
     )
@@ -69,7 +69,7 @@ abstract class Receiver(val cb:ReceiverCallback,val name:String) {
     abstract fun getOtaChunkSize():Int
     abstract suspend fun otaChunk(buf:ByteArray)
     companion object {
-        val CLIENT_CONFIG_DESCRIPTOR=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        val CLIENT_CONFIG_DESCRIPTOR:UUID=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
     }
 }
 
@@ -153,7 +153,7 @@ class BLEReceiverBuilder(
                     HeltecLora32(callback,device.name,context,device)
                 builderCallback.onReceiverConnected(receiver,this)
                 return true
-            } catch (exception:IllegalArgumentException) {
+            } catch (_:IllegalArgumentException) {
                 Log.w(TAG,"Device not found with provided address. Unable to connect.")
             }
         } ?: run {
@@ -238,7 +238,7 @@ class BTReceiverBuilder(
                             isCiapaSonde=deviceName.startsWith(CIAPASONDEPREFIX)
                             connectDevice(device.address)
                         }
-                    } catch (ex:SecurityException) {
+                    } catch (_:SecurityException) {
                         throw ReceiverException("Failed Bluetooth discovery")
                     }
                 }
@@ -304,7 +304,7 @@ class BTReceiverBuilder(
                             Log.e(TAG,"Failed to start BT discovery")
                         }
 
-                } catch (ex:SecurityException) {
+                } catch (_:SecurityException) {
                     context.unregisterReceiver(broadCastReceiver)
                     throw ReceiverException("Cannot start Bluetooth discovery")
                 }

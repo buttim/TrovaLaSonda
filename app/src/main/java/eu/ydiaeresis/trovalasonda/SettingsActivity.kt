@@ -1,7 +1,5 @@
 package eu.ydiaeresis.trovalasonda
 
-//import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -11,6 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import eu.ydiaeresis.trovalasonda.databinding.ActivitySettingsBinding
@@ -105,7 +104,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
             call =    getString(TTGO.MYCALL,"")
             nam =     getInt(TTGO.APRSNAME)
             val ver = getString("ver","")
-            supportActionBar?.setTitle("Settings ($ver)")
+            supportActionBar?.title = "Settings ($ver)"
         }
 
         FullscreenActivity.registerFreqOffsetReceiver(this)
@@ -115,23 +114,24 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                 (spinner.adapter as ArrayAdapter<*>).let {
                     it.setDropDownViewResource(R.layout.spinner_entry)
                     spinner.adapter = object : SpinnerAdapter by it {
+                        @RequiresApi(Build.VERSION_CODES.O)
+                        override fun getAutofillOptions(): Array<out CharSequence?>? = it.autofillOptions
                         override fun getDropDownView(
                             position: Int,
                             convertview: View?,
                             parent: ViewGroup
                         ): View {
                             val view=it.getDropDownView(position, convertview, parent) as TextView
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                view.setTextColor(applicationContext.getColor(R.color.spinner_text))
-                                view.setBackgroundColor(
-                                    applicationContext.getColor(
-                                        if (position % 2 == 0)
-                                            R.color.spinner_background1
-                                        else
-                                            R.color.spinner_background2
-                                        )
-                                )
-                            }
+                            view.setTextColor(applicationContext.getColor(R.color.spinner_text))
+                            view.setBackgroundColor(
+                                applicationContext.getColor(
+                                    if (position % 2 == 0)
+                                        R.color.spinner_background1
+                                    else
+                                        R.color.spinner_background2
+                                    )
+                            )
+
                             return view
                         }
                     }
@@ -218,11 +218,11 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                     if (t != dfmBW) putExtra(TTGO.DFM_RXBW, t)
                     t = content.nam.selectedItemPosition
                     if (t != nam) putExtra(TTGO.APRSNAME, t)
-                    t = content.offset.text.toString().toIntOrNull()?:0;
+                    t = content.offset.text.toString().toIntOrNull()?:0
                     if (t != offset) putExtra(TTGO.FREQOFS, t)
                 }
             }
-            setResult(Activity.RESULT_OK,data)
+            setResult(RESULT_OK,data)
             finish()
         }
     }

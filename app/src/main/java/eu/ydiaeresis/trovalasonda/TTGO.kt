@@ -1,5 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -8,11 +9,14 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
+import androidx.core.app.ActivityCompat
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
@@ -28,7 +32,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     SimpleBluetoothDeviceInterface.OnMessageSentListener {
     protected val isRdzTrovaLaSonda=name.startsWith(ReceiverBuilder.TROVALASONDAPREFIX)
     protected val timer=Timer()
-    protected var timeLastMessage=Instant.now()
+    protected var timeLastMessage: Instant=Instant.now()
     protected var otaRunning=false
     protected val mutexOta=Mutex()
     override fun getFirmwareName():String=if (isRdzTrovaLaSonda) "rdzTrovaLaSonda" else "MySondyGO"
@@ -104,7 +108,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         try {
             sendBytes("o{$cmd}o\r\n".toByteArray())
         } catch (e:Exception) {
-            Log.e(FullscreenActivity.TAG,"Exception in sendCommand: $e")
+            Log.e(TAG,"Exception in sendCommand: $e")
         }
     }
 
@@ -126,7 +130,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         sendBytes(buf)
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("UNUSED_PARAMETER","LocalVariableName")
     private fun mySondyGOSondePos(
         type:String,freq:Float,name:String,lat:Double,lon:Double,height:Double,_vel:Float,
         sign:Float,bat:Int,afc:Int,bk:Boolean,bktime:Int,batV:Int,mute:Int,ver:String,hVel:Float=Float.NaN
@@ -174,7 +178,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         cb.onVersion(ver)
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("UNUSED_PARAMETER","LocalVariableName")
     private fun mySondyGOSettings(
         type:String,freq:Float,sda:Int,scl:Int,rst:Int,led:Int,RS41bw:Int,M20bw:Int,M10bw:Int,
         PILOTbw:Int,DFMbw:Int,call:String,offset:Int,bat:Int,batMin:Int,batMax:Int,batType:Int,
@@ -205,7 +209,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         timeLastMessage=Instant.now()
         val campi=msg.split("/")
         if (campi[campi.size-1]!="o") {
-            Log.e(FullscreenActivity.TAG,"manca terminatore messaggio")
+            Log.e(TAG,"manca terminatore messaggio")
             return
         }
         when (campi[0]) {
@@ -217,7 +221,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                 campi[6].toInt(),
                 campi[7])
             else {
-                Log.e(FullscreenActivity.TAG,
+                Log.e(TAG,
                     "numero campi errato in messaggio tipo 0 (${campi.size} invece di 9)")
                 return
             }
@@ -241,7 +245,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                     campi[18+offset],
                     if (useHVel) campi[7].toFloat() else Float.NaN)
             } else {
-                Log.e(FullscreenActivity.TAG,
+                Log.e(TAG,
                     "numero campi errato in messaggio tipo 1 (${campi.size} invece di 20)")
                 return
             }
@@ -257,7 +261,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                     campi[8].toInt(),
                     campi[9])
             } else {
-                Log.e(FullscreenActivity.TAG,
+                Log.e(TAG,
                     "numero campi errato in messaggio tipo 2 (${campi.size} invece di 11)")
                 return
             }
@@ -284,21 +288,20 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                 campi[20].toInt(),
                 campi[21])
             else {
-                Log.e(FullscreenActivity.TAG,
-                    "numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
+                Log.e(TAG,"numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
                 return
             }
 
-            else -> Log.e(FullscreenActivity.TAG,"Tipo messaggio sconosciuto")
+            else -> Log.e(TAG,"Tipo messaggio sconosciuto")
         }
     }
 
     override fun onMessageReceived(message:String) {
-        Log.i(FullscreenActivity.TAG,"Message: $message")
+        Log.i(TAG,"Message: $message")
         try {
             process(message)
         } catch (e:Exception) {
-            Log.e(FullscreenActivity.TAG,"Eccezione in process: $e")
+            Log.e(TAG,"Eccezione in process: $e")
         }
     }
 
@@ -307,7 +310,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
     }
 
     override fun onError(error:Throwable) {
-        Log.i(FullscreenActivity.TAG,"Serial communication error: $error")
+        Log.i(TAG,"Serial communication error: $error")
         cb.onDisconnected()
     }
 
@@ -357,16 +360,16 @@ class TTGO2(
     }
 }
 
-class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val device:BluetoothDevice):
+class TTGO3(cb:ReceiverCallback, name:String, val context:Context, device:BluetoothDevice):
     TTGO(cb,name) {
     private var connected=false
     private var rxCharacteristic:BluetoothGattCharacteristic?=null
     private var txCharacteristic:BluetoothGattCharacteristic?=null
 
     private val bluetoothGattCallback=object:BluetoothGattCallback() {
-        private fun registerCharacteristic(gatt:BluetoothGatt?) {
+        /*private fun registerCharacteristic(gatt:BluetoothGatt?) {
             Log.d(TAG,"onRegisterCharacteristic")
-        }
+        }*/
 
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicRead(
@@ -393,7 +396,8 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             Log.d(TAG,"onDescriptorWrite ${descriptor?.uuid} $status")
         }
 
-        override fun onConnectionStateChange(gatt:BluetoothGatt?,status:Int,newState:Int) {
+        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        override fun onConnectionStateChange(gatt:BluetoothGatt?, status:Int, newState:Int) {
             Log.i(TAG,"OnConnectionStateChange status=$status, newState=$newState")
             if (newState==BluetoothProfile.STATE_CONNECTED) {
                 connected=true
@@ -407,6 +411,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             }
         }
 
+        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         override fun onServicesDiscovered(gatt:BluetoothGatt?,status:Int) {
             if (status==BluetoothGatt.GATT_SUCCESS) {
                 if (bluetoothGatt.services!=null) for (svc in bluetoothGatt.services!!) {
@@ -434,6 +439,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             }
         }
 
+        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         override fun onMtuChanged(gatt:BluetoothGatt?,mtu:Int,status:Int) {
             super.onMtuChanged(gatt,mtu,status)
             if (rxCharacteristic!=null) {
@@ -461,7 +467,7 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
             characteristic:BluetoothGattCharacteristic,
         ) {
             val v=characteristic.value.toString(Charsets.UTF_8)
-            Log.d(TAG,"onCharacteristicChanged ${characteristic.uuid} ${v}")
+            Log.d(TAG,"onCharacteristicChanged ${characteristic.uuid} $v")
             if (v!="\r\n")
                 process(v,true)
         }
@@ -470,23 +476,35 @@ class TTGO3(cb:ReceiverCallback,name:String,val context:Context,private val devi
     override val hasVerticalSpeed:Boolean
         get()=true
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun close() {
         bluetoothGatt.disconnect()
         bluetoothGatt.close()
     }
 
-    var bluetoothGatt:BluetoothGatt=device.connectGatt(context,
-        false,
-        bluetoothGattCallback,
-        BluetoothDevice.TRANSPORT_AUTO,
-        BluetoothDevice.PHY_LE_2M_MASK,
-        Handler(Looper.getMainLooper()))
+    private val bluetoothGatt:BluetoothGatt =
+        try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            device.connectGatt(
+                context,
+                false,
+                bluetoothGattCallback,
+                BluetoothDevice.TRANSPORT_AUTO,
+                BluetoothDevice.PHY_LE_2M_MASK,
+                Handler(Looper.getMainLooper())
+            )
+    } else
+            device.connectGatt(context,false,bluetoothGattCallback)
+    }
+    catch (ex:SecurityException) { throw ex }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun sendBytes(bytes:ByteArray) {
         txCharacteristic!!.value=bytes
         bluetoothGatt.writeCharacteristic(txCharacteristic)
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onError(error:Throwable) {
         bluetoothGatt.disconnect()
         bluetoothGatt.close()
