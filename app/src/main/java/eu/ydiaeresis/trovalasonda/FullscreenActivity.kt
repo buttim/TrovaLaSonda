@@ -234,6 +234,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             .setTitleText(applicationContext.getString(title))
             .setSkipText(getString(R.string.skip_tutorial))
             .setContentText(applicationContext.getString(content)).setDismissText(R.string.GOT_IT)
+            .setDismissOnTouch(true)
             .build()
         seq.addSequenceItem(mcsv)
         return mcsv
@@ -245,6 +246,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         MaterialShowcaseSequence(this, id).apply {
             var timer: Timer? = null
             setConfig(ShowcaseConfig().apply {
+                renderOverNavigationBar = true
                 delay = 500
                 dismissTextColor = Color.GREEN
             })
@@ -1661,7 +1663,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         return false
     }
 
-    val rl=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    val rlAskForScanning=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         Log.i(TAG,"ACTIVITY terminata")
         askForScanning(true)
     }
@@ -1678,7 +1680,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 .setMessage(getString(R.string.you_must_enable_geolocation_in_order_to_use_this_app))
                 .setPositiveButton(getString(R.string.enable)) { _, _ ->
                     val intent = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                    rl.launch(intent)
+                    rlAskForScanning.launch(intent)
                 }.setNegativeButton(R.string.exit) { _, _ ->
                     receiver?.close()
                     finish()

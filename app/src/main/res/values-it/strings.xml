@@ -121,4 +121,6 @@
     <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connetti a un ricevitore MySondyGO v3 o TrovaLaSondaFw</string>
     <string name="nearby_sonde_detected">Rilevata sonda vicina</string>
     <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Vuoi impostare automaticamente il ricevitore?\n(%1$s %2$.3fMHz)</string>
+    <string name="you_must_enable_geolocation_in_order_to_use_this_app">Devi abilitare la localizzazione per poter usare questa app</string>
+    <string name="enable">Abilita</string>
 </resources>

@@ -130,6 +130,8 @@
     <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Connect to a MySondyGO v3 or TrovaLaSondaFw receiver</string>
     <string name="nearby_sonde_detected">Nearby sonde detected</string>
     <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Do you want to automatically setup the receiver?\n(%1$s %2$.3fMHz)</string>
+    <string name="you_must_enable_geolocation_in_order_to_use_this_app">You must enable geolocation in order to use this app</string>
+    <string name="enable">Enable</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>
