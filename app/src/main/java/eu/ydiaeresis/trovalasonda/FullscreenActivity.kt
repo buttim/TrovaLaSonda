@@ -26,6 +26,7 @@ import android.location.LocationManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
@@ -39,6 +40,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.animation.doOnEnd
@@ -99,6 +101,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -342,7 +345,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         typeAndFreq = null    //prevent multiple calls
         if (t == -1 || t == sondeType && freq == f) return
         runOnUiThread {
-            MaterialAlertDialogBuilder(this@FullscreenActivity, R.style.MaterialAlertDialog_rounded)
+            val dlg: AlertDialog = MaterialAlertDialogBuilder(
+                this@FullscreenActivity,
+                R.style.MaterialAlertDialog_rounded
+            )
                 .setIconAttribute(android.R.attr.alertDialogIcon)
                 .setTitle(getString(R.string.nearby_sonde_detected))
                 .setMessage(
@@ -354,7 +360,30 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 )
                 .setPositiveButton(R.string.YES) { _, _ ->
                     receiver!!.setTypeAndFrequency(t, f)
-                }.setNegativeButton(R.string.NO, null).show()
+                }
+                .setNegativeButton(R.string.NO, null)
+                .create()
+            dlg.setOnShowListener {
+                val defaultButton = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+                val positiveButtonText = defaultButton.text
+                object : CountDownTimer(10000, 100) {
+                    override fun onTick(p0: Long) {
+                        defaultButton.text = String.format(
+                            Locale.getDefault(), "%s (%d)",
+                            positiveButtonText,
+                            TimeUnit.MILLISECONDS.toSeconds(p0) + 1 //add one so it never displays zero
+                        )
+                    }
+
+                    override fun onFinish() {
+                        if (dlg.isShowing)
+                            defaultButton.performClick()
+                    }
+                }
+                .start()
+            }
+
+            dlg.show()
         }
     }
 
@@ -1663,10 +1692,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         return false
     }
 
-    val rlAskForScanning=registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        Log.i(TAG,"ACTIVITY terminata")
-        askForScanning(true)
-    }
+    val rlAskForScanning =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            Log.i(TAG, "ACTIVITY terminata")
+            askForScanning(true)
+        }
 
     private fun askForScanning(firstTime: Boolean = false) {
         val prefs = getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE)

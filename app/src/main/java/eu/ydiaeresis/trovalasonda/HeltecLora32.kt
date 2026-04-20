@@ -98,7 +98,8 @@ class HeltecLora32(cb:ReceiverCallback,name:String,val context:Context,device:Bl
 //            cb.onAltitude(alt)
 //            cb.onVelocity(hVel)
 //            cb.onVerticalSpeed(vVel)
-            if (bkTime!=0xFFFF.toUShort()) cb.onBurstKill(bkStatus,bkTime.toInt())
+            val noBK:UShort=0xFFFFu
+            if (bkTime!=noBK) cb.onBurstKill(bkStatus,bkTime.toInt())
         }
 
         @RequiresApi(Build.VERSION_CODES.O)
