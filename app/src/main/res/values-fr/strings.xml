@@ -1,0 +1,174 @@
+﻿<resources>
+    <string name="app_name" translatable="false">TrovaLaSonda</string>
+    <string name="title_activity_settings" translatable="false">Settings</string>
+    <string name="reset" translatable="false">Reset</string>
+    <string name="mhz" translatable="false">MHz</string>
+    <string name="dbm" translatable="false">-dBm</string>
+    <string name="km" translatable="false">km</string>
+    <string name="sqkxy_tracker_logo" translatable="false">SQKXY tracker logo</string>
+    <string name="sondehub_logo" translatable="false">sondehub logo</string>
+    <string name="title_activity_scrolling" translatable="false">Trova la sonda</string>
+    <string name="CLOSE">Fermer</string>
+    <string name="CONNECTED">Connecté</string>
+    <string name="CONNECTION_LOST">Connexion au récepteur perdue</string>
+    <string name="CANNOT_CONNECT">Impossible de se connecter !</string>
+    <string name="RECEIVER_NOT_CONNECTED">Récepteur non connecté</string>
+    <string name="LATITUDE_COPIED">Latitude copiée dans le presse-papiers</string>
+    <string name="LONGITUDE_COPIED">Longitude copiée dans le presse-papiers</string>
+    <string name="COORDINATES_COPIED">Coordonnées copiées dans le presse-papiers</string>
+    <string name="NO_SONDE_TO_OPEN_A_WEBPAGE_FOR">Aucune sonde pour ouvrir une page web</string>
+    <string name="SHOW_A_WEB_PAGE">Afficher la page web de cette sonde</string>
+    <string name="NO_CURRENT_LOCATION">Pas de position actuelle (pour l\'instant)</string>
+    <string name="RADIO_SETTINGS">Paramètres radio (la radio doit être connectée)</string>
+    <string name="NO_SONDE_TO_SHOW">Aucune sonde à afficher</string>
+    <string name="CHOOSE_LAYER">Choisir la couche (Mapnik/CyclOSM/satellite)</string>
+    <string name="CENTER_SONDE_ON_MAP">Centrer la sonde sur la carte (si données de position reçues)</string>
+    <string name="NO_SONDE_TO_NAVIGATE_TO">Aucune sonde vers laquelle naviguer</string>
+    <string name="ROUTE_TO_PREDICTED_LANDING_SITE">Itinéraire vers le site d\'atterrissage prévu</string>
+    <string name="CONNECTED_TO">Connecté à </string>
+    <string name="BATTERY_">Batterie </string>
+    <string name="BY_CAR">En voiture : </string>
+    <string name="MAP_STYLE_SELECTED">style de carte sélectionné</string>
+    <string name="FIRMWARE_UPDATE_AVAILABLE">Mise à jour du firmware disponible</string>
+    <string name="A_NEW_VERSION_OF_THE_FIRMWARE">Une nouvelle version du firmware est disponible pour ce récepteur.\nVoulez-vous mettre à jour le récepteur maintenant ?</string>
+    <string name="UPDATE_NOW">Mettre à jour maintenant</string>
+    <string name="DOWNLOADING_FIRMWARE">Téléchargement du firmware</string>
+    <string name="THE_FIRMWARE_WILL_BE_LOADED">Le firmware sera chargé sur le récepteur une fois le téléchargement terminé</string>
+    <string name="FIRMWARE_DOWNLOAD_FAILED">Échec du téléchargement du firmware</string>
+    <string name="UPDATING_FIRMWARE">Mise à jour du firmware</string>
+    <string name="THE_FIRMWARE_HAS_BEEN_DOWNLOADED">Le firmware a été téléchargé. Mise à jour de la radio en cours</string>
+    <string name="FIRMWARE_UPDATE_FAILED">Échec de la mise à jour du firmware</string>
+    <string name="FIRMWARE_UPDATE_FINISHED">Mise à jour du firmware terminée</string>
+    <string name="WAIT_FOR_THE_RADIO_TO_REBOOT">Attendez que la radio redémarre et se reconnecte</string>
+    <string name="ARE_YOU_SURE_YOU_WANT_TO_EXIT">Êtes-vous sûr de vouloir quitter ?</string>
+    <string name="YES">Oui</string>
+    <string name="NO">Non</string>
+    <string name="ALERT">Alerte</string>
+    <string name="CANCEL">Annuler</string>
+    <string name="NEW_SETTINGS_REQUIRE_A_RESTART">Les nouveaux paramètres nécessitent un redémarrage du récepteur, voulez-vous les appliquer quand même ?</string>
+    <string name="tune">Accorder</string>
+    <string name="offset">Décalage</string>
+    <string name="radio">Radio</string>
+    <string name="type">Type</string>
+    <string name="battery">Batterie</string>
+    <string name="battery_pin">Broche batterie</string>
+    <string name="rst_pin">Broche RST</string>
+    <string name="scl_pin">Broche SCL</string>
+    <string name="sda_pin">Broche SDA</string>
+    <string name="sonde_settings">Paramètres de la sonde</string>
+    <string name="frequency">fréquence</string>
+    <string name="toggle_buzzer">Activer/Désactiver le buzzer</string>
+    <string name="no_sonde">[aucune sonde]</string>
+    <string name="menu">Menu</string>
+    <string name="center_user_in_map">Centrer l\'utilisateur sur la carte</string>
+    <string name="center_sonde_in_map">Centrer la sonde sur la carte</string>
+    <string name="change_map_layer">Changer la couche de la carte</string>
+    <string name="launch_navigation">Lancer la navigation</string>
+    <string name="settings">Paramètres</string>
+    <string name="save">Enregistrer</string>
+    <string name="help">Aide</string>
+    <string name="map">carte</string>
+    <string name="battery_level">niveau de batterie</string>
+    <string name="open_web_page">Ouvrir la page web</string>
+    <string name="ReportYourFinding">Signaler votre découverte</string>
+    <string name="title_activity_donation">Don</string>
+    <string name="SERIAL_NUMBER_FOR_THE_SONDE_YOU_ARE_RECEIVING">Numéro de série de la sonde que vous recevez</string>
+    <string name="YOU_CAN_TAP_IT_TO_OPEN_SONDEHUB_OR_RADIOSONDY"> Vous pouvez appuyer ici pour ouvrir Sondehub ou radiosondy.info</string>
+    <string name="DISTANCE">Distance</string>
+    <string name="BETWEEN_YOU_AND_THE_SONDE_YOU_ARE_RECEIVING">Entre vous et la sonde que vous recevez. Appuyez pour activer le mode chasse</string>
+    <string name="BUZZER">Buzzer</string>
+    <string name="MUTE_YOUR_RECEIVER_TAPPING_THIS">Coupez le son de votre récepteur en appuyant ici</string>
+    <string name="BATTERY">Batterie</string>
+    <string name="KEEP_AN_EYE_ON_YOUR_RECEIVER_BATTERY_LEVEL">Surveillez le niveau de batterie de votre récepteur</string>
+    <string name="RSSI" translatable="false">RSSI</string>
+    <string name="SIGNAL_STRENGTH_IS_SHOWN_HERE">La force du signal est affichée ici</string>
+    <string name="MAP_LAYERS">Couches de carte</string>
+    <string name="CHOOSE_BETWEEN_THREE_DIFFERENT_MAP_LAYERS">Choisissez entre trois couches de carte différentes</string>
+    <string name="NAVIGATION">Navigation</string>
+    <string name="LAUNCH_GOOGLE_MAPS">Lancer Google Maps pour l\'itinéraire vers la position actuelle de la sonde\nAppui long pour sélectionner une autre application de navigation</string>
+    <string name="RECEIVER_PARAMETERS">Paramètres du récepteur</string>
+    <string name="SET_PINS_BANDWIDTH_AND_CALIBRATION_FOR_YOUR_RECEIVER">Réglez les broches, la bande passante et l\'étalonnage de votre récepteur</string>
+    <string name="GOT_IT">COMPRIS</string>
+    <string name="SONDE_DATA">Données de la sonde</string>
+    <string name="TAP_HERE_TO_CHANGE_SONDE_TYPE_FREQUENCY">Appuyez ici pour changer le type et la fréquence de la sonde</string>
+    <string name="NOTIFY_RECOVERY">Notifier la récupération</string>
+    <string name="SEND_REPORT">Envoyer le rapport</string>
+    <string name="SONDEHUB_REPORT">Rapport Sondehub</string>
+    <string name="USER">utilisateur</string>
+    <string name="coord_closed">coord▲</string>
+    <string name="coord_open">coords▼</string>
+    <string name="latitude">latitude</string>
+    <string name="longitude">longitude</string>
+    <string name="altitude">altitude</string>
+    <string name="description">description</string>
+    <string name="INVALID_LATITUDE">Latitude invalide</string>
+    <string name="INVALID_LONGITUDE">Longitude invalide</string>
+    <string name="INVALID_ALTITUDE">Altitude invalide</string>
+    <string name="failed_try_again">Échec, réessayer ?</string>
+    <string name="reporting_result">Résultat du rapport :\n\n\"%1$s\"</string>
+    <string name="failed_to_send_report">Échec de l\'envoi du rapport ! (%1$s)</string>
+    <string name="error_sending_report_status">Erreur lors de l\'envoi du rapport (statut : %1$s)</string>
+    <string name="unknown_error">Erreur inconnue %1$s</string>
+    <string name="user_name_must_be_specified">Le nom d\'utilisateur doit être spécifié</string>
+    <string name="please_add_a_description">Veuillez ajouter une description</string>
+    <string name="report_sent_successfully">Rapport envoyé avec succès</string>
+    <string name="settings_not_available_for_this_receiver">Paramètres non disponibles pour ce récepteur</string>
+    <string name="skip_tutorial">Passer le tutoriel</string>
+    <string name="no_receiver_found">Aucun récepteur trouvé</string>
+    <string name="chose_connection">Choisir la connexion</string>
+    <string name="bluetooth_classic">Bluetooth Classique</string>
+    <string name="bluetooth_low_energy">Bluetooth Low Energy</string>
+    <string name="no_receiver">Aucun récepteur</string>
+    <string name="exit">Quitter</string>
+    <string name="what_s_new">Quoi de neuf</string>
+    <string name="close">Fermer</string>
+    <string name="hunting_mode_on">Mode chasse ACTIVÉ</string>
+    <string name="hunting_mode_off">Mode chasse DÉSACTIVÉ</string>
+    <string name="cannot_access_remote_firmware_updates_database">Impossible d\'accéder à la base de données distante des mises à jour</string>
+    <string name="pollicino_mode">Mode Pollicino %1$s</string>
+    <string name="connect_to_mysondygo_v2">Se connecter à un récepteur MySondyGO v2</string>
+    <string name="connect_to_mysondygo_v3_or_trovalasondafw_receiver">Se connecter à un récepteur MySondyGO v3 ou TrovaLaSondaFw</string>
+    <string name="nearby_sonde_detected">Sonde détectée à proximité</string>
+    <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Voulez-vous configurer automatiquement le récepteur ?\n(%1$s %2$.3fMHz)</string>
+    <string name="you_must_enable_geolocation_in_order_to_use_this_app">Vous devez activer la géolocalisation pour utiliser cette application</string>
+    <string name="enable">Activer</string>
+    <string name="chase_car">Voiture de chasse</string>
+    <string name="seems_to_be_in_proximity_of_the_nearest_sonde">%1$s semble être à proximité de la sonde la plus proche, veuillez vérifier</string>
+    <string name="planned_recovery">Récupération prévue</string>
+    <string name="radiosondy_planned_recovery">Selon radiosondy.info, l\'utilisateur \"%1$s\" a prévu de récupérer cette sonde !\nMessage : \"%2$s\"</string>
+    <string-array name="display_types">
+        <item>SSD1306</item>
+        <item>SH1106</item>
+    </string-array>
+    <string-array name="battery_types">
+        <item>Type 1</item>
+        <item>Type 2</item>
+        <item>Type 3</item>
+    </string-array>
+    <string-array name="bandwidth">
+        <item>2600</item>
+        <item>3100</item>
+        <item>3900</item>
+        <item>5200</item>
+        <item>6300</item>
+        <item>7800</item>
+        <item>10400</item>
+        <item>12500</item>
+        <item>15600</item>
+        <item>20800</item>
+        <item>25000</item>
+        <item>31300</item>
+        <item>41700</item>
+        <item>50000</item>
+        <item>62500</item>
+        <item>83300</item>
+        <item>100000</item>
+        <item>125000</item>
+        <item>166700</item>
+        <item>200000</item>
+    </string-array>
+    <string-array name="nam">
+        <item>SERIAL</item>
+        <item>APRS</item>
+    </string-array>
+</resources>

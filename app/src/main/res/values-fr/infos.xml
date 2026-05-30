@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="large_text">
+<b><big>Quelques conseils</big></b>\n
+Vous pouvez appuyer sur :\n
+･ l\'icône du <u>haut-parleur</u> pour activer/désactiver le bip du récepteur\n
+･ l\'icône de la <u>batterie</u> pour obtenir une indication précise du niveau de charge\n
+･ les icônes de la <u>sonde</u> ou de la <u>cible</u> pour lancer Google Maps en mode navigation\n
+･ l\'<u>ID de la sonde</u> pour afficher la page <a href='https://www.radiosondy.info'>radiosondy.info</a>
+ou <a href='https://tracker.sondehub.org/'>Sondehub</a> de la sonde\n
+･ la <u>distance</u> pour entrer/sortir du mode chasse\n
+･ la <u>zone d\'atterrissage</u> (cercle orange) pour obtenir l\'itinéraire Google Maps vers le site d\'atterrissage prévu\n
+･ l\'icône d\'<u>explosion</u> pour obtenir l\'heure (prévue ou réelle) de l\'éclat en heure locale et les données de prédiction\n
+･ l\'icône du <u>menu</u> pour afficher le menu <b>et</b> les coordonnées de la sonde\n
+･ la <u>latitude</u> (ou longitude) de la sonde pour la copier dans le presse-papiers\n\n
+Appui long sur :\n
+･ l\'élément de menu <u>voiture</u> pour choisir l\'application de navigation qui vous mènera à la position actuelle de la sonde\n
+･ les icônes de la <u>sonde</u> ou de la <u>cible</u> pour choisir une application de navigation qui vous y guidera\n
+･ tout autre élément de menu pour obtenir une explication de sa fonction\n
+･ la <u>latitude</u> ou la <u>longitude</u> de la sonde pour copier les deux coordonnées dans le presse-papiers\n\n
+<b><big>Tests et suggestions</big></b>\n
+De nombreuses personnes sympathiques des groupes Facebook sur les radiosondes\n\n
+<b><big>Sons de freesound.org</big></b>\n
+<a href='https://freesound.org/people/EminYILDIRIM/sounds/541192/'>Balloon explosion pop</a>\n
+<a href='https://freesound.org/people/se2001/sounds/541506'>Cartoon Quick Zip</a>\n
+<a href='https://freesound.org/people/ammaro/sounds/573381'>Ding</a>\n\n
+<b><big>Images</big></b>\n
+<a href="https://www.flaticon.com/free-icons/parachute" title="parachute icons">Icônes de parachute créées par Smashicons - Flaticon</a>\n\n
+<b><big>Cartes</big></b>\n
+©<a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> (<a href='https://opendatacommons.org/licenses/odbl/'>ODbl</a>)\n
+©<a href='https://www.cyclosm.org/'>CyclOSM</a> (<a href='https://creativecommons.org/licenses/by-sa/2.0/'>CC-BY-SA 2.0</a>)\n
+©<a href='https://www.mapbox.com/about/maps/'>MapBox</a> (<a href='https://www.mapbox.com/map-feedback/'>Améliorer cette carte</a>)\n\n
+<b><big>Bibliothèques</big></b>\n
+<a href='https://github.com/harryjph/android-bluetooth-serial'>android-bluetooth-serial</a> (<a href='https://github.com/harryjph/android-bluetooth-serial/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/MKergall/osmbonuspack'>osmbonuspack</a> (<a href='https://github.com/MKergall/osmbonuspack/blob/master/LICENSE.md'>GNU Lesser 3.0</a>)\n
+<a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
+<a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n
+<a href='https://github.com/nacular/measured'>measured</a> (<a href='https://github.com/nacular/measured/blob/master/LICENSE'>Licence personnalisée</a>)\n\n
+<b><big>Prédictions et API Sondehub</big></b>\n
+Prédictions avec l\'aimable autorisation de <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
+Diverses API avec l\'aimable autorisation de <a href='https://www.sondehub.org'>Sondehub</a> pour la fonction "sonde à proximité"\n
+    </string>
+</resources>

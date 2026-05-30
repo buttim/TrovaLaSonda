@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string name="donation_title">Juste un instant…</string>
+        <string name="donation_text">
+Cette application est et sera toujours <b>gratuite</b> et <b>sans publicité</b>.\n\n
+J\'espère que vous l\'apprécierez et que vous l\'utiliserez pour trouver de nombreuses sondes tout en vous amusant.\n\n
+Mais... je ne peux m\'empêcher de penser à d\'autres pays, où l\'on n\'est pas libre de parcourir le territoire comme nous le faisons pour chasser les sondes.
+À cause des <b>mines terrestres</b>. À cause des <b>bombes non explosées</b>.
+Si vous utilisez cette application, je vous encourage vivement à faire un don pour aider au déminage du Cambodge.\n
+Et quand vous trouvez une sonde, prenez une minute pour envoyer un peu plus.\n\n
+Merci\n\n
+<a href="https://www.landmine-relief-fund.com/">Plus d\'informations ici</a>\n\n
+<a href="https://www.landmine-relief-fund.com/donate/">Faire un don</a>
+        </string>
+</resources>

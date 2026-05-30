@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string name="donation_title">Nur einen Moment...</string>
+        <string name="donation_text">
+Diese App ist und bleibt <b>kostenlos</b> und <b>werbefrei</b>.\n\n
+Ich hoffe, sie gefällt dir und hilft dir dabei, viele Sonden zu finden und jede Menge Spaß zu haben.\n\n
+Aber. Ich muss dabei oft an andere Länder denken, in denen man das Land nicht so frei durchstreifen kann wie wir bei der Sondenjagd.
+Wegen <b>Landminen</b>. Wegen <b>Blindgängern</b>.
+Wenn du diese App nutzt, möchte ich dich herzlich dazu ermutigen, für die Entminung in Kambodscha zu spenden.\n
+Und wenn du eine Sonde findest, nimm dir kurz Zeit, um vielleicht noch etwas mehr zu schicken.\n\n
+Vielen Dank\n\n
+<a href="https://www.landmine-relief-fund.com/">Weitere Informationen hier</a>\n\n
+<a href="https://www.landmine-relief-fund.com/donate/">Spenden</a>
+        </string>
+</resources>
