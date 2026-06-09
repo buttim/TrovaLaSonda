@@ -97,7 +97,7 @@ class SondehubReport:DialogFragment(),View.OnClickListener {
                         var result:String?=null
                         CoroutineScope(Dispatchers.IO).launch {
                             with(binding) {
-                                result=recovered(requireContext(),
+                                result=Sondehub.recovered(requireContext(),
                                     user.text.toString(),
                                     sondeId!!,
                                     lat!!,

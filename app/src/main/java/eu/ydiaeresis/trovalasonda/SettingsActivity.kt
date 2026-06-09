@@ -1,5 +1,6 @@
 package eu.ydiaeresis.trovalasonda
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -9,7 +10,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import eu.ydiaeresis.trovalasonda.databinding.ActivitySettingsBinding
@@ -42,7 +42,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
     private var sumOfOffsets=0
     private var nOffsets=0
 
-    //@SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n")
     override fun freqOffset(offset:Int) {
         sumOfOffsets+=offset
         nOffsets++
@@ -75,7 +75,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
         }
     }
 
-    //@SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this,R.layout.activity_settings)
@@ -114,8 +114,7 @@ class SettingsActivity : AppCompatActivity(), FreqOffsetReceiver {
                 (spinner.adapter as ArrayAdapter<*>).let {
                     it.setDropDownViewResource(R.layout.spinner_entry)
                     spinner.adapter = object : SpinnerAdapter by it {
-                        @RequiresApi(Build.VERSION_CODES.O)
-                        override fun getAutofillOptions(): Array<out CharSequence?>? = it.autofillOptions
+                        override fun getAutofillOptions(): Array<out CharSequence?>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) it.autofillOptions else null
                         override fun getDropDownView(
                             position: Int,
                             convertview: View?,

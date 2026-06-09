@@ -9,14 +9,11 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
-import androidx.core.app.ActivityCompat
 import com.harrysoft.androidbluetoothserial.BluetoothManager
 import com.harrysoft.androidbluetoothserial.SimpleBluetoothDeviceInterface
 import eu.ydiaeresis.trovalasonda.FullscreenActivity.Companion.TAG
@@ -39,7 +36,6 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
 
     init {
         timer.schedule(object:TimerTask() {
-            @RequiresApi(Build.VERSION_CODES.O)
             @SuppressLint("MissingPermission")
             override fun run() {
                 val dt=Instant.now().epochSecond-timeLastMessage.epochSecond
@@ -148,7 +144,8 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
         var vel=_vel
         if (!isRdzTrovaLaSonda && ver=="2.30" && (type=="M10" || type=="M20")) vel*=3.6F
 //        cb.onVelocity(vel)
-        cb.onSerial(name)
+        Log.i(TAG,"-----------------------Serial:$name")
+        cb.onSerial(if (isRdzTrovaLaSonda || type!="DFM") name else name.replace(Regex("^.*-"), ""))
         cb.onPacket(lat,lon,height,vel,hVel)
         cb.onAFC(afc)
         cb.onBurstKill(0,bktime)
@@ -228,6 +225,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
 
             "1" -> if (!useHVel && campi.size==20 || useHVel && campi.size==21) {
                 val offset=if (useHVel) 1 else 0
+                Log.i(TAG,"Messaggio tipo 1/${campi[3]}")
                 mySondyGOSondePos(campi[1],
                     campi[2].toFloat(),
                     campi[3],
@@ -291,6 +289,7 @@ abstract class TTGO(cb:ReceiverCallback,name:String):Receiver(cb,name),
                 Log.e(TAG,"numero campi errato in messaggio tipo 3 (${campi.size} invece di 23)")
                 return
             }
+            "4" -> return   //raw packet
 
             else -> Log.e(TAG,"Tipo messaggio sconosciuto")
         }

@@ -11,6 +11,7 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import androidx.core.net.toUri
+import io.ktor.client.plugins.UserAgent
 
 @Serializable
 private data class Metadata(val complete_datetime: String, val start_datetime: String)
@@ -99,7 +100,11 @@ class Tawhiri(
     }
 
     suspend fun getPrediction():Array<Stage> {
-        HttpClient(CIO).use {
+        HttpClient(CIO) {
+            install(UserAgent) {
+                agent = BuildConfig.APPLICATION_ID+" " + BuildConfig.VERSION_NAME
+            }
+        }.use {
             val response: HttpResponse = it.get(getUri().toString())
             //Log.d(FullscreenActivity.TAG,response.bodyAsText())
             val result:Response = json.decodeFromString(Response.serializer(),response.bodyAsText())

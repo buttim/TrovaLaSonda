@@ -36,7 +36,8 @@ Many friendly people from the Facebook radiosondes groups\n\n
 <a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n
 <a href='https://github.com/nacular/measured'>measured</a> (<a href='https://github.com/nacular/measured/blob/master/LICENSE'>Custom licence</a>)\n\n
-<b><big>Predictions</big></b>\n
+<b><big>Predictions and Sondehub APIs</big></b>\n
 Predictions courtesy of <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
+Various APIs courtesy of <a href='https://www.sondehub.org'>Sondehub</a> for the "nearby sonde" feature\n
     </string>
 </resources>

@@ -54,8 +54,6 @@ class BleSetupManager(
         }
     }
 
-    // --- MUST ADD THIS HANDLER ---
-    // Connect this to your central BluetoothGattCallback override: onMtuChanged
     fun handleMtuChangedResult(mtu: Int, status: Int) {
         Log.d(TAG, "MTU changed to: $mtu, Status: $status")
         mtuContinuation?.resume(status == BluetoothGatt.GATT_SUCCESS)

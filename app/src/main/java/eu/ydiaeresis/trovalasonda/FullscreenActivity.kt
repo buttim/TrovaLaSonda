@@ -1,17 +1,21 @@
 package eu.ydiaeresis.trovalasonda
 
+//TODO: sostituire java.time.Instant con kotlin.time.Instant
+
 import android.Manifest
 import android.animation.LayoutTransition
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.bluetooth.BluetoothAdapter
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
-import android.graphics.BlendMode
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
@@ -45,16 +49,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.animation.doOnEnd
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.graphics.plus
 import androidx.core.net.toUri
-import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.minutes
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import eu.ydiaeresis.trovalasonda.databinding.ActivityFullscreenBinding
@@ -79,7 +88,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
-import org.osmdroid.views.overlay.FolderOverlay
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
@@ -171,11 +179,11 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     private var isCiapaSonde = false
     private var roadManager: RoadManager = OSRMRoadManager(this, BuildConfig.APPLICATION_ID)
     private var roadOverlay: Polyline? = null
-    private var lastConnectionChoice = 0
+    private var lastConnectionChoice = 1    //default is BLE
     private var site: Site? = null
     private var huntingMode = false
-    private var pollicinoMode = false
-    private val fldPollicino = FolderOverlay()
+//    private var pollicinoMode = false
+//    private val fldPollicino = FolderOverlay()
     private val cyclOSM = XYTileSource(
         "CyclOSM",
         0,
@@ -184,7 +192,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         ".png",
         arrayOf("https://a.tile-cyclosm.openstreetmap.fr/cyclosm/")
     )
-    private var typeAndFreq: Pair<String, Float>? = null
+    private var autoConfigDone = false
 
     private val resultLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -325,7 +333,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
                     }, 2000)
                 }
-                Log.i(TAG, "showcase OnItemDismissed $i")
                 if (i == 7) closeMenu()
             }
             start()
@@ -337,54 +344,128 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         binding.progress.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    private fun autoConfig() {
-        if (typeAndFreq === null || receiver === null) return
-        val t: Int = receiver!!.sondeTypes.indexOf(typeAndFreq!!.first)
-        val f = typeAndFreq!!.second
-        val typeName = typeAndFreq!!.first
-        typeAndFreq = null    //prevent multiple calls
-        if (t == -1 || t == sondeType && freq == f) return
-        runOnUiThread {
-            val dlg: AlertDialog = MaterialAlertDialogBuilder(
-                this@FullscreenActivity,
-                R.style.MaterialAlertDialog_rounded
-            )
-                .setIconAttribute(android.R.attr.alertDialogIcon)
-                .setTitle(getString(R.string.nearby_sonde_detected))
-                .setMessage(
-                    getString(
-                        R.string.do_you_want_to_automatically_setup_the_receiver_mhz,
-                        typeName,
-                        f
+    /*private fun checkChaseCars(callback: (() -> Unit)? = null) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val chaseCar = Sondehub.getChaseCar(nearbySonde!!.lat, nearbySonde!!.lon, 50000.0)
+            if (chaseCar != null)
+                runOnUiThread {
+                    timedWarning(
+                        this@FullscreenActivity,
+                        getString(R.string.chase_car),
+                        getString(
+                            R.string.seems_to_be_in_proximity_of_the_nearest_sonde,
+                            chaseCar
+                        ), 20, callback
                     )
-                )
-                .setPositiveButton(R.string.YES) { _, _ ->
-                    receiver!!.setTypeAndFrequency(t, f)
                 }
-                .setNegativeButton(R.string.NO, null)
-                .create()
-            dlg.setOnShowListener {
-                val defaultButton = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
-                val positiveButtonText = defaultButton.text
-                object : CountDownTimer(10000, 100) {
-                    override fun onTick(p0: Long) {
-                        defaultButton.text = String.format(
-                            Locale.getDefault(), "%s (%d)",
-                            positiveButtonText,
-                            TimeUnit.MILLISECONDS.toSeconds(p0) + 1 //add one so it never displays zero
-                        )
-                    }
-
-                    override fun onFinish() {
-                        if (dlg.isShowing)
-                            defaultButton.performClick()
-                    }
-                }
-                .start()
-            }
-
-            dlg.show()
         }
+    }
+
+    private fun checkPlannedTakings(callback: (() -> Unit)? = null) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val res = Radiosondy.getPlannedTakings(nearbySonde!!.serial)
+            if (res != null)
+                runOnUiThread {
+                    timedWarning(
+                        this@FullscreenActivity,
+                        getString(R.string.planned_recovery),
+                        getString(R.string.radiosondy_planned_recovery, res.sender, res.message),
+                        20,
+                        callback
+                    )
+                }
+        }
+    }*/
+    var chaseCarNotified=false
+    var recoveryNotified=false
+    var plannedTakingNotified=false
+
+    private fun showSystemNotification(title:String,text:String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        )
+            return
+
+        val channelId = "warning_channel"
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .bigText(text) // This handles the expanded view text
+            .setBigContentTitle(title) // Optional: keeps the title visible when expanded
+        val notification = NotificationCompat.Builder(applicationContext, channelId)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setStyle(bigTextStyle)
+            .build()
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Warnings", NotificationManager.IMPORTANCE_HIGH)
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        notificationManager.notify(1, notification)
+    }
+
+    private fun autoConfig() {
+        if (autoConfigDone || nearbySonde === null || receiver === null)
+            return
+        val type = receiver!!.sondeTypes.indexOf(nearbySonde!!.type)
+        val f = nearbySonde!!.tx_frequency ?: nearbySonde!!.frequency
+        val typeName = nearbySonde!!.type
+        autoConfigDone = true    //prevent multiple calls?
+
+        if (type == -1 || f!=null && type == sondeType && freq == f) {
+            startBackgroundWork()
+        }
+        else
+            runOnUiThread {
+                val dlg: AlertDialog = MaterialAlertDialogBuilder(
+                    this@FullscreenActivity,
+                    R.style.MaterialAlertDialog_rounded
+                )
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
+                    .setTitle(getString(R.string.nearby_sonde_detected))
+                    .setMessage(
+                        getString(
+                            R.string.do_you_want_to_automatically_setup_the_receiver_mhz,
+                            typeName,
+                            f
+                        )
+                    )
+                    .setPositiveButton(R.string.YES) { _, _ ->
+                        receiver!!.setTypeAndFrequency(type, f!!)
+                    }
+                    .setNegativeButton(R.string.NO, null)
+                    /*.setOnDismissListener {
+                        if (type == sondeType && freq == f)
+                            checkPlannedTakings {
+                                checkChaseCars()
+                            }
+                    }*/
+                    .create()
+                dlg.setOnShowListener {
+                    val defaultButton = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+                    val positiveButtonText = defaultButton.text
+                    object : CountDownTimer(10000, 100) {
+                        override fun onTick(p0: Long) {
+                            defaultButton.text = String.format(
+                                Locale.getDefault(), "%s (%d)",
+                                positiveButtonText,
+                                TimeUnit.MILLISECONDS.toSeconds(p0) + 1 //add one so it never displays zero
+                            )
+                        }
+
+                        override fun onFinish() {
+                            if (dlg.isShowing)
+                                defaultButton.performClick()
+                        }
+                    }
+                        .start()
+                }
+                dlg.show()
+            }
     }
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
@@ -400,8 +481,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
                 val coarseLocation = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
                 if (coarseLocation !== null) {
-                    typeAndFreq = getCurrentSonde(coarseLocation.latitude, coarseLocation.longitude)
-                    Log.i(TAG, "typeAndFreq: $typeAndFreq")
+                    nearbySonde =
+                        Sondehub.getNearbySonde(coarseLocation.latitude, coarseLocation.longitude)
                     autoConfig()
                 }
             }
@@ -439,6 +520,71 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             }, 2000)
         }
 
+    private suspend fun executeCheckLogic() {
+        val nearbySonde = FullscreenActivity.nearbySonde ?: return
+
+        if (!chaseCarNotified) {
+            val chaseCar = Sondehub.getChaseCar(FullscreenActivity.nearbySonde!!.lat, nearbySonde.lon, 50000.0)
+            if (chaseCar != null) {
+                chaseCarNotified=true
+                showSystemNotification(
+                    applicationContext.getString(R.string.chase_car),
+                    applicationContext.getString(
+                        R.string.seems_to_be_in_proximity_of_the_nearest_sonde,
+                        chaseCar
+                    )
+                )
+            }
+            else
+                Log.i(TAG, "No chase car found")
+        }
+        if (!recoveryNotified) {
+            val res=Sondehub.getRecovered(nearbySonde.serial)
+            if (res != null) {
+                recoveryNotified=true
+                if (res.planned)
+                    showSystemNotification(getString(R.string.planned_recovery),
+                        getString(R.string.sondehub_planned_recovery, res.recoveredBy, res.description,nearbySonde.serial))
+                else
+                    showSystemNotification(
+                        getString(R.string.sonde_recovered),
+                        getString(
+                            R.string.sondehub_user_recovered_the_sonde,
+                            res.recoveredBy,
+                            res.description,nearbySonde.serial
+                        ))
+            }
+            else
+                Log.i(TAG, "No recovery found")
+        }
+        if (!plannedTakingNotified) {
+            val res = Radiosondy.getPlannedTakings(nearbySonde.serial)
+            if (res != null) {
+                plannedTakingNotified=true
+                showSystemNotification(getString(R.string.planned_recovery),
+                    getString(R.string.radiosondy_planned_recovery, res.sender, res.message, nearbySonde.serial))
+            }
+            else
+                Log.i(TAG, "No planned taking found")
+        }
+    }
+
+    private fun startBackgroundWork() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    while (true) {
+                        executeCheckLogic()
+                        delay(5.minutes)
+                    }
+                }
+            }
+        }
+    }
+
     private fun createReceiver(builder: ReceiverBuilder) {
         try {
             builder.connect()
@@ -446,7 +592,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             turnOnBTContract.launch(intent)
         } catch (ex1: ReceiverException) {
-            Log.e(TAG, "Impossibile connettersi al ricevitore: $ex1")
+            Log.e(TAG, "Cannot connect to receiver: $ex1")
         }
     }
 
@@ -472,11 +618,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
         maybeShowDonation()
 
-        //handler.postDelayed({autoConfig()},3000)
+        autoConfigDone = false
     }
 
     private fun onDisconnectedCommon() {
-        Log.i(TAG, "----------- disconnected")
         receiver = null
         if (isFinishing || isDestroyed) return
         playSound(R.raw._541506__se2001__cartoon_quick_zip_reverse)
@@ -530,12 +675,12 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         nPositionsReceived = 0
         site = null
         CoroutineScope(Dispatchers.IO).launch {
-            val sites = sites()
+            val sites = Sondehub.sites()
             var sondeTypeName = "RS41"
             if (sondeType >= 0 && receiver !== null && sondeType < receiver!!.sondeTypes.size)
                 sondeTypeName = receiver!!.sondeTypes[sondeType]
 
-            val stationId = stationFromSerial(sondeTypeName, id)
+            val stationId = Sondehub.stationFromSerial(sondeTypeName, id)
             if (sites != null && stationId != null)
                 site = sites[stationId]
         }
@@ -577,10 +722,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeLevelListDrawable.level = 1
 
         val d = if (currentLocation != null) GeoPoint(currentLocation).distanceToAsDouble(
-            GeoPoint(
-                lat,
-                lon
-            )
+            GeoPoint(lat,lon)
         ) else 0.0
         if (d > 1000000.0) return
 
@@ -679,7 +821,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         sondeType = type
         this.freq = freq
         binding.type.text = "%s %.3f".format(Locale.US, receiver!!.sondeTypes[sondeType], freq)
-        if (typeAndFreq !== null)
+        if (nearbySonde != null)
             autoConfig()
     }
 
@@ -723,11 +865,9 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     }
 
     private fun getFromSondeHub(type: String, id: String, lastSeen: Instant) {
-        val sh = Sondehub(type, id, lastSeen)
-
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val points = sh.getTrack()
+                val points = Sondehub.getTrack(type, id, lastSeen)
                 if (points.isNotEmpty()) {
                     sondehubPath.actualPoints.clear()
                     points.forEach { pt ->
@@ -754,7 +894,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                     }
                 }
             } catch (ex: Exception) {
-                Log.w(TAG, "Eccezione in getFromSondehub: $ex")
+                Log.e(TAG, "Exception in getFromSondehub: $ex")
             }
         }
     }
@@ -804,7 +944,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 )
                 prepareAsync()
             } catch (e: Exception) {
-                Log.e(TAG, "Eccezione playsound: $e")
+                Log.e(TAG, "Exception in playsound: $e")
             }
         }
     }
@@ -868,7 +1008,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         lastConnectionChoice =
             getSharedPreferences(BuildConfig.APPLICATION_ID, MODE_PRIVATE).getInt(
                 LAST_CONNECTION_CHOICE,
-                0
+                1
             )
         @Suppress("DEPRECATION") val td =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ActivityManager.TaskDescription.Builder()
@@ -909,24 +1049,30 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             hide(WindowInsetsCompat.Type.systemBars())
         }*/
 
-        requestPermissionsIfNecessary(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.INTERNET
-            )
+        val permissions=mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.INTERNET
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        requestPermissionsIfNecessary(permissions.toTypedArray())
 
         binding = ActivityFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.frame)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, 0, 0, systemBars.bottom)
+            insets
+        }
         //////////////////////////////////////////////
 //        CoroutineScope(Dispatchers.IO).launch {
 //            val sites=sites()
-//            val s=stationFromSerial("RS41","W0220408")
+//            val s=Sondehub.stationFromSerial("RS41","W0220408")
 //            Log.i(TAG,"station: ${sites!![s]}")
 //        }
         //////////////////////////////////////////////
@@ -1372,7 +1518,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                         trajectory,
                         mkBurst,
                         mkTarget,
-                        fldPollicino,
+//                        fldPollicino,
                         copyrightOverlay,
                         mkSondehub,
                         mkSonde,
@@ -1413,7 +1559,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         })
 
         handler.postDelayed({
-            whatsnew(this) {
+            whatsNew(this) {
                 val hasAlreadyFired = showcase("info")
                 if (hasAlreadyFired) askForScanning(true)
             }
@@ -1524,7 +1670,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_CAR)
                 val road = roadManager.getRoad(waypoints)
                 if (road.mStatus != Road.STATUS_OK) {
-                    Log.e(TAG, "getRoad fallita")
+                    Log.e(TAG, "getRoad failed")
                 } else {
                     if (roadOverlay != null) binding.map.overlays.remove(roadOverlay)
                     roadOverlay = RoadManager.buildRoadOverlay(road).apply {
@@ -1544,13 +1690,16 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                             applicationContext.getString(R.string.ROUTE_TO_PREDICTED_LANDING_SITE)
                         snippet =
                             applicationContext.getString(R.string.BY_CAR) + duration.toString()
-                        infoWindow = BasicInfoWindow(R.layout.bonuspack_bubble, binding.map)
+                        infoWindow = BasicInfoWindow(
+                            org.osmdroid.library.R.layout.bonuspack_bubble,
+                            binding.map
+                        )
                     }
                     binding.map.overlays.add(roadOverlay)
                     binding.map.invalidate()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Eccezione predict: $e")
+                Log.e(TAG, "Exception in predict: $e")
                 trajectory.isVisible = false
                 mkTarget?.setVisible(false)
             }
@@ -1602,32 +1751,31 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        Log.i(TAG, "onSaveInstanceState")
         outState.putAll(
-            bundleOf(
-                EXPANDED_MENU to expandedMenu,
-                MAP_STYLE to mapStyle,
-                CURRENT_LOCATION to currentLocation,
-                SONDE_ID to sondeId,
-                MUTE to mute,
-                MUTE_CHANGE to muteChanged,
-                SONDE_TYPE to sondeType,
-                HEIGHT_DELTA to heightDelta,
-                HEIGHT to sondeAlt,
-                FREQ to freq,
-                BK to bk,
-                TIME_LAST_SEEN to timeLastSeen,
-                TIME_LAST_MESSAGE to timeLastMessage,
-                LAT to binding.lat.text,
-                LON to binding.lon.text,
-                DISTANCE to distance,
-                UNITS to binding.unit.text,
-                HORIZONTAL_SPEED to binding.horizontalSpeed.text,
-                DIRECTION to binding.direction.text,
-                REPORT_ALREADY_SHOWN to reportAlreadyShown,
-                SONDE_LAT to sondeLat,
-                SONDE_LON to sondeLon
-            )
+            Bundle().apply {
+                putBoolean(EXPANDED_MENU, expandedMenu)
+                putInt(MAP_STYLE, mapStyle)
+                putParcelable(CURRENT_LOCATION, currentLocation)
+                putString(SONDE_ID, sondeId)
+                putInt(MUTE, mute)
+                putBoolean(MUTE_CHANGE, muteChanged)
+                putInt(SONDE_TYPE, sondeType)
+                putDouble(HEIGHT_DELTA, heightDelta)
+                putSerializable(HEIGHT, sondeAlt)
+                putFloat(FREQ, freq)
+                putSerializable(BK, bk)
+                putSerializable(TIME_LAST_SEEN, timeLastSeen)
+                putSerializable(TIME_LAST_MESSAGE, timeLastMessage)
+                putCharSequence(LAT, binding.lat.text)
+                putCharSequence(LON, binding.lon.text)
+                putDouble(DISTANCE, distance)
+                putCharSequence(UNITS, binding.unit.text)
+                putCharSequence(HORIZONTAL_SPEED, binding.horizontalSpeed.text)
+                putCharSequence(DIRECTION, binding.direction.text)
+                putBoolean(REPORT_ALREADY_SHOWN, reportAlreadyShown)
+                putSerializable(SONDE_LAT, sondeLat)
+                putSerializable(SONDE_LON, sondeLon)
+            }
         )
     }
 
@@ -1637,12 +1785,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     @Suppress("DEPRECATION")
     private fun Bundle.getLocation(key: String) = get(key) as Location?
 
+    @Suppress("DEPRECATION")
+    private fun Bundle.getNullableDouble(key: String) = get(key) as Double?
+
     private fun normalizeSondeId(): String =
         sondeId?.trim()?.replace("-", "")?.ifEmpty { "????????" } ?: "[NO SONDE]"
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
-        Log.i(TAG, "onRestoreInstanceState")
         with(savedInstanceState) {
             try {
                 //TODO: ristrutturare memorizzando modello, non UI
@@ -1652,7 +1802,7 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 muteChanged = getBoolean(MUTE_CHANGE)
                 sondeType = getInt(SONDE_TYPE)
                 heightDelta = getDouble(HEIGHT_DELTA)
-                sondeAlt = getDouble(HEIGHT)
+                sondeAlt = getNullableDouble(HEIGHT)
                 freq = getFloat(FREQ)
                 bk = getInstant(BK)
                 timeLastSeen = getInstant(TIME_LAST_SEEN)
@@ -1667,10 +1817,10 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
                 binding.horizontalSpeed.text = getString(HORIZONTAL_SPEED)
                 binding.direction.text = getString(DIRECTION)
                 reportAlreadyShown = getBoolean(REPORT_ALREADY_SHOWN)
-                sondeLat = getDouble(SONDE_LAT)
-                sondeLon = getDouble(SONDE_LON)
+                sondeLat = getNullableDouble(SONDE_LAT)
+                sondeLon = getNullableDouble(SONDE_LON)
             } catch (ex: Exception) {
-                Log.e(TAG, "eccezione in onRestoreInstanceState $ex")
+                Log.e(TAG, "Exception in onRestoreInstanceState $ex")
             }
         }
         binding.id.text = normalizeSondeId()
@@ -1694,7 +1844,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     val rlAskForScanning =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            Log.i(TAG, "ACTIVITY terminata")
             askForScanning(true)
         }
 
@@ -1805,14 +1954,14 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
     override fun onSerial(serial: String) {
         runOnUiThread {
             updateSondeLocation(serial, null, null, null)//,sondeLat,sondeLon,sondeAlt)
-            if (pollicinoMode && currentLocation != null) {
-                fldPollicino.add(Marker(binding.map).apply {
-                    icon = AppCompatResources.getDrawable(applicationContext, R.drawable.spot)
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                    infoWindow = null
-                    position = GeoPoint(currentLocation!!.latitude, currentLocation!!.longitude)
-                })
-            }
+//            if (pollicinoMode && currentLocation != null) {
+//                fldPollicino.add(Marker(binding.map).apply {
+//                    icon = AppCompatResources.getDrawable(applicationContext, R.drawable.spot)
+//                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+//                    infoWindow = null
+//                    position = GeoPoint(currentLocation!!.latitude, currentLocation!!.longitude)
+//                })
+//            }
         }
         /*if (!serial.isEmpty()) currentLocation?.apply {
             try {
@@ -1892,7 +2041,6 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
             this.version = a[1]
             platform = a[0]
         }
-//        Log.i(TAG,"Current version: $version")
         if (!versionChecked && versionDB != null && receiver != null) {
             versionChecked = true
             val versionInfo: VersionInfo? = versionDB?.db?.getOrDefault(platform, null)
@@ -1954,19 +2102,19 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCrypto(rssi: Int, cpuTemp: Int, radioTemp: Int) {
-        runOnUiThread {
-            if (pollicinoMode && currentLocation != null) {
-                fldPollicino.add(Marker(binding.map).apply {
-                    icon = AppCompatResources.getDrawable(applicationContext, R.drawable.spot)
-                    //TODO: verificare scala rssi
-                    icon.setTint(Color.HSVToColor(floatArrayOf((240F + rssi), 1F, .5F)))
-                    icon.setTintBlendMode(BlendMode.DARKEN)
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                    infoWindow = null
-                    position = GeoPoint(currentLocation!!.latitude, currentLocation!!.longitude)
-                })
-            }
-        }
+//        runOnUiThread {
+//            if (pollicinoMode && currentLocation != null) {
+//                fldPollicino.add(Marker(binding.map).apply {
+//                    icon = AppCompatResources.getDrawable(applicationContext, R.drawable.spot)
+//                    //TODO: verificare scala rssi
+//                    icon.setTint(Color.HSVToColor(floatArrayOf((240F + rssi), 1F, .5F)))
+//                    icon.setTintBlendMode(BlendMode.DARKEN)
+//                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+//                    infoWindow = null
+//                    position = GeoPoint(currentLocation!!.latitude, currentLocation!!.longitude)
+//                })
+//            }
+//        }
     }
 
     companion object {
@@ -2009,6 +2157,8 @@ class FullscreenActivity : AppCompatActivity(), LocationListener, MapEventsRecei
         fun unregisterFreqOffsetReceiver() {
             freqOffsetReceiver = null
         }
+
+        var nearbySonde: Sonde? = null
     }
 }
 

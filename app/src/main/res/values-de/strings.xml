@@ -135,7 +135,9 @@
     <string name="chase_car">Verfolgungsfahrzeug</string>
     <string name="seems_to_be_in_proximity_of_the_nearest_sonde">%1$s scheint in der Nähe der nächsten Sonde zu sein, bitte überprüfen</string>
     <string name="planned_recovery">Geplante Sondenbergung</string>
-    <string name="radiosondy_planned_recovery">Laut radiosondy.info plant Benutzer \"%1$s\", diese Sonde zu bergen!\nNachricht: \"%2$s\"</string>
+    <string name="radiosondy_planned_recovery">Laut radiosondy.info hat der Nutzer \"%1$s\" geplant, die Sonde %3$s zu bergen!\nNachricht: \"%2$s\"</string>
+    <string name="sondehub_planned_recovery">Laut sondehub.org hat der Nutzer \"%1$s\" geplant, die Sonde %3$s zu bergen!\nNachricht: \"%2$s\"</string>
+    <string name="sondehub_user_recovered_the_sonde">Sondehub-Nutzer %1$s hat die Sonde %3$s geborgen (%2$s)</string>    <string name="sonde_recovered">Sonde geborgen</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

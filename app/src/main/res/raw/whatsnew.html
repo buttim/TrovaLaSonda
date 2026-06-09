@@ -3,16 +3,37 @@
     <head>
         <title></title>
         <style>
-            :root { color-scheme: light dark; }
-            body {background-color: light-dark(white,rgb(53,53,53));}
+            :root {contain: layout size;}
+
+            body {
+                background-color: white;
+                color: black;
+                margin: 0;
+                padding: 8px;
+                -webkit-text-size-adjust: 100%;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: rgb(53, 53, 53);
+                    color: white;
+                }
+            }
         </style>
     </head>
     <body>
         <ul>
-            <li>Bug fixes for initial showcase and disabled geolocation</li>
+            <li>French and german translations</li>
+            <li>Automatic configuration of the receiver based on nearby sonde</li>
+            <li>Warnings for planned takings, recovered sondes and chase cars in the area
+                (infos courtesy of <a href='https://radiosondy.info'>radiosondy.info</a> and <a href='https://sondehub.org'>sondehub.org</a>)</li>
+            <li>Corrects initial showcase problem in landscape orientation</li>
+            <li>Fixes missing request to turn on geolocation when off</li>
+            <li>Fixes incorrect serial with DFM17 and MySondyGO receiver (thanks pj2ls!)</li>
+            <!--<li>Bug fixes for initial showcase and disabled geolocation</li>
             <li>Automatic receiver configuration based on nearby sonde</li>
             <li>Support for the new <a href='https://www.ydiaeresis.eu/public/'>TrovaLaSondaFw</a> firmware for <b>Heltec WiFi Lora32 v3</b> and <b>TTGO Lora32</b></li>
-            <li>Support for MySondyGO v3 (BLE)</li>
+            <li>Support for MySondyGO v3 (BLE)</li>-->
             <!--<li>Wrong predictions bug fixed</li>
             <li>More battery friendly</li>
             <li>Enables Sondehub recovery notifications</li>

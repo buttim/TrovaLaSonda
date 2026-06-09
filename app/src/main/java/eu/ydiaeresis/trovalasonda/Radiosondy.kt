@@ -183,10 +183,10 @@ class Radiosondy {
                 }.use {
                     val response =
                         it.get(URI + "planned-takings")
-                    Log.d(
+                    /*Log.d(
                         FullscreenActivity.TAG,
                         "planned-takings: (${response.status}) ${response.bodyAsText()}"
-                    )
+                    )*/
                     return when (response.status) {
                         HttpStatusCode.OK -> {
                             try {

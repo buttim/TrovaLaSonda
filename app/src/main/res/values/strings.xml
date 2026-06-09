@@ -132,6 +132,13 @@
     <string name="do_you_want_to_automatically_setup_the_receiver_mhz">Do you want to automatically setup the receiver?\n(%1$s %2$.3fMHz)</string>
     <string name="you_must_enable_geolocation_in_order_to_use_this_app">You must enable geolocation in order to use this app</string>
     <string name="enable">Enable</string>
+    <string name="chase_car">Chase car</string>
+    <string name="seems_to_be_in_proximity_of_the_nearest_sonde">%1$s seems to be in proximity of the nearest sonde, please check</string>
+    <string name="planned_recovery">Planned recovery</string>
+    <string name="radiosondy_planned_recovery">According to radiosondy.info, user \"%1$s\" has planned to recover the sonde %3$s!\nMessage: \"%2$s\"</string>
+    <string name="sondehub_planned_recovery">According to sondehub.org, user \"%1$s\" has planned to recover the sonde %3$s!\nMessage: \"%2$s\"</string>
+    <string name="sondehub_user_recovered_the_sonde">Sondehub user %1$s recovered the sonde %3$s (%2$s)</string>
+    <string name="sonde_recovered">Sonde recovered</string>
     <string-array name="display_types">
         <item>SSD1306</item>
         <item>SH1106</item>

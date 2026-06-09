@@ -36,7 +36,8 @@ Molti amici dei gruppi radiosonde su Facebook\n\n
 <a href='https://github.com/osmdroid/osmdroid'>osmdroid</a> (<a href='https://github.com/osmdroid/osmdroid/blob/master/LICENSE'>Apache-2.0</a>)\n
 <a href='https://github.com/deano2390/MaterialShowcaseView'>MaterialShowcaseView</a> (<a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache-2.0</a>)\n
 <a href='https://github.com/nacular/measured'>measured</a> (<a href='https://github.com/nacular/measured/blob/master/LICENSE'>Licenza personalizzata</a>)\n\n
-<b><big>Predizioni</big></b>\n
+<b><big>Predizioni e API di Sondehub</big></b>\n
 Le predizioni usano il servizio <a href='https://github.com/cuspaceflight/tawhiri'>Tawhiri</a>\n
+La funzionalità "sonda vicina" invoca diverse API di <a href='https://www.sondehub.org'>Sondehub</a>\n
     </string>
 </resources>

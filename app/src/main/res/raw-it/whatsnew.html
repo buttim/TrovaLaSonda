@@ -1,18 +1,41 @@
 <!DOCTYPE HTML>
 <html lang='it'>
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title></title>
         <style>
-            :root { color-scheme: light dark; }
-            body {background-color: light-dark(white,rgb(53,53,53));}
+            :root {contain: layout size;}
+
+            body {
+                background-color: white;
+                color: black;
+                margin: 0;
+                padding: 8px;
+                -webkit-text-size-adjust: 100%;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: rgb(53, 53, 53);
+                    color: white;
+                }
+            }
         </style>
     </head>
     <body>
         <ul>
-            <li>Risolti bug per intro nuovo utente e per localizzazione disabilitata</li>
+            <li>Traduzioni in francese e tedesco</li>
+            <li>Configurazione automatica del ricevitore in base a sonda nelle vicinanze</li>
+            <li>Avviso per recuperi pianificati, sonde già recuperate e auto in caccia nelle vicinanze
+                (informazioni grazie a <a href='https://radiosondy.info'>radiosondy.info</a> e <a href='https://sondehub.org'>sondehub.org</a>)</li>
+            <li>Corregge un problema nella vetrina iniziale in modalità panorama</li>
+            <li>Risolve richiesta mancante di attivazione localizzazione quando disabilitata</li>
+            <li>Risolve seriale errato con DFM17 e ricevitore MySondyGO (grazie pj2ls!)</li>
+            <!--<li>Risolti bug per intro nuovo utente e per localizzazione disabilitata</li>
             <li>Configurazione automatica ricevitore per sonda vicina</li>
             <li>Supporto per nuovo firmware <a href='https://www.ydiaeresis.eu/public/'>TrovaLaSondaFw</a> per <b>Heltec WiFi Lora32 v3</b> e <b>TTGO Lora32</b></li>
-            <li>Supporto per MySondyGO v3 (BLE)</li>
+            <li>Supporto per MySondyGO v3 (BLE)</li>-->
             <!--<li>Risolve problema sulle predizioni</li>
             <li>Più attento ai consumi della batteria</li>
             <li>Permette di registrare i recuperi anche su Sondehub</li>
